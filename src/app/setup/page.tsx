@@ -3,91 +3,74 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { doc, getDoc, writeBatch } from "firebase/firestore";
-import { AuthCard } from "@/components/AuthCard";
-import { auth, db, firebaseConfigured } from "@/lib/firebase";
+import { ShieldCheck } from "lucide-react";
+import { AuthLayout } from "@/components/AuthLayout";
+import { Field } from "@/components/common";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { backend } from "@/lib/backend";
 import { useI18n } from "@/lib/i18n";
+import { fieldErrors, newUserSchema } from "@/lib/schemas";
 
 /** One-time page that creates the first HR account. */
 export default function SetupPage() {
   const { t } = useI18n();
   const router = useRouter();
   const [done, setDone] = useState<boolean | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!firebaseConfigured) return;
-    getDoc(doc(db, "meta", "setup"))
-      .then((s) => setDone(s.exists()))
-      .catch(() => setDone(false));
+    backend.isSetupDone().then(setDone).catch(() => setDone(false));
   }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    const parsed = newUserSchema.safeParse(form);
+    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
+    setErrors({});
     setBusy(true);
-    setError("");
+    setFormError("");
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      const batch = writeBatch(db);
-      batch.set(doc(db, "users", cred.user.uid), {
-        name: name.trim(),
-        email: email.trim(),
-        role: "hr",
-        active: true,
-        createdAt: Date.now(),
-      });
-      batch.set(doc(db, "meta", "setup"), { by: cred.user.uid, at: Date.now() });
-      try {
-        await batch.commit();
-      } catch (err) {
-        await deleteUser(cred.user).catch(() => {});
-        throw err;
-      }
+      await backend.setupFirstHr(parsed.data);
       router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("error"));
+      setFormError(err instanceof Error ? err.message : t("error"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <AuthCard title={t("setup.title")}>
-      {!firebaseConfigured ? (
-        <p className="text-sm text-danger">{t("config.missing")}</p>
-      ) : done === null ? (
-        <p className="text-sm text-muted">{t("loading")}</p>
+    <AuthLayout title={t("setup.title")}>
+      {done === null ? (
+        <p className="text-sm text-muted-foreground">{t("loading")}</p>
       ) : done ? (
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           {t("setup.done")}{" "}
-          <Link href="/login" className="underline">{t("login.submit")}</Link>
+          <Link href="/login" className="font-medium text-forest underline">{t("login.submit")}</Link>
         </p>
       ) : (
-        <form onSubmit={submit} className="space-y-4">
-          <p className="text-sm text-muted">{t("setup.intro")}</p>
-          <div>
-            <label className="label">{t("setup.name")}</label>
-            <input required className="input" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">{t("login.email")}</label>
-            <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">{t("login.password")}</label>
-            <input type="password" minLength={6} required className="input" value={password}
-              onChange={(e) => setPassword(e.target.value)} />
-            <p className="mt-1 text-xs text-muted">{t("users.passwordHint")}</p>
-          </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <button className="btn-dark w-full" disabled={busy}>{busy ? t("saving") : t("setup.submit")}</button>
+        <form onSubmit={submit} className="grid gap-4" noValidate>
+          <p className="text-sm text-muted-foreground">{t("setup.intro")}</p>
+          <Field label={t("setup.name")} htmlFor="name" error={errors.name}>
+            <Input id="name" value={form.name} aria-invalid={!!errors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
+          <Field label={t("login.email")} htmlFor="email" error={errors.email}>
+            <Input id="email" type="email" value={form.email} aria-invalid={!!errors.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </Field>
+          <Field label={t("login.password")} htmlFor="pw" error={errors.password} hint={t("users.passwordHint")}>
+            <Input id="pw" type="password" value={form.password} aria-invalid={!!errors.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          </Field>
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+          <Button type="submit" size="lg" disabled={busy}>
+            <ShieldCheck /> {busy ? t("saving") : t("setup.submit")}
+          </Button>
         </form>
       )}
-    </AuthCard>
+    </AuthLayout>
   );
 }
