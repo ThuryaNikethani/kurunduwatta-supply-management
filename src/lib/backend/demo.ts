@@ -1,0 +1,392 @@
+import { MENU, slugify } from "../menu";
+import type {
+  AppNotification,
+  DocKind,
+  Recipe,
+  Role,
+  SupplyList,
+  TransferOut,
+  UserProfile,
+} from "../types";
+import type { AuthSnapshot, Backend, PushState } from "./types";
+
+/**
+ * Demo backend: everything is stored in this browser (localStorage) so the
+ * frontend can be tried without any server. Open two tabs and sign in as
+ * different roles to see live notifications between them.
+ */
+
+interface DemoUser extends UserProfile {
+  password: string;
+}
+
+interface State {
+  version: number;
+  users: DemoUser[];
+  recipes: Recipe[];
+  supply: SupplyList[];
+  transfer: TransferOut[];
+  notifications: Record<string, AppNotification[]>;
+}
+
+const KEY = "kw-demo-v1";
+const SESSION = "kw-demo-session";
+export const DEMO_PASSWORD = "demo1234";
+
+export const DEMO_ACCOUNTS: { email: string; role: Role; name: string }[] = [
+  { email: "chef@demo.lk", role: "chef", name: "Nimal (Chef)" },
+  { email: "supervisor@demo.lk", role: "supervisor", name: "Kamala (Supervisor)" },
+  { email: "hr@demo.lk", role: "hr", name: "Sunil (HR)" },
+];
+
+const SAMPLE_INGREDIENTS: Record<string, Recipe["ingredients"]> = {
+  "Traditional Sri Lankan Rice & Curry Set": [
+    { name: "Samba rice", unit: "g", qtyPerPerson: 150 },
+    { name: "Red dhal", unit: "g", qtyPerPerson: 40 },
+    { name: "Chicken", unit: "g", qtyPerPerson: 120 },
+    { name: "Coconut milk", unit: "ml", qtyPerPerson: 100 },
+    { name: "Red onion", unit: "g", qtyPerPerson: 30 },
+    { name: "Green chilli", unit: "g", qtyPerPerson: 5 },
+    { name: "Curry powder", unit: "g", qtyPerPerson: 8 },
+  ],
+  "Live Style Kothu Roti": [
+    { name: "Godamba roti", unit: "pcs", qtyPerPerson: 2 },
+    { name: "Chicken", unit: "g", qtyPerPerson: 100 },
+    { name: "Eggs", unit: "pcs", qtyPerPerson: 1 },
+    { name: "Leeks", unit: "g", qtyPerPerson: 30 },
+    { name: "Carrot", unit: "g", qtyPerPerson: 30 },
+  ],
+  "Pol Roti Platter": [
+    { name: "Wheat flour", unit: "g", qtyPerPerson: 100 },
+    { name: "Grated coconut", unit: "g", qtyPerPerson: 50 },
+    { name: "Red onion", unit: "g", qtyPerPerson: 20 },
+    { name: "Green chilli", unit: "g", qtyPerPerson: 5 },
+  ],
+  "Sri Lankan Watalappan": [
+    { name: "Kithul jaggery", unit: "g", qtyPerPerson: 40 },
+    { name: "Eggs", unit: "pcs", qtyPerPerson: 1 },
+    { name: "Coconut milk", unit: "ml", qtyPerPerson: 80 },
+    { name: "Cardamom", unit: "g", qtyPerPerson: 1 },
+  ],
+  "Fresh Tropical Fruit Juices": [
+    { name: "Fresh fruit", unit: "g", qtyPerPerson: 200 },
+    { name: "Sugar", unit: "g", qtyPerPerson: 15 },
+  ],
+  "Devilled Dish": [
+    { name: "Chicken", unit: "g", qtyPerPerson: 150 },
+    { name: "Capsicum", unit: "g", qtyPerPerson: 40 },
+    { name: "Big onion", unit: "g", qtyPerPerson: 40 },
+    { name: "Tomato sauce", unit: "ml", qtyPerPerson: 20 },
+  ],
+};
+
+function seed(): State {
+  const now = Date.now();
+  const users: DemoUser[] = DEMO_ACCOUNTS.map((a) => ({
+    uid: a.role,
+    name: a.name,
+    email: a.email,
+    role: a.role,
+    active: true,
+    password: DEMO_PASSWORD,
+    createdAt: now,
+  }));
+  const recipes: Recipe[] = MENU.flatMap(({ category, dishes }) =>
+    dishes.map((name) => ({ id: slugify(name), name, category, ingredients: SAMPLE_INGREDIENTS[name] ?? [], updatedAt: now })),
+  );
+  const chef = users[0];
+  const sample: SupplyList = {
+    id: "demo-1",
+    title: "Perera family – 10 guests",
+    eventDate: new Date(now + 86400000).toISOString().slice(0, 10),
+    meal: "lunch",
+    guestCount: 10,
+    dishes: [
+      { id: slugify("Traditional Sri Lankan Rice & Curry Set"), name: "Traditional Sri Lankan Rice & Curry Set" },
+      { id: slugify("Sri Lankan Watalappan"), name: "Sri Lankan Watalappan" },
+    ],
+    items: [
+      { name: "Samba rice", unit: "kg", qty: 1.5, calculated: 1.5, note: "" },
+      { name: "Red dhal", unit: "g", qty: 400, calculated: 400, note: "" },
+      { name: "Chicken", unit: "kg", qty: 1.5, calculated: 1.2, note: "Guests asked for extra chicken" },
+      { name: "Coconut milk", unit: "l", qty: 1.8, calculated: 1.8, note: "" },
+      { name: "Kithul jaggery", unit: "g", qty: 400, calculated: 400, note: "" },
+      { name: "Eggs", unit: "pcs", qty: 10, calculated: 10, note: "" },
+    ],
+    status: "pending_supervisor",
+    history: [{ at: now - 3600000, uid: chef.uid, name: chef.name, role: "chef", action: "submit", note: "" }],
+    createdBy: chef.uid,
+    createdByName: chef.name,
+    createdAt: now - 3600000,
+    updatedAt: now - 3600000,
+  };
+  return { version: 1, users, recipes, supply: [sample], transfer: [], notifications: {} };
+}
+
+// ---------------------------------------------------------------- store
+
+let cache: State | null = null;
+const listeners = new Set<() => void>();
+
+function load(): State {
+  if (cache) return cache;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) cache = JSON.parse(raw) as State;
+  } catch {}
+  if (!cache) {
+    cache = seed();
+    save();
+  }
+  return cache;
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(cache));
+  } catch {}
+}
+
+function emit() {
+  for (const l of [...listeners]) l();
+}
+
+function mutate(fn: (s: State) => void) {
+  const s = structuredClone(load());
+  fn(s);
+  cache = s;
+  save();
+  emit();
+}
+
+if (typeof window !== "undefined") {
+  // Other tabs changed the data -> refresh this tab live.
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY) {
+      cache = null;
+      emit();
+    }
+    if (e.key === null) {
+      cache = null;
+      emit();
+    }
+  });
+}
+
+function watch<T>(select: (s: State) => T, cb: (v: T) => void) {
+  let last = "";
+  const run = () => {
+    const v = select(load());
+    const json = JSON.stringify(v);
+    if (json === last) return;
+    last = json;
+    cb(structuredClone(v));
+  };
+  listeners.add(run);
+  setTimeout(run, 0);
+  return () => {
+    listeners.delete(run);
+  };
+}
+
+const delay = () => new Promise((r) => setTimeout(r, 150));
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+// ---------------------------------------------------------------- auth
+
+let sessionUid: string | null = null;
+const authListeners = new Set<() => void>();
+
+function currentSession() {
+  if (sessionUid === null) {
+    try {
+      sessionUid = sessionStorage.getItem(SESSION) ?? "";
+    } catch {
+      sessionUid = "";
+    }
+  }
+  return sessionUid;
+}
+
+function setSession(uid: string) {
+  sessionUid = uid;
+  try {
+    if (uid) sessionStorage.setItem(SESSION, uid);
+    else sessionStorage.removeItem(SESSION);
+  } catch {}
+  for (const l of [...authListeners]) l();
+}
+
+function strip(u: DemoUser): UserProfile {
+  const { password: _pw, ...rest } = u;
+  void _pw;
+  return rest;
+}
+
+export const demoBackend: Backend = {
+  name: "demo",
+
+  onAuth(cb) {
+    const run = () => {
+      const uid = currentSession();
+      if (!uid) return cb({ status: "signedOut", profile: null });
+      const u = load().users.find((x) => x.uid === uid);
+      const snap: AuthSnapshot = u ? { status: "ready", profile: strip(u) } : { status: "noProfile", profile: null };
+      cb(snap);
+    };
+    authListeners.add(run);
+    listeners.add(run);
+    setTimeout(run, 0);
+    return () => {
+      authListeners.delete(run);
+      listeners.delete(run);
+    };
+  },
+
+  async signIn(email, password) {
+    await delay();
+    const u = load().users.find((x) => x.email.toLowerCase() === email.toLowerCase());
+    if (!u || u.password !== password) throw new Error("auth/invalid-credential");
+    setSession(u.uid);
+  },
+
+  async signOut() {
+    setSession("");
+  },
+
+  async isSetupDone() {
+    return true;
+  },
+
+  async setupFirstHr() {
+    throw new Error("Demo mode is already set up.");
+  },
+
+  watchUsers(cb) {
+    return watch((s) => s.users.map(strip), cb);
+  },
+
+  async createUser({ name, email, password, role }) {
+    await delay();
+    if (load().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
+      throw new Error("Email already in use.");
+    mutate((s) => s.users.push({ uid: newId(), name, email, password, role, active: true, createdAt: Date.now() }));
+  },
+
+  async updateUser(uid, patch) {
+    mutate((s) => {
+      const u = s.users.find((x) => x.uid === uid);
+      if (u) Object.assign(u, patch);
+    });
+  },
+
+  async activeUserIds(roles) {
+    return load()
+      .users.filter((u) => u.active && roles.includes(u.role))
+      .map((u) => u.uid);
+  },
+
+  watchRecipes(cb) {
+    return watch((s) => s.recipes, cb);
+  },
+
+  async saveRecipe(id, data) {
+    await delay();
+    mutate((s) => {
+      const i = s.recipes.findIndex((r) => r.id === id);
+      if (i >= 0) s.recipes[i] = { id, ...data };
+      else s.recipes.push({ id, ...data });
+    });
+  },
+
+  async deleteRecipe(id) {
+    mutate((s) => {
+      s.recipes = s.recipes.filter((r) => r.id !== id);
+    });
+  },
+
+  async addRecipes(recipes) {
+    mutate((s) => {
+      const have = new Set(s.recipes.map((r) => r.id));
+      s.recipes.push(...recipes.filter((r) => !have.has(r.id)));
+    });
+  },
+
+  watchDocs(kind, cb) {
+    return watch((s) => [...(s[kind] as unknown[])].sort(byNewest), cb as (v: unknown[]) => void);
+  },
+
+  watchDoc(kind, id, cb) {
+    return watch(
+      (s) => (s[kind] as { id: string }[]).find((d) => d.id === id) ?? null,
+      cb as (v: unknown) => void,
+    );
+  },
+
+  watchTransfersFor(supplyId, cb) {
+    return watch((s) => s.transfer.filter((t) => t.supplyId === supplyId).sort(byNewest), cb);
+  },
+
+  async createDoc(kind, data) {
+    await delay();
+    const id = newId();
+    mutate((s) => {
+      (s[kind] as unknown[]).push({ id, ...data });
+    });
+    return id;
+  },
+
+  async updateDoc(kind: DocKind, id, changes, history) {
+    await delay();
+    mutate((s) => {
+      const d = (s[kind] as (SupplyList | TransferOut)[]).find((x) => x.id === id);
+      if (!d) throw new Error("Not found");
+      Object.assign(d, changes);
+      d.history = [...d.history, history];
+    });
+  },
+
+  async addNotifications(uids, n) {
+    mutate((s) => {
+      for (const uid of uids) s.notifications[uid] = [{ id: newId(), ...n }, ...(s.notifications[uid] ?? [])].slice(0, 100);
+    });
+  },
+
+  watchNotifications(uid, cb) {
+    return watch((s) => s.notifications[uid] ?? [], cb);
+  },
+
+  async markNotificationsRead(uid, ids) {
+    mutate((s) => {
+      for (const n of s.notifications[uid] ?? []) if (ids.includes(n.id)) n.read = true;
+    });
+  },
+
+  async sendPush() {
+    // No server in demo mode; the in-app listener shows system
+    // notifications while another tab of the app is open.
+  },
+
+  async pushState() {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission as PushState;
+  },
+
+  async enablePush() {
+    if (!("Notification" in window)) return "unsupported";
+    return (await Notification.requestPermission()) as PushState;
+  },
+
+  async refreshPush() {},
+};
+
+function byNewest(a: unknown, b: unknown) {
+  return (b as { createdAt: number }).createdAt - (a as { createdAt: number }).createdAt;
+}
+
+/** Wipe demo data and start again with the sample data. */
+export function resetDemo() {
+  cache = seed();
+  save();
+  emit();
+}
