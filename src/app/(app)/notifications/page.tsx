@@ -2,100 +2,112 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { collection, doc, limit, onSnapshot, orderBy, query, updateDoc, writeBatch } from "firebase/firestore";
+import { Bell, BellOff, BellRing, CheckCheck, RefreshCw } from "lucide-react";
+import { EmptyState, PageHeader } from "@/components/common";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
+import { backend, type PushState } from "@/lib/backend";
 import { formatDateTime } from "@/lib/format";
+import { useNotifications } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
 import { notificationText } from "@/lib/notify";
-import { enablePush, pushState, type PushState } from "@/lib/push";
 import { docLink, type AppNotification } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export default function NotificationsPage() {
   const { profile } = useAuth();
   const { t, lang } = useI18n();
   const router = useRouter();
-  const [list, setList] = useState<AppNotification[] | null>(null);
+  const list = useNotifications(profile?.uid);
   const [push, setPush] = useState<PushState>("unsupported");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!profile) return;
-    const q = query(collection(db, "users", profile.uid, "notifications"), orderBy("createdAt", "desc"), limit(100));
-    return onSnapshot(q, (s) => setList(s.docs.map((d) => ({ id: d.id, ...d.data() }) as AppNotification)));
-  }, [profile]);
-
-  useEffect(() => {
-    pushState().then(setPush);
+    backend.pushState().then(setPush);
   }, []);
 
   if (!profile) return null;
+  const unread = (list ?? []).filter((n) => !n.read);
 
-  async function markAll() {
-    const batch = writeBatch(db);
-    for (const n of list ?? [])
-      if (!n.read) batch.update(doc(db, "users", profile!.uid, "notifications", n.id), { read: true });
-    await batch.commit();
-  }
-
-  async function open(n: AppNotification) {
-    if (!n.read) updateDoc(doc(db, "users", profile!.uid, "notifications", n.id), { read: true });
+  function open(n: AppNotification) {
+    if (!n.read) backend.markNotificationsRead(profile!.uid, [n.id]);
     router.push(docLink(n.kind, n.docId));
   }
 
   async function turnOn() {
     setBusy(true);
     try {
-      setPush(await enablePush(profile!.uid));
+      setPush(await backend.enablePush(profile!.uid));
     } catch {
-      setPush(await pushState());
+      setPush(await backend.pushState());
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="h1">{t("notif.title")}</h1>
-        <button className="btn-outline" onClick={markAll}>{t("notif.markAll")}</button>
-      </div>
+    <div className="grid gap-6">
+      <PageHeader
+        title={t("notif.title")}
+        actions={
+          unread.length > 0 && (
+            <Button variant="outline" onClick={() => backend.markNotificationsRead(profile.uid, unread.map((n) => n.id))}>
+              <CheckCheck /> {t("notif.markAll")}
+            </Button>
+          )
+        }
+      />
 
       {push !== "unsupported" && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 py-3 sm:py-4">
-          {push === "granted" ? (
-            <p className="text-sm text-leaf-deep">✓ {t("notif.enabled")}</p>
-          ) : push === "denied" ? (
-            <p className="text-sm text-danger">{t("notif.blocked")}</p>
-          ) : (
-            <button className="btn-primary" onClick={turnOn} disabled={busy}>🔔 {t("notif.enable")}</button>
-          )}
-          {push === "granted" && (
-            <button className="text-xs text-muted underline" onClick={turnOn} disabled={busy}>↻</button>
-          )}
-        </div>
+        <Card className="py-4">
+          <CardContent className="flex flex-wrap items-center gap-3 px-4">
+            {push === "granted" ? (
+              <>
+                <BellRing className="size-5 text-leaf-deep" />
+                <p className="flex-1 text-sm text-leaf-deep">{t("notif.enabled")}</p>
+                <Button variant="ghost" size="icon" onClick={turnOn} disabled={busy} aria-label="Refresh"><RefreshCw /></Button>
+              </>
+            ) : push === "denied" ? (
+              <>
+                <BellOff className="size-5 text-destructive" />
+                <p className="flex-1 text-sm text-destructive">{t("notif.blocked")}</p>
+              </>
+            ) : (
+              <>
+                <Bell className="size-5 text-amber-deep" />
+                <p className="flex-1 text-sm">{t("notif.prompt")}</p>
+                <Button variant="accent" onClick={turnOn} disabled={busy}>{t("notif.enable")}</Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {!list ? (
-        <p className="text-muted">{t("loading")}</p>
+        <Skeleton className="h-64" />
       ) : list.length === 0 ? (
-        <p className="card text-sm text-muted">{t("notif.empty")}</p>
+        <EmptyState icon={Bell} text={t("notif.empty")} />
       ) : (
-        <ul className="card divide-y divide-mist p-0 sm:p-0">
-          {list.map((n) => (
-            <li key={n.id}>
-              <button onClick={() => open(n)}
-                className={`flex w-full gap-3 px-4 py-3 text-left hover:bg-cream ${n.read ? "" : "bg-amber/10"}`}>
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? "bg-transparent" : "bg-amber"}`} />
-                <span className="min-w-0">
-                  <span className="block text-sm">{notificationText(n)[lang]}</span>
-                  {n.note && <span className="mt-0.5 block text-sm text-muted">“{n.note}”</span>}
-                  <span className="mt-0.5 block text-xs text-muted">{formatDateTime(n.createdAt, lang)}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <Card className="gap-0 overflow-hidden py-0">
+          <ul className="divide-y">
+            {list.map((n) => (
+              <li key={n.id}>
+                <button onClick={() => open(n)} className={cn("flex w-full gap-3 px-4 py-3.5 text-left transition hover:bg-secondary/50", !n.read && "bg-amber/10")}>
+                  <span className={cn("mt-1 flex size-8 shrink-0 items-center justify-center rounded-full", n.read ? "bg-secondary text-muted-foreground" : "bg-amber text-forest")}>
+                    <Bell className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block text-sm", !n.read && "font-medium")}>{notificationText(n)[lang]}</span>
+                    {n.note && <span className="mt-0.5 block text-sm text-muted-foreground">“{n.note}”</span>}
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{formatDateTime(n.createdAt, lang)}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   );
