@@ -1,15 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { toast } from "sonner";
+import { CalendarDays, Users } from "lucide-react";
+import { EmptyState, PageHeader } from "@/components/common";
+import { BackBar } from "@/components/DetailBits";
 import { TransferForm } from "@/components/TransferForm";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createWorkflowDoc } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { useDocument } from "@/lib/hooks";
+import { useDoc } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
-import type { SupplyList } from "@/lib/types";
 
 export default function NewTransferPage() {
   return (
@@ -20,27 +23,29 @@ export default function NewTransferPage() {
 }
 
 function NewTransfer() {
-  const supplyId = useSearchParams().get("supply") ?? "";
+  const supplyId = useSearchParams().get("supply");
   const { profile } = useAuth();
   const { t, lang } = useI18n();
   const router = useRouter();
-  const supply = useDocument<SupplyList>("supplyLists", supplyId || "_");
+  const supply = useDoc("supply", supplyId);
 
-  if (supply === undefined) return <p className="text-muted">{t("loading")}</p>;
-  if (!supply || !profile || profile.role !== "chef")
-    return <p className="text-muted">{t("detail.notFound")}</p>;
-  if (supply.status !== "approved") return <p className="text-muted">{t("transfer.onlyApproved")}</p>;
+  if (supply === undefined) return <Skeleton className="h-96" />;
+  if (!supply || !profile || profile.role !== "chef") return <EmptyState text={t("detail.notFound")} />;
+  if (supply.status !== "approved") return <EmptyState text={t("transfer.onlyApproved")} />;
 
   return (
-    <div className="space-y-6">
-      <Link href={`/requests/${supply.id}`} className="text-sm text-muted hover:text-forest">← {t("back")}</Link>
-      <div>
-        <h1 className="h1">{t("transfer.new")}</h1>
-        <p className="mt-1 text-muted">
-          {t("transfer.for")}: <span className="font-medium text-forest">{supply.title}</span> ·{" "}
-          {formatDate(supply.eventDate, lang)} · {supply.guestCount} {t("supply.guests")}
-        </p>
-      </div>
+    <div className="grid gap-6">
+      <BackBar href={`/requests/${supply.id}`} />
+      <PageHeader
+        eyebrow={t("transfer.new")}
+        title={supply.title}
+        subtitle={
+          <span className="flex flex-wrap gap-4">
+            <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" /> {formatDate(supply.eventDate, lang)}</span>
+            <span className="inline-flex items-center gap-1"><Users className="size-4" /> {supply.guestCount} {t("supply.guests")}</span>
+          </span>
+        }
+      />
       <TransferForm
         dishOptions={supply.dishes.map((d) => d.name)}
         guestCount={supply.guestCount}
@@ -52,6 +57,7 @@ function NewTransfer() {
             { ...data, supplyId: supply.id, supplyTitle: supply.title, guestCount: supply.guestCount },
             note,
           );
+          toast.success(t("supply.send"));
           router.replace(`/leftovers/${id}`);
         }}
       />
