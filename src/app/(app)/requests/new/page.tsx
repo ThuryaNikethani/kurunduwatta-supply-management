@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { EmptyState, PageHeader } from "@/components/common";
 import { SupplyForm } from "@/components/SupplyForm";
 import { createWorkflowDoc } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -12,15 +14,16 @@ export default function NewSupplyList() {
   const router = useRouter();
 
   if (!profile) return null;
-  if (profile.role !== "chef") return <p className="text-muted">{t("detail.notFound")}</p>;
+  if (profile.role !== "chef") return <EmptyState text={t("detail.notFound")} />;
 
   return (
-    <div className="space-y-6">
-      <h1 className="h1">{t("supply.new")}</h1>
+    <div className="grid gap-6">
+      <PageHeader eyebrow={t("dash.supplyLists")} title={t("supply.new")} />
       <SupplyForm
         submitLabel={t("supply.send")}
         onSubmit={async (data, note) => {
-          const id = await createWorkflowDoc("supply", profile, { ...data }, note);
+          const id = await createWorkflowDoc("supply", profile, data, note);
+          toast.success(t("supply.send"));
           router.replace(`/requests/${id}`);
         }}
       />
