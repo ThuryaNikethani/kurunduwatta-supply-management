@@ -1,5 +1,4 @@
-import { collection, doc, getDocs, query, where, writeBatch } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { backend } from "./backend";
 import { translate } from "./i18n";
 import { docLink, type Action, type DocKind, type Role } from "./types";
 
@@ -15,8 +14,10 @@ interface NotifyInput {
   note: string;
 }
 
-/** Push text in both languages so every phone can read it. */
-export function notificationText(n: Omit<NotifyInput, "roles" | "byUid" | "docId">) {
+type TextInput = Pick<NotifyInput, "kind" | "action" | "docTitle" | "byName" | "byRole">;
+
+/** Notification text in both languages (push messages show both). */
+export function notificationText(n: TextInput) {
   const line = (lang: "en" | "si") =>
     translate(lang, n.kind === "supply" ? "notif.msg.supply" : "notif.msg.transfer", {
       by: n.byName,
@@ -28,47 +29,31 @@ export function notificationText(n: Omit<NotifyInput, "roles" | "byUid" | "docId
 }
 
 /**
- * Write an in-app notification for every active user in the given roles,
- * then ask the server to send a phone/desktop push (if configured).
+ * Send an in-app notification to every active user in the given roles,
+ * then a phone/desktop push (best effort).
  */
 export async function notifyRoles(n: NotifyInput) {
-  const snap = await getDocs(query(collection(db, "users"), where("role", "in", n.roles)));
-  const uids = snap.docs
-    .filter((d) => d.data().active !== false && d.id !== n.byUid)
-    .map((d) => d.id);
+  const uids = (await backend.activeUserIds(n.roles)).filter((u) => u !== n.byUid);
   if (!uids.length) return;
 
-  const batch = writeBatch(db);
-  const createdAt = Date.now();
-  for (const uid of uids) {
-    batch.set(doc(collection(db, "users", uid, "notifications")), {
-      kind: n.kind,
-      action: n.action,
-      docId: n.docId,
-      docTitle: n.docTitle,
-      byName: n.byName,
-      byRole: n.byRole,
-      note: n.note,
-      read: false,
-      createdAt,
-    });
-  }
-  await batch.commit();
+  await backend.addNotifications(uids, {
+    kind: n.kind,
+    action: n.action,
+    docId: n.docId,
+    docTitle: n.docTitle,
+    byName: n.byName,
+    byRole: n.byRole,
+    note: n.note,
+    read: false,
+    createdAt: Date.now(),
+  });
 
-  try {
-    const token = await auth.currentUser?.getIdToken();
-    const text = notificationText(n);
-    await fetch("/api/push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        uids,
-        title: text.en,
-        body: n.note ? `${text.si}\n“${n.note}”` : text.si,
-        link: docLink(n.kind, n.docId),
-      }),
-    });
-  } catch {
-    // Push is best-effort; in-app notifications already went out.
-  }
+  const text = notificationText(n);
+  backend
+    .sendPush(uids, {
+      title: text.en,
+      body: n.note ? `${text.si}\n“${n.note}”` : text.si,
+      link: docLink(n.kind, n.docId),
+    })
+    .catch(() => {});
 }
