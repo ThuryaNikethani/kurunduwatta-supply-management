@@ -1,62 +1,107 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Theme taken from kurunduwatta-hospitality.vercel.app */
+/* Villa palette from kurunduwatta-hospitality.vercel.app */
 @theme {
   --color-forest: #13281b;
   --color-moss: #22432d;
   --color-cream: #f7f6ee;
   --color-mist: #e7ebd8;
-  --color-muted: #5b685c;
   --color-amber: #ffa91a;
   --color-amber-light: #ffc35c;
   --color-amber-deep: #b0650a;
   --color-leaf: #b5d343;
   --color-leaf-deep: #5f7d14;
-  --color-danger: #b3261e;
 
   --font-display: var(--font-cormorant), Georgia, serif;
   --font-sans: var(--font-inter), var(--font-sinhala), system-ui, sans-serif;
 }
 
-html,
-body {
-  background: var(--color-cream);
-  color: var(--color-forest);
+/* shadcn/ui tokens mapped onto the villa palette */
+:root {
+  --radius: 0.75rem;
+  --background: #f7f6ee;
+  --foreground: #13281b;
+  --card: #ffffff;
+  --card-foreground: #13281b;
+  --popover: #ffffff;
+  --popover-foreground: #13281b;
+  --primary: #13281b;
+  --primary-foreground: #f7f6ee;
+  --secondary: #e7ebd8;
+  --secondary-foreground: #13281b;
+  --muted: #eef0e4;
+  --muted-foreground: #5b685c;
+  --accent: #e7ebd8;
+  --accent-foreground: #13281b;
+  --destructive: #b3261e;
+  --border: #dfe4cf;
+  --input: #d6dcc4;
+  --ring: #ffa91a;
+  --chart-1: #22432d;
+  --chart-2: #ffa91a;
+  --chart-3: #b5d343;
+  --chart-4: #b0650a;
+  --chart-5: #5f7d14;
+  --sidebar: #13281b;
+  --sidebar-foreground: #f7f6ee;
+  --sidebar-primary: #ffa91a;
+  --sidebar-primary-foreground: #13281b;
+  --sidebar-accent: #22432d;
+  --sidebar-accent-foreground: #f7f6ee;
+  --sidebar-border: rgb(247 246 238 / 0.1);
+  --sidebar-ring: #ffa91a;
 }
 
-html[lang="si"] body {
-  font-family: var(--font-sinhala), var(--font-inter), system-ui, sans-serif;
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@utility card {
-  @apply rounded-2xl border border-mist bg-white p-4 shadow-sm sm:p-6;
-}
-@utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
-}
-@utility btn-primary {
-  @apply btn bg-amber text-forest hover:bg-amber-light;
-}
-@utility btn-dark {
-  @apply btn bg-forest text-cream hover:bg-moss;
-}
-@utility btn-outline {
-  @apply btn border border-forest/25 bg-white text-forest hover:bg-mist;
-}
-@utility btn-danger {
-  @apply btn border border-danger/30 bg-white text-danger hover:bg-danger/5;
-}
-@utility input {
-  @apply w-full rounded-xl border border-mist bg-white px-3 py-2 text-sm text-forest outline-none placeholder:text-muted/60 focus:border-amber focus:ring-2 focus:ring-amber/30;
-}
-@utility label {
-  @apply mb-1 block text-xs font-medium tracking-wide text-muted uppercase;
-}
-@utility h1 {
-  @apply font-display text-3xl font-semibold text-forest sm:text-4xl;
-}
-@utility h2 {
-  @apply font-display text-2xl font-semibold text-forest;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html[lang="si"] body {
+    font-family: var(--font-sinhala), var(--font-inter), system-ui, sans-serif;
+  }
 }
 
 /* Print / Save as PDF */
@@ -72,19 +117,18 @@ html[lang="si"] body {
   body {
     background: #fff !important;
   }
-  .no-print,
-  header,
-  nav {
+  .no-print {
     display: none !important;
   }
   .print-only {
     display: block !important;
   }
-  main {
-    max-width: none !important;
+  .print-main {
+    margin: 0 !important;
     padding: 0 !important;
+    max-width: none !important;
   }
-  .card {
+  [data-slot="card"] {
     box-shadow: none !important;
     border-color: #ccc !important;
     break-inside: avoid;
