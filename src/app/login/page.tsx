@@ -3,63 +3,92 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { AuthCard } from "@/components/AuthCard";
+import { ChefHat, LogIn, ShieldCheck, UserCheck } from "lucide-react";
+import { AuthLayout } from "@/components/AuthLayout";
+import { Field } from "@/components/common";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/lib/auth";
-import { auth, firebaseConfigured } from "@/lib/firebase";
+import { backend, isDemo } from "@/lib/backend";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/backend/demo";
 import { useI18n } from "@/lib/i18n";
+import { fieldErrors, loginSchema } from "@/lib/schemas";
+
+const ROLE_ICON = { chef: ChefHat, supervisor: UserCheck, hr: ShieldCheck };
 
 export default function LoginPage() {
   const { t } = useI18n();
-  const { user, profile } = useAuth();
+  const { status } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user && profile) router.replace("/dashboard");
-  }, [user, profile, router]);
+    if (status === "ready") router.replace("/dashboard");
+  }, [status, router]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function signIn(e: string, p: string) {
+    const parsed = loginSchema.safeParse({ email: e.trim(), password: p });
+    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setBusy(true);
-    setError("");
+    setErrors({});
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      await backend.signIn(parsed.data.email, parsed.data.password);
       router.replace("/dashboard");
     } catch {
-      setError(t("login.failed"));
+      setErrors({ form: "login.failed" });
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <AuthCard title={t("login.title")}>
-      {!firebaseConfigured && (
-        <p className="mb-4 rounded-lg bg-danger/10 p-3 text-sm text-danger">{t("config.missing")}</p>
-      )}
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="label" htmlFor="email">{t("login.email")}</label>
-          <input id="email" type="email" autoComplete="email" required className="input"
-            value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div>
-          <label className="label" htmlFor="password">{t("login.password")}</label>
-          <input id="password" type="password" autoComplete="current-password" required className="input"
-            value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <button className="btn-dark w-full" disabled={busy}>
-          {busy ? t("loading") : t("login.submit")}
-        </button>
+    <AuthLayout title={t("login.title")}>
+      <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} className="grid gap-4" noValidate>
+        <Field label={t("login.email")} htmlFor="email" error={errors.email}>
+          <Input id="email" type="email" autoComplete="email" value={email} aria-invalid={!!errors.email}
+            onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        <Field label={t("login.password")} htmlFor="password" error={errors.password}>
+          <Input id="password" type="password" autoComplete="current-password" value={password}
+            aria-invalid={!!errors.password} onChange={(e) => setPassword(e.target.value)} />
+        </Field>
+        {errors.form && <p className="text-sm text-destructive">{t("login.failed")}</p>}
+        <Button type="submit" size="lg" disabled={busy}>
+          <LogIn /> {busy ? t("loading") : t("login.submit")}
+        </Button>
       </form>
-      <Link href="/setup" className="mt-5 block text-center text-xs text-muted underline">
-        {t("setup.link")}
-      </Link>
-    </AuthCard>
+
+      {isDemo ? (
+        <div className="mt-6 grid gap-3">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <Separator className="flex-1" />
+            {t("demo.accounts")}
+            <Separator className="flex-1" />
+          </div>
+          {DEMO_ACCOUNTS.map((a) => {
+            const Icon = ROLE_ICON[a.role];
+            return (
+              <Button key={a.email} variant="outline" className="h-auto justify-start py-2.5" disabled={busy}
+                onClick={() => signIn(a.email, DEMO_PASSWORD)}>
+                <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-moss"><Icon /></span>
+                <span className="text-left">
+                  <span className="block text-sm">{t(`role.${a.role}`)}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{a.email}</span>
+                </span>
+              </Button>
+            );
+          })}
+          <p className="text-center text-xs text-muted-foreground">{t("demo.password", { pw: DEMO_PASSWORD })}</p>
+        </div>
+      ) : (
+        <Link href="/setup" className="mt-5 block text-center text-xs text-muted-foreground underline">
+          {t("setup.link")}
+        </Link>
+      )}
+    </AuthLayout>
   );
 }
