@@ -1,63 +1,85 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-  type QueryConstraint,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import type { Recipe, SupplyList, TransferOut } from "./types";
+import { backend } from "./backend";
+import type { DocOf } from "./backend/types";
+import type { AppNotification, DocKind, Recipe, TransferOut, UserProfile } from "./types";
 
-function useLiveQuery<T>(path: string, constraints: QueryConstraint[], key: string) {
-  const [data, setData] = useState<T[] | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+interface Live<T> {
+  data: T | null;
+  error: Error | null;
+}
+
+export function useDocs<K extends DocKind>(kind: K): Live<DocOf<K>[]> {
+  const [state, setState] = useState<Live<DocOf<K>[]>>({ data: null, error: null });
+  useEffect(
+    () =>
+      backend.watchDocs(
+        kind,
+        (data) => setState({ data, error: null }),
+        (error) => setState((s) => ({ ...s, error })),
+      ),
+    [kind],
+  );
+  return state;
+}
+
+export const useSupplyLists = () => useDocs("supply");
+export const useTransferOuts = () => useDocs("transfer");
+
+export function useDoc<K extends DocKind>(kind: K, id: string | null): DocOf<K> | null | undefined {
+  const [data, setData] = useState<DocOf<K> | null | undefined>(undefined);
   useEffect(() => {
-    const q = query(collection(db, path), ...constraints);
-    return onSnapshot(
-      q,
-      (snap) => setData(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T)),
-      (e) => setError(e),
-    );
-    // `key` captures the constraints' identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, key]);
-  return { data, error };
-}
-
-export function useSupplyLists() {
-  return useLiveQuery<SupplyList>("supplyLists", [orderBy("createdAt", "desc"), limit(200)], "all");
-}
-
-export function useTransferOuts() {
-  return useLiveQuery<TransferOut>("transferOuts", [orderBy("createdAt", "desc"), limit(200)], "all");
+    if (!id) {
+      setData(null);
+      return;
+    }
+    setData(undefined);
+    return backend.watchDoc(kind, id, setData);
+  }, [kind, id]);
+  return data;
 }
 
 export function useTransfersFor(supplyId: string) {
-  return useLiveQuery<TransferOut>("transferOuts", [where("supplyId", "==", supplyId)], supplyId);
+  const [data, setData] = useState<TransferOut[] | null>(null);
+  useEffect(() => backend.watchTransfersFor(supplyId, setData), [supplyId]);
+  return data;
 }
 
-export function useRecipes() {
-  const r = useLiveQuery<Recipe>("recipes", [], "all");
-  const sorted = r.data
-    ? [...r.data].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
-    : null;
-  return { ...r, data: sorted };
+export function useRecipes(): Live<Recipe[]> {
+  const [state, setState] = useState<Live<Recipe[]>>({ data: null, error: null });
+  useEffect(
+    () =>
+      backend.watchRecipes(
+        (r) =>
+          setState({
+            data: [...r].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name)),
+            error: null,
+          }),
+        (error) => setState((s) => ({ ...s, error })),
+      ),
+    [],
+  );
+  return state;
 }
 
-export function useDocument<T>(path: string, id: string) {
-  const [data, setData] = useState<T | null | undefined>(undefined);
+export function useUsers() {
+  const [data, setData] = useState<UserProfile[] | null>(null);
+  useEffect(
+    () =>
+      backend.watchUsers((u) =>
+        setData([...u].sort((a, b) => a.role.localeCompare(b.role) || a.name.localeCompare(b.name))),
+      ),
+    [],
+  );
+  return data;
+}
+
+export function useNotifications(uid: string | undefined) {
+  const [data, setData] = useState<AppNotification[] | null>(null);
   useEffect(() => {
-    return onSnapshot(
-      doc(db, path, id),
-      (s) => setData(s.exists() ? ({ id: s.id, ...s.data() } as T) : null),
-      () => setData(null),
-    );
-  }, [path, id]);
+    if (!uid) return;
+    return backend.watchNotifications(uid, (l) => setData([...l].sort((a, b) => b.createdAt - a.createdAt)));
+  }, [uid]);
   return data;
 }
