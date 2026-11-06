@@ -1,0 +1,375 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+
+export type Lang = "en" | "si";
+
+const en = {
+  appName: "Kurunduwatta Supply",
+  appTagline: "Kitchen supply approvals",
+  // roles
+  "role.chef": "Chef",
+  "role.supervisor": "Supervisor",
+  "role.hr": "HR",
+  // statuses
+  "status.pending_supervisor": "Waiting for Supervisor",
+  "status.returned_to_chef": "Returned to Chef",
+  "status.pending_hr": "Waiting for HR",
+  "status.returned_to_supervisor": "Returned by HR",
+  "status.approved": "Approved",
+  // action buttons
+  "action.submit": "Send to Supervisor",
+  "action.resubmit": "Resend to Supervisor",
+  "action.return_to_chef": "Return to Chef",
+  "action.forward_to_hr": "Send to HR",
+  "action.approve": "Approve",
+  "action.reject_to_supervisor": "Return to Supervisor",
+  // history (past tense)
+  "did.submit": "sent it for review",
+  "did.resubmit": "sent it again",
+  "did.return_to_chef": "returned it to the chef",
+  "did.forward_to_hr": "sent it to HR",
+  "did.approve": "approved it",
+  "did.reject_to_supervisor": "returned it to the supervisor",
+  // nav
+  "nav.dashboard": "Dashboard",
+  "nav.newList": "New list",
+  "nav.recipes": "Recipes",
+  "nav.users": "Users",
+  "nav.notifications": "Notifications",
+  logout: "Log out",
+  // auth
+  "login.title": "Sign in",
+  "login.email": "Email",
+  "login.password": "Password",
+  "login.submit": "Sign in",
+  "login.failed": "Wrong email or password.",
+  "login.noProfile": "This account has no role yet. Ask HR to add you.",
+  "login.inactive": "This account is disabled. Please contact HR.",
+  "setup.title": "First-time setup",
+  "setup.intro": "Create the first HR account. HR can then add Chef and Supervisor accounts.",
+  "setup.name": "Your name",
+  "setup.submit": "Create HR account",
+  "setup.done": "Setup is already complete. Please sign in.",
+  "setup.link": "First time? Set up the system",
+  "config.missing":
+    "Firebase is not configured. Copy .env.local.example to .env.local and add your Firebase keys.",
+  // dashboard
+  "dash.needsAction": "Needs your action",
+  "dash.nothing": "Nothing waiting for you.",
+  "dash.supplyLists": "Supply lists",
+  "dash.transfers": "Leftovers to staff",
+  "dash.all": "All",
+  "dash.empty": "Nothing here yet.",
+  // supply list
+  "supply.new": "New supply list",
+  "supply.title": "Guest / booking name",
+  "supply.titlePh": "e.g. Perera family – 10 guests",
+  "supply.date": "Meal date",
+  "supply.meal": "Meal",
+  "supply.guests": "Guests",
+  "supply.dishes": "Dishes the guests ordered",
+  "supply.searchDish": "Search dishes…",
+  "supply.noRecipe": "no recipe yet",
+  "supply.calculate": "Calculate quantities",
+  "supply.recalcWarn": "This replaces the item list with freshly calculated quantities. Continue?",
+  "supply.items": "Items needed",
+  "supply.item": "Item",
+  "supply.qty": "Qty",
+  "supply.unit": "Unit",
+  "supply.calc": "Calculated",
+  "supply.note": "Note / reason",
+  "supply.addItem": "Add item",
+  "supply.noItems": "No items yet. Choose dishes and press “Calculate quantities”, or add items yourself.",
+  "supply.chefNote": "Note to supervisor (optional)",
+  "supply.send": "Send to Supervisor",
+  "supply.saveResend": "Save changes & resend",
+  "supply.edit": "Edit list",
+  "supply.cancelEdit": "Cancel",
+  "supply.changed": "changed",
+  "supply.missing": "Please fill guest name, date, guests and at least one item.",
+  "supply.recordLeftovers": "Record leftovers",
+  "meal.breakfast": "Breakfast",
+  "meal.lunch": "Lunch",
+  "meal.dinner": "Dinner",
+  "meal.hightea": "High tea",
+  "meal.bbq": "BBQ night",
+  "meal.other": "Other",
+  // transfer out
+  "transfer.new": "Leftovers given to staff",
+  "transfer.for": "For",
+  "transfer.date": "Date given",
+  "transfer.items": "Leftover food",
+  "transfer.dish": "Dish",
+  "transfer.portions": "Enough for (people)",
+  "transfer.addRow": "Add dish",
+  "transfer.recipients": "Staff who received it",
+  "transfer.recipientPh": "Type a name and press Add",
+  "transfer.add": "Add",
+  "transfer.summary": "Planned for {guests} guests · leftovers for {portions} people",
+  "transfer.missing": "Add at least one dish with portions and one staff name.",
+  "transfer.onlyApproved": "Leftovers can be recorded only for an approved supply list.",
+  "transfer.linked": "Leftover records",
+  // detail
+  "detail.history": "History",
+  "detail.by": "by",
+  "detail.createdBy": "Created by",
+  "detail.reason": "Reason / note",
+  "detail.reasonRequired": "Please write the reason.",
+  "detail.notePh": "Write a note…",
+  "detail.notFound": "Not found.",
+  "detail.yourTurn": "Your action",
+  // recipes
+  "recipes.title": "Recipes",
+  "recipes.intro": "Quantities are per person. They are multiplied by the guest count on each supply list.",
+  "recipes.load": "Load villa menu",
+  "recipes.loaded": "Menu loaded.",
+  "recipes.addDish": "Add dish",
+  "recipes.dishName": "Dish name",
+  "recipes.category": "Category",
+  "recipes.ingredient": "Ingredient",
+  "recipes.perPerson": "Per person",
+  "recipes.addIngredient": "Add ingredient",
+  "recipes.ingredients": "{n} ingredients",
+  "recipes.empty": "No dishes yet.",
+  "recipes.delete": "Delete dish",
+  "recipes.deleteConfirm": "Delete this dish?",
+  // users
+  "users.title": "Users",
+  "users.add": "Add user",
+  "users.name": "Name",
+  "users.role": "Role",
+  "users.active": "Active",
+  "users.disabled": "Disabled",
+  "users.passwordHint": "At least 6 characters",
+  "users.created": "User created.",
+  // notifications
+  "notif.title": "Notifications",
+  "notif.markAll": "Mark all as read",
+  "notif.empty": "No notifications.",
+  "notif.enable": "Turn on phone notifications",
+  "notif.enabled": "Phone notifications are on",
+  "notif.blocked": "Notifications are blocked in this browser’s settings.",
+  "notif.prompt": "Turn on notifications on this device to get alerts even when the app is closed or you are logged out.",
+  "print.button": "Print / PDF",
+  "print.printed": "Printed",
+  "notif.msg.supply": "{by} ({role}) {did}: supply list “{title}”",
+  "notif.msg.transfer": "{by} ({role}) {did}: leftovers “{title}”",
+  // common
+  save: "Save",
+  saving: "Saving…",
+  cancel: "Cancel",
+  remove: "Remove",
+  loading: "Loading…",
+  error: "Something went wrong. Please try again.",
+  back: "Back",
+  language: "සිංහල",
+};
+
+type Dict = Record<keyof typeof en, string>;
+
+const si: Dict = {
+  appName: "කුරුඳුවත්ත සැපයුම්",
+  appTagline: "මුළුතැන්ගෙයි ද්‍රව්‍ය අනුමැතිය",
+  "role.chef": "සූපවේදී",
+  "role.supervisor": "අධීක්ෂක",
+  "role.hr": "මානව සම්පත් (HR)",
+  "status.pending_supervisor": "අධීක්ෂක බලාපොරොත්තුවෙන්",
+  "status.returned_to_chef": "සූපවේදීට ආපසු යවා ඇත",
+  "status.pending_hr": "HR බලාපොරොත්තුවෙන්",
+  "status.returned_to_supervisor": "HR විසින් ආපසු යවා ඇත",
+  "status.approved": "අනුමතයි",
+  "action.submit": "අධීක්ෂකට යවන්න",
+  "action.resubmit": "නැවත අධීක්ෂකට යවන්න",
+  "action.return_to_chef": "සූපවේදීට ආපසු යවන්න",
+  "action.forward_to_hr": "HR වෙත යවන්න",
+  "action.approve": "අනුමත කරන්න",
+  "action.reject_to_supervisor": "අධීක්ෂකට ආපසු යවන්න",
+  "did.submit": "පරීක්ෂාවට යැව්වා",
+  "did.resubmit": "නැවත යැව්වා",
+  "did.return_to_chef": "සූපවේදීට ආපසු යැව්වා",
+  "did.forward_to_hr": "HR වෙත යැව්වා",
+  "did.approve": "අනුමත කළා",
+  "did.reject_to_supervisor": "අධීක්ෂකට ආපසු යැව්වා",
+  "nav.dashboard": "මුල් පිටුව",
+  "nav.newList": "නව ලැයිස්තුව",
+  "nav.recipes": "වට්ටෝරු",
+  "nav.users": "පරිශීලකයින්",
+  "nav.notifications": "දැනුම්දීම්",
+  logout: "ඉවත් වන්න",
+  "login.title": "පුරනය වන්න",
+  "login.email": "ඊමේල්",
+  "login.password": "මුරපදය",
+  "login.submit": "පුරනය වන්න",
+  "login.failed": "ඊමේල් හෝ මුරපදය වැරදියි.",
+  "login.noProfile": "මෙම ගිණුමට තවම භූමිකාවක් නැත. HR හට කියන්න.",
+  "login.inactive": "මෙම ගිණුම අක්‍රිය කර ඇත. HR අමතන්න.",
+  "setup.title": "මුල් සැකසුම",
+  "setup.intro": "පළමු HR ගිණුම සාදන්න. පසුව HR හට සූපවේදී සහ අධීක්ෂක ගිණුම් එකතු කළ හැක.",
+  "setup.name": "ඔබගේ නම",
+  "setup.submit": "HR ගිණුම සාදන්න",
+  "setup.done": "සැකසුම දැනටමත් අවසන්. කරුණාකර පුරනය වන්න.",
+  "setup.link": "පළමු වතාවද? පද්ධතිය සකසන්න",
+  "config.missing":
+    "Firebase සකසා නැත. .env.local.example ගොනුව .env.local ලෙස පිටපත් කර Firebase යතුරු එක් කරන්න.",
+  "dash.needsAction": "ඔබ කළ යුතු දේ",
+  "dash.nothing": "ඔබ වෙනුවෙන් කිසිවක් බලාපොරොත්තුවෙන් නැත.",
+  "dash.supplyLists": "ද්‍රව්‍ය ලැයිස්තු",
+  "dash.transfers": "කාර්ය මණ්ඩලයට දුන් ඉතිරි කෑම",
+  "dash.all": "සියල්ල",
+  "dash.empty": "තවම කිසිවක් නැත.",
+  "supply.new": "නව ද්‍රව්‍ය ලැයිස්තුව",
+  "supply.title": "අමුත්තා / වෙන්කිරීමේ නම",
+  "supply.titlePh": "උදා: පෙරේරා පවුල – අමුත්තන් 10",
+  "supply.date": "ආහාර දිනය",
+  "supply.meal": "වේල",
+  "supply.guests": "අමුත්තන්",
+  "supply.dishes": "අමුත්තන් ඉල්ලූ කෑම",
+  "supply.searchDish": "කෑම සොයන්න…",
+  "supply.noRecipe": "තවම වට්ටෝරුවක් නැත",
+  "supply.calculate": "ප්‍රමාණ ගණනය කරන්න",
+  "supply.recalcWarn": "මෙයින් ද්‍රව්‍ය ලැයිස්තුව අලුතින් ගණනය කළ ප්‍රමාණවලින් ප්‍රතිස්ථාපනය වේ. ඉදිරියට යනවාද?",
+  "supply.items": "අවශ්‍ය ද්‍රව්‍ය",
+  "supply.item": "ද්‍රව්‍යය",
+  "supply.qty": "ප්‍රමාණය",
+  "supply.unit": "ඒකකය",
+  "supply.calc": "ගණනය කළ",
+  "supply.note": "සටහන / හේතුව",
+  "supply.addItem": "ද්‍රව්‍යයක් එක් කරන්න",
+  "supply.noItems": "තවම ද්‍රව්‍ය නැත. කෑම තෝරා “ප්‍රමාණ ගණනය කරන්න” ඔබන්න, නැතහොත් ඔබම එක් කරන්න.",
+  "supply.chefNote": "අධීක්ෂකට සටහනක් (අවශ්‍ය නම්)",
+  "supply.send": "අධීක්ෂකට යවන්න",
+  "supply.saveResend": "වෙනස්කම් සුරකින්න සහ නැවත යවන්න",
+  "supply.edit": "ලැයිස්තුව සංස්කරණය",
+  "supply.cancelEdit": "අවලංගු කරන්න",
+  "supply.changed": "වෙනස් කළා",
+  "supply.missing": "අමුත්තාගේ නම, දිනය, අමුත්තන් ගණන සහ අවම වශයෙන් එක් ද්‍රව්‍යයක් ඇතුළත් කරන්න.",
+  "supply.recordLeftovers": "ඉතිරි කෑම සටහන් කරන්න",
+  "meal.breakfast": "උදේ ආහාරය",
+  "meal.lunch": "දිවා ආහාරය",
+  "meal.dinner": "රාත්‍රී ආහාරය",
+  "meal.hightea": "සවස තේ",
+  "meal.bbq": "BBQ රාත්‍රිය",
+  "meal.other": "වෙනත්",
+  "transfer.new": "කාර්ය මණ්ඩලයට දුන් ඉතිරි කෑම",
+  "transfer.for": "සඳහා",
+  "transfer.date": "දුන් දිනය",
+  "transfer.items": "ඉතිරි වූ කෑම",
+  "transfer.dish": "කෑම",
+  "transfer.portions": "කී දෙනෙකුට ප්‍රමාණවත්ද",
+  "transfer.addRow": "කෑමක් එක් කරන්න",
+  "transfer.recipients": "ලබාගත් කාර්ය මණ්ඩල සාමාජිකයින්",
+  "transfer.recipientPh": "නම ටයිප් කර එක් කරන්න ඔබන්න",
+  "transfer.add": "එක් කරන්න",
+  "transfer.summary": "අමුත්තන් {guests} දෙනෙකුට සැලසුම් කළා · ඉතිරි {portions} දෙනෙකුට",
+  "transfer.missing": "ප්‍රමාණය සමඟ අවම වශයෙන් එක් කෑමක් සහ එක් නමක් එක් කරන්න.",
+  "transfer.onlyApproved": "ඉතිරි කෑම සටහන් කළ හැක්කේ අනුමත ලැයිස්තුවකට පමණි.",
+  "transfer.linked": "ඉතිරි කෑම වාර්තා",
+  "detail.history": "ඉතිහාසය",
+  "detail.by": "විසින්",
+  "detail.createdBy": "සාදන ලද්දේ",
+  "detail.reason": "හේතුව / සටහන",
+  "detail.reasonRequired": "කරුණාකර හේතුව ලියන්න.",
+  "detail.notePh": "සටහනක් ලියන්න…",
+  "detail.notFound": "හමු නොවීය.",
+  "detail.yourTurn": "ඔබගේ ක්‍රියාව",
+  "recipes.title": "වට්ටෝරු",
+  "recipes.intro": "ප්‍රමාණ එක් අයෙකුට වේ. සෑම ලැයිස්තුවකම අමුත්තන් ගණනින් ගුණ කෙරේ.",
+  "recipes.load": "විලා මෙනුව පූරණය කරන්න",
+  "recipes.loaded": "මෙනුව පූරණය විය.",
+  "recipes.addDish": "කෑමක් එක් කරන්න",
+  "recipes.dishName": "කෑමේ නම",
+  "recipes.category": "කාණ්ඩය",
+  "recipes.ingredient": "ද්‍රව්‍යය",
+  "recipes.perPerson": "එක් අයෙකුට",
+  "recipes.addIngredient": "ද්‍රව්‍යයක් එක් කරන්න",
+  "recipes.ingredients": "ද්‍රව්‍ය {n}",
+  "recipes.empty": "තවම කෑම නැත.",
+  "recipes.delete": "කෑම මකන්න",
+  "recipes.deleteConfirm": "මෙම කෑම මකන්නද?",
+  "users.title": "පරිශීලකයින්",
+  "users.add": "පරිශීලකයෙකු එක් කරන්න",
+  "users.name": "නම",
+  "users.role": "භූමිකාව",
+  "users.active": "සක්‍රියයි",
+  "users.disabled": "අක්‍රියයි",
+  "users.passwordHint": "අවම අකුරු 6ක්",
+  "users.created": "පරිශීලකයා සාදන ලදී.",
+  "notif.title": "දැනුම්දීම්",
+  "notif.markAll": "සියල්ල කියවූ ලෙස සලකුණු කරන්න",
+  "notif.empty": "දැනුම්දීම් නැත.",
+  "notif.enable": "දුරකථන දැනුම්දීම් සක්‍රිය කරන්න",
+  "notif.enabled": "දුරකථන දැනුම්දීම් සක්‍රියයි",
+  "notif.blocked": "මෙම බ්‍රව්සරයේ සැකසුම්වල දැනුම්දීම් අවහිර කර ඇත.",
+  "notif.prompt": "යෙදුම වසා ඇති විට හෝ ඉවත් වී සිටින විටත් දැනුම්දීම් ලබා ගැනීමට මෙම උපාංගයේ දැනුම්දීම් සක්‍රිය කරන්න.",
+  "print.button": "මුද්‍රණය / PDF",
+  "print.printed": "මුද්‍රණය කළේ",
+  "notif.msg.supply": "{by} ({role}) {did}: ද්‍රව්‍ය ලැයිස්තුව “{title}”",
+  "notif.msg.transfer": "{by} ({role}) {did}: ඉතිරි කෑම “{title}”",
+  save: "සුරකින්න",
+  saving: "සුරකිමින්…",
+  cancel: "අවලංගු කරන්න",
+  remove: "ඉවත් කරන්න",
+  loading: "පූරණය වෙමින්…",
+  error: "යමක් වැරදුණා. නැවත උත්සාහ කරන්න.",
+  back: "ආපසු",
+  language: "English",
+};
+
+export type TKey = keyof typeof en;
+const DICTS: Record<Lang, Dict> = { en, si };
+
+/** Translate outside React (e.g. for push messages in both languages). */
+export function translate(lang: Lang, key: TKey, vars?: Record<string, string | number>) {
+  let s = DICTS[lang][key] ?? en[key] ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+  return s;
+}
+
+interface I18n {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  toggle: () => void;
+  t: (key: TKey, vars?: Record<string, string | number>) => string;
+}
+
+const Ctx = createContext<I18n | null>(null);
+
+export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("en");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("lang");
+      if (saved === "en" || saved === "si") setLangState(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l);
+    try {
+      localStorage.setItem("lang", l);
+    } catch {}
+  }, []);
+
+  const t = useCallback(
+    (key: TKey, vars?: Record<string, string | number>) => translate(lang, key, vars),
+    [lang],
+  );
+
+  return (
+    <Ctx.Provider value={{ lang, setLang, toggle: () => setLang(lang === "en" ? "si" : "en"), t }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export function useI18n() {
+  const c = useContext(Ctx);
+  if (!c) throw new Error("useI18n must be used inside I18nProvider");
+  return c;
+}
