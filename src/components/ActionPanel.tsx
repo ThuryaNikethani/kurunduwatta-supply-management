@@ -1,12 +1,26 @@
 "use client";
 
+import { CheckCircle2, Forward, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import type { Action, DocKind, Status } from "@/lib/types";
 import { availableActions, noteRequired } from "@/lib/workflow";
-import { useToast } from "./Toast";
+import { Field } from "./common";
+
+const ICON: Record<Action, typeof Send> = {
+  submit: Send,
+  resubmit: Send,
+  forward_to_hr: Forward,
+  return_to_chef: Undo2,
+  reject_to_supervisor: Undo2,
+  approve: CheckCircle2,
+};
 
 /**
  * Review buttons for the current user's role. Sending back requires a reason;
@@ -19,7 +33,6 @@ export function ActionPanel({
 }) {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const toast = useToast();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState("");
@@ -31,7 +44,7 @@ export function ActionPanel({
   async function run(action: Action) {
     if (!profile) return;
     if (noteRequired(action) && !note.trim()) {
-      setError(t("detail.reasonRequired"));
+      setError("detail.reasonRequired");
       return;
     }
     setBusy(action);
@@ -39,40 +52,53 @@ export function ActionPanel({
     try {
       await performAction(kind, id, title, profile, action, note);
       setNote("");
-      toast({ text: t(`action.${action}`) + " ✓", tone: "success" });
+      toast.success(t(`action.${action}`));
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("error"));
+      toast.error(e instanceof Error ? e.message : t("error"));
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <div className="no-print card border-amber ring-1 ring-amber/40">
-      <h2 className="h2 mb-3">{t("detail.yourTurn")}</h2>
-      {children}
-      <label className="label" htmlFor="note">{t("detail.reason")}</label>
-      <textarea
-        id="note"
-        rows={3}
-        className="input"
-        placeholder={t("detail.notePh")}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-      />
-      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {actions.map((a) => (
-          <button
-            key={a}
-            disabled={!!busy}
-            onClick={() => run(a)}
-            className={noteRequired(a) ? "btn-danger" : a === "approve" ? "btn-dark" : "btn-primary"}
-          >
-            {busy === a ? t("saving") : t(`action.${a}`)}
-          </button>
-        ))}
-      </div>
-    </div>
+    <Card className="no-print border-amber/60 ring-2 ring-amber/30">
+      <CardHeader>
+        <CardTitle className="font-display text-2xl">{t("detail.yourTurn")}</CardTitle>
+        <CardDescription>{t(`status.${status}`)}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {children}
+        <Field label={t("detail.reason")} htmlFor="note" error={error}>
+          <Textarea
+            id="note"
+            rows={3}
+            placeholder={t("detail.notePh")}
+            value={note}
+            aria-invalid={!!error}
+            onChange={(e) => {
+              setNote(e.target.value);
+              if (error) setError("");
+            }}
+          />
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          {actions.map((a) => {
+            const Icon = ICON[a];
+            return (
+              <Button
+                key={a}
+                disabled={!!busy}
+                onClick={() => run(a)}
+                variant={noteRequired(a) ? "outline" : a === "approve" ? "default" : "accent"}
+                className={noteRequired(a) ? "border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive" : ""}
+              >
+                <Icon />
+                {busy === a ? t("saving") : t(`action.${a}`)}
+              </Button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
