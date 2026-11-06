@@ -1,23 +1,39 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { deleteDoc, doc, setDoc, writeBatch } from "firebase/firestore";
-import { useToast } from "@/components/Toast";
+import { toast } from "sonner";
+import { BookOpen, ChevronRight, Download, Plus, Search, Trash2 } from "lucide-react";
+import { CardsSkeleton, EmptyState, Field, PageHeader } from "@/components/common";
+import { UnitSelect } from "@/components/SupplyForm";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
-import { db } from "@/lib/firebase";
+import { backend } from "@/lib/backend";
 import { useRecipes } from "@/lib/hooks";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TKey } from "@/lib/i18n";
 import { CATEGORIES, MENU, slugify } from "@/lib/menu";
-import { UNITS, type Ingredient, type Recipe, type Unit } from "@/lib/types";
+import { fieldErrors, recipeSchema } from "@/lib/schemas";
+import type { Ingredient, Recipe } from "@/lib/types";
 
 export default function RecipesPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
-  const toast = useToast();
   const recipes = useRecipes();
-  const [open, setOpen] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Recipe | null>(null);
   const [search, setSearch] = useState("");
-  const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const canEdit = profile?.role === "chef" || profile?.role === "hr";
 
@@ -34,94 +50,95 @@ export default function RecipesPage() {
   async function loadMenu() {
     setBusy(true);
     try {
-      const existing = new Set((recipes.data ?? []).map((r) => r.id));
-      const batch = writeBatch(db);
-      for (const { category, dishes } of MENU)
-        for (const name of dishes) {
-          const id = slugify(name);
-          if (!existing.has(id))
-            batch.set(doc(db, "recipes", id), { name, category, ingredients: [], updatedAt: Date.now() });
-        }
-      await batch.commit();
-      toast({ text: t("recipes.loaded"), tone: "success" });
+      const now = Date.now();
+      await backend.addRecipes(
+        MENU.flatMap(({ category, dishes }) =>
+          dishes.map((name) => ({ id: slugify(name), name, category, ingredients: [], updatedAt: now })),
+        ).filter((r) => !(recipes.data ?? []).some((x) => x.id === r.id)),
+      );
+      toast.success(t("recipes.loaded"));
     } catch (e) {
-      toast({ text: e instanceof Error ? e.message : t("error"), tone: "error" });
+      toast.error(e instanceof Error ? e.message : t("error"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="h1">{t("recipes.title")}</h1>
-          <p className="mt-1 text-sm text-muted">{t("recipes.intro")}</p>
-        </div>
-        {canEdit && (
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-outline" onClick={loadMenu} disabled={busy}>{t("recipes.load")}</button>
-            <button className="btn-primary" onClick={() => setAdding(true)}>+ {t("recipes.addDish")}</button>
-          </div>
-        )}
+    <div className="grid gap-6">
+      <PageHeader
+        title={t("recipes.title")}
+        subtitle={t("recipes.intro")}
+        actions={
+          canEdit && (
+            <>
+              <Button variant="outline" onClick={loadMenu} disabled={busy}><Download /> {t("recipes.load")}</Button>
+              <Button variant="accent" onClick={() => setEditing({ id: "", name: "", category: CATEGORIES[0], ingredients: [] })}>
+                <Plus /> {t("recipes.addDish")}
+              </Button>
+            </>
+          )
+        }
+      />
+
+      <div className="relative sm:max-w-sm">
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input className="bg-card pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      <input className="input sm:max-w-sm" placeholder={t("supply.searchDish")} value={search}
-        onChange={(e) => setSearch(e.target.value)} />
-
-      {adding && (
-        <RecipeEditor
-          recipe={{ id: "", name: "", category: CATEGORIES[0], ingredients: [] }}
-          onDone={() => setAdding(false)}
-        />
-      )}
-
       {!recipes.data ? (
-        <p className="text-muted">{t("loading")}</p>
+        <CardsSkeleton count={6} />
       ) : recipes.data.length === 0 ? (
-        <p className="card text-sm text-muted">{t("recipes.empty")}</p>
+        <EmptyState icon={BookOpen} text={t("recipes.empty")} />
       ) : (
         grouped.map(([cat, list]) => (
-          <section key={cat}>
-            <h2 className="h2 mb-2">{cat}</h2>
-            <div className="space-y-2">
-              {list.map((r) =>
-                open === r.id && canEdit ? (
-                  <RecipeEditor key={r.id} recipe={r} onDone={() => setOpen(null)} />
-                ) : (
-                  <button key={r.id} onClick={() => setOpen(r.id)}
-                    className="card flex w-full items-center justify-between gap-3 py-3 text-left sm:py-3">
-                    <div className="min-w-0">
-                      <p className="font-medium">{r.name}</p>
-                      {r.ingredients.length > 0 && (
-                        <p className="truncate text-xs text-muted">
+          <section key={cat} className="grid gap-3">
+            <h2 className="font-display text-2xl font-semibold">{cat}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((r) => (
+                <button key={r.id} disabled={!canEdit} onClick={() => setEditing(r)} className="group text-left disabled:cursor-default">
+                  <Card className="h-full gap-2 py-4 transition group-enabled:group-hover:shadow-md">
+                    <CardContent className="grid gap-2 px-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium">{r.name}</p>
+                        {canEdit && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
+                      </div>
+                      {r.ingredients.length > 0 ? (
+                        <p className="line-clamp-2 text-xs text-muted-foreground">
                           {r.ingredients.map((i) => `${i.name} ${i.qtyPerPerson}${i.unit}`).join(" · ")}
                         </p>
-                      )}
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs ${
-                      r.ingredients.length ? "bg-leaf/30 text-leaf-deep" : "bg-mist text-muted"}`}>
-                      {r.ingredients.length ? t("recipes.ingredients", { n: r.ingredients.length }) : t("supply.noRecipe")}
-                    </span>
-                  </button>
-                ),
-              )}
+                      ) : null}
+                      <div>
+                        <Badge variant="secondary" className={r.ingredients.length ? "rounded-full bg-leaf/30 text-leaf-deep" : "rounded-full"}>
+                          {r.ingredients.length ? t("recipes.ingredients", { n: r.ingredients.length }) : t("supply.noRecipe")}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              ))}
             </div>
           </section>
         ))
       )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          {editing && <RecipeEditor key={editing.id || "new"} recipe={editing} onDone={() => setEditing(null)} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }) {
   const { t } = useI18n();
-  const toast = useToast();
   const [name, setName] = useState(recipe.name);
   const [category, setCategory] = useState(recipe.category);
   const [rows, setRows] = useState<Ingredient[]>(
     recipe.ingredients.length ? recipe.ingredients : [{ name: "", qtyPerPerson: 0, unit: "g" }],
   );
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   const update = (i: number, patch: Partial<Ingredient>) =>
@@ -129,77 +146,104 @@ function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    // Blank rows are ignored; partly filled rows are validated.
+    const filled = rows.filter((r) => r.name.trim() || r.qtyPerPerson);
+    const parsed = recipeSchema.safeParse({ name, category, ingredients: filled });
+    if (!parsed.success) {
+      const errs = fieldErrors(parsed.error);
+      // map filtered indexes back to visible rows
+      const mapped: Record<string, string> = {};
+      for (const [k, v] of Object.entries(errs)) {
+        const m = k.match(/^ingredients\.(\d+)\.(.+)$/);
+        mapped[m ? `ingredients.${rows.indexOf(filled[+m[1]])}.${m[2]}` : k] = v;
+      }
+      return setErrors(mapped);
+    }
+    setErrors({});
     setBusy(true);
     try {
-      const id = recipe.id || slugify(name) || String(Date.now());
-      await setDoc(doc(db, "recipes", id), {
-        name: name.trim(),
-        category,
-        ingredients: rows
-          .filter((r) => r.name.trim() && Number(r.qtyPerPerson) > 0)
-          .map((r) => ({ name: r.name.trim(), unit: r.unit, qtyPerPerson: Number(r.qtyPerPerson) })),
-        updatedAt: Date.now(),
-      });
+      const id = recipe.id || slugify(parsed.data.name) || String(Date.now());
+      await backend.saveRecipe(id, { ...parsed.data, updatedAt: Date.now() });
+      toast.success(t("save"));
       onDone();
     } catch (err) {
-      toast({ text: err instanceof Error ? err.message : t("error"), tone: "error" });
+      toast.error(err instanceof Error ? err.message : t("error"));
       setBusy(false);
     }
   }
 
   async function remove() {
-    if (!recipe.id || !confirm(t("recipes.deleteConfirm"))) return;
-    await deleteDoc(doc(db, "recipes", recipe.id));
+    await backend.deleteRecipe(recipe.id);
     onDone();
   }
 
   return (
-    <form onSubmit={save} className="card space-y-4 border-amber ring-1 ring-amber/40">
+    <form onSubmit={save} className="grid gap-5" noValidate>
+      <DialogHeader>
+        <DialogTitle className="font-display text-2xl">{recipe.id ? recipe.name : t("recipes.addDish")}</DialogTitle>
+      </DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="label">{t("recipes.dishName")}</label>
-          <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{t("recipes.category")}</label>
-          <input className="input" list="cats" value={category} onChange={(e) => setCategory(e.target.value)} />
+        <Field label={t("recipes.dishName")} htmlFor="r-name" error={errors.name}>
+          <Input id="r-name" value={name} aria-invalid={!!errors.name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label={t("recipes.category")} htmlFor="r-cat" error={errors.category}>
+          <Input id="r-cat" list="cats" value={category} onChange={(e) => setCategory(e.target.value)} />
           <datalist id="cats">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
-        </div>
+        </Field>
       </div>
-      <div>
-        <p className="label">{t("recipes.ingredient")} — {t("recipes.perPerson")}</p>
-        <div className="space-y-2">
-          {rows.map((r, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2">
-              <input className="input col-span-12 sm:col-span-6" placeholder={t("recipes.ingredient")} value={r.name}
+      <div className="grid gap-2">
+        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+          {t("recipes.ingredient")} — {t("recipes.perPerson")}
+        </p>
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-12 items-start gap-2">
+            <Field error={errors[`ingredients.${i}.name`]} className="col-span-12 sm:col-span-6">
+              <Input placeholder={t("recipes.ingredient")} value={r.name} aria-invalid={!!errors[`ingredients.${i}.name`]}
                 onChange={(e) => update(i, { name: e.target.value })} />
-              <input type="number" step="any" min={0} className="input col-span-5 sm:col-span-2" value={r.qtyPerPerson}
-                aria-label={t("recipes.perPerson")}
+            </Field>
+            <Field error={errors[`ingredients.${i}.qtyPerPerson`]} className="col-span-5 sm:col-span-3">
+              <Input type="number" step="any" min={0} inputMode="decimal" aria-label={t("recipes.perPerson")}
+                value={r.qtyPerPerson || ""} aria-invalid={!!errors[`ingredients.${i}.qtyPerPerson`]}
                 onChange={(e) => update(i, { qtyPerPerson: e.target.value === "" ? 0 : Number(e.target.value) })} />
-              <select className="input col-span-4 sm:col-span-2" value={r.unit}
-                onChange={(e) => update(i, { unit: e.target.value as Unit })}>
-                {UNITS.map((u) => <option key={u}>{u}</option>)}
-              </select>
-              <button type="button" className="col-span-3 text-xs text-danger sm:col-span-2"
-                onClick={() => setRows((cur) => cur.filter((_, j) => j !== i))}>
-                {t("remove")}
-              </button>
+            </Field>
+            <div className="col-span-5 sm:col-span-2">
+              <UnitSelect value={r.unit} onChange={(unit) => update(i, { unit })} />
             </div>
-          ))}
+            <Button type="button" variant="ghost" size="icon" aria-label={t("remove")} className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:col-span-1"
+              onClick={() => setRows((cur) => cur.filter((_, j) => j !== i))}>
+              <Trash2 />
+            </Button>
+          </div>
+        ))}
+        <div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setRows((cur) => [...cur, { name: "", qtyPerPerson: 0, unit: "g" }])}>
+            <Plus /> {t("recipes.addIngredient")}
+          </Button>
         </div>
-        <button type="button" className="btn-outline mt-3"
-          onClick={() => setRows((cur) => [...cur, { name: "", qtyPerPerson: 0, unit: "g" }])}>
-          + {t("recipes.addIngredient")}
-        </button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button className="btn-primary" disabled={busy}>{busy ? t("saving") : t("save")}</button>
-        <button type="button" className="btn-outline" onClick={onDone}>{t("cancel")}</button>
-        {recipe.id && (
-          <button type="button" className="btn-danger ml-auto" onClick={remove}>{t("recipes.delete")}</button>
-        )}
-      </div>
+      <DialogFooter className="gap-2 sm:justify-between">
+        {recipe.id ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 /> {t("recipes.delete")}</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("recipes.deleteConfirm")}</AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                <AlertDialogAction onClick={remove} className="bg-destructive text-white hover:bg-destructive/90">{t("confirm")}</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : <span />}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onDone}>{t("cancel")}</Button>
+          <Button type="submit" variant="accent" disabled={busy}>{busy ? t("saving") : t("save")}</Button>
+        </div>
+      </DialogFooter>
+      {Object.values(errors).some(Boolean) && <p className="text-sm text-destructive">{t("v.fix" as TKey)}</p>}
     </form>
   );
 }
