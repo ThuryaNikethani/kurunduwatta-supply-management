@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { today } from "@/lib/format";
-import { useI18n, type TKey } from "@/lib/i18n";
+import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { fieldErrors, transferSchema } from "@/lib/schemas";
 import type { LeftoverItem, TransferOut } from "@/lib/types";
 import { Field, StepTitle } from "./common";
@@ -59,7 +59,7 @@ export function TransferForm({
     try {
       await onSubmit(parsed.data, note);
     } catch (err) {
-      setErrors({ form: err instanceof Error ? err.message : "error" });
+      setErrors({ form: errorText(err) });
       setBusy(false);
     }
   }
@@ -149,7 +149,7 @@ export function TransferForm({
             <Textarea id="t-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
           {hasErrors && (
-            <p className="text-sm text-destructive">{errors.form && errors.form !== "error" ? errors.form : t("v.fix")}</p>
+            <p className="text-sm text-destructive">{errors.form || t("v.fix")}</p>
           )}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="accent" size="lg" disabled={busy}>
