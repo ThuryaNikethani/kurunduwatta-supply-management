@@ -62,6 +62,8 @@ export default function LoginPage() {
         </Button>
       </form>
 
+      <p className="mt-4 text-center text-xs text-muted-foreground">{t("login.forgot")}</p>
+
       {isDemo ? (
         <div className="mt-6 grid gap-3">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
