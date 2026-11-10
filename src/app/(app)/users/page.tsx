@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { KeyRound, UserPlus } from "lucide-react";
 import { EmptyState, Field, PageHeader, initials } from "@/components/common";
+import { PasswordDialog } from "@/components/PasswordDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { backend } from "@/lib/backend";
 import { useUsers } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
 import { fieldErrors, newUserSchema } from "@/lib/schemas";
-import { ROLES, type Role } from "@/lib/types";
+import { ROLES, type Role, type UserProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function UsersPage() {
@@ -26,6 +27,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "chef" as Role });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [pwFor, setPwFor] = useState<UserProfile | null>(null);
 
   if (profile?.role !== "hr") return <EmptyState text={t("detail.notFound")} />;
 
@@ -115,7 +117,10 @@ export default function UsersPage() {
                       <RoleSelect value={u.role} disabled={u.uid === profile.uid}
                         onChange={(role) => backend.updateUser(u.uid, { role })} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
+                      <Button size="sm" variant="outline" className="mr-2" onClick={() => setPwFor(u)}>
+                        <KeyRound /> {t("pw.button")}
+                      </Button>
                       <Button size="sm" variant="secondary" disabled={u.uid === profile.uid}
                         onClick={() => backend.updateUser(u.uid, { active: !u.active })}
                         className={cn("rounded-full", u.active ? "bg-leaf/30 text-leaf-deep hover:bg-leaf/40" : "bg-destructive/10 text-destructive hover:bg-destructive/15")}>
@@ -129,6 +134,16 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <PasswordDialog
+        open={!!pwFor}
+        onOpenChange={(o) => !o && setPwFor(null)}
+        title={t("pw.resetFor", { name: pwFor?.name ?? "" })}
+        description={t("pw.resetHint", { name: pwFor?.name ?? "" })}
+        onSave={(pw) =>
+          pwFor?.uid === profile.uid ? backend.changeOwnPassword(pw) : backend.resetPassword(pwFor!.uid, pw)
+        }
+      />
     </div>
   );
 }
