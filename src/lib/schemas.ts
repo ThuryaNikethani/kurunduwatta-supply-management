@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UNITS } from "./types";
+import { AUDIENCES, UNITS } from "./types";
 
 /**
  * Form validation. Error messages are translation keys (see i18n.tsx),
@@ -28,6 +28,7 @@ export const supplyItemSchema = z.object({
 });
 
 export const supplySchema = z.object({
+  audience: z.enum(AUDIENCES),
   title: name,
   eventDate: z.string().min(1, "v.required"),
   meal: z.string().min(1, "v.required"),
