@@ -25,7 +25,7 @@ export default function NewTransferPage() {
 function NewTransfer() {
   const supplyId = useSearchParams().get("supply");
   const { profile } = useAuth();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const supply = useDoc("supply", supplyId);
 
@@ -41,7 +41,7 @@ function NewTransfer() {
         title={supply.title}
         subtitle={
           <span className="flex flex-wrap gap-4">
-            <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" /> {formatDate(supply.eventDate, lang)}</span>
+            <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" /> {formatDate(supply.eventDate)}</span>
             <span className="inline-flex items-center gap-1"><Users className="size-4" /> {supply.guestCount} {t("supply.guests")}</span>
           </span>
         }
@@ -57,7 +57,7 @@ function NewTransfer() {
             { ...data, supplyId: supply.id, supplyTitle: supply.title, guestCount: supply.guestCount },
             note,
           );
-          toast.success(t("supply.send"));
+          toast.success(t("did.submit"));
           router.replace(`/leftovers/${id}`);
         }}
       />
