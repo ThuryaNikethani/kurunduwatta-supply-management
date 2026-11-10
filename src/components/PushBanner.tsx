@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { backend, type PushState } from "@/lib/backend";
 import { useI18n } from "@/lib/i18n";
+import { needsHomeScreen } from "./IosInstallHint";
 
 /**
  * Asks each user to turn on phone/computer notifications so they are alerted
@@ -22,7 +23,8 @@ export function PushBanner() {
     if (profile) backend.refreshPush(profile.uid);
   }, [profile]);
 
-  if (!profile || state !== "default") return null;
+  // On iPhone the Home Screen guide comes first; this button only works there.
+  if (!profile || state !== "default" || needsHomeScreen()) return null;
 
   return (
     <div className="no-print mb-6 flex flex-col gap-3 rounded-xl bg-forest p-4 text-cream shadow-sm sm:flex-row sm:items-center">
