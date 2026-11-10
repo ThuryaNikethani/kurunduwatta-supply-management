@@ -7,14 +7,14 @@ import { useI18n } from "@/lib/i18n";
 
 /** Villa letterhead shown only on the printed / PDF copy. */
 export function PrintHeader({ heading }: { heading: string }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   return (
     <div className="print-only mb-6 border-b-2 border-forest pb-3">
-      <p className="font-display text-3xl font-semibold">Kurunduwatta Villa</p>
+      <p className="font-display text-3xl font-semibold">{t("villa")}</p>
       <div className="flex justify-between text-sm text-muted-foreground">
         <span>{heading}</span>
         <span>
-          {t("print.printed")}: {formatDateTime(Date.now(), lang)}
+          {t("print.printed")}: {formatDateTime(Date.now())}
         </span>
       </div>
     </div>
