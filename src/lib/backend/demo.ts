@@ -9,6 +9,7 @@ import type {
   TransferOut,
   UserProfile,
 } from "../types";
+import { isPushOff, setPushOff } from "./push-off";
 import type { AuthSnapshot, Backend, PushState } from "./types";
 
 /**
@@ -234,6 +235,23 @@ export const demoBackend: Backend = {
     mutate((s) => s.users.push({ uid: newId(), name, email, password, role, active: true, createdAt: Date.now() }));
   },
 
+  async resetPassword(uid, password) {
+    await delay();
+    mutate((s) => {
+      const u = s.users.find((x) => x.uid === uid);
+      if (u) u.password = password;
+    });
+  },
+
+  async changeOwnPassword(password) {
+    await delay();
+    const uid = currentSession();
+    mutate((s) => {
+      const u = s.users.find((x) => x.uid === uid);
+      if (u) u.password = password;
+    });
+  },
+
   async updateUser(uid, patch) {
     mutate((s) => {
       const u = s.users.find((x) => x.uid === uid);
@@ -333,12 +351,19 @@ export const demoBackend: Backend = {
     return Notification.permission as PushState;
   },
 
-  async enablePush() {
+  async enablePush(uid) {
     if (!("Notification" in window)) return "unsupported";
+    setPushOff(uid, false);
     return (await Notification.requestPermission()) as PushState;
   },
 
   async refreshPush() {},
+
+  async disablePush(uid) {
+    setPushOff(uid, true);
+  },
+
+  isPushOff,
 };
 
 function byNewest(a: unknown, b: unknown) {
