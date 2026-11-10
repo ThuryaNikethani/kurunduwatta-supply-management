@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, ChevronRight, Download, Plus, Search, Trash2 } from "lucide-react";
+import { BookOpen, Check, ChevronRight, ClipboardCheck, Download, Plus, Search, Trash2 } from "lucide-react";
 import { CardsSkeleton, EmptyState, Field, PageHeader } from "@/components/common";
 import { UnitSelect } from "@/components/SupplyForm";
 import {
@@ -38,16 +38,27 @@ export default function RecipesPage() {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const canEdit = profile?.role === "chef" || profile?.role === "hr";
+  const [show, setShow] = useState<"all" | "todo" | "done">("all");
+
+  // The dashboard reminder links here with ?filter=todo.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("filter") === "todo") setShow("todo");
+  }, []);
+
+  const total = recipes.data?.length ?? 0;
+  const done = (recipes.data ?? []).filter((r) => r.reviewed).length;
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
     const map = new Map<string, Recipe[]>();
     for (const r of recipes.data ?? []) {
       if (q && !r.name.toLowerCase().includes(q)) continue;
+      if (show === "todo" && r.reviewed) continue;
+      if (show === "done" && !r.reviewed) continue;
       map.set(r.category, [...(map.get(r.category) ?? []), r]);
     }
     return [...map.entries()];
-  }, [recipes.data, search]);
+  }, [recipes.data, search, show]);
 
   async function loadMenu() {
     setBusy(true);
@@ -55,7 +66,7 @@ export default function RecipesPage() {
       const now = Date.now();
       const existing = new Map((recipes.data ?? []).map((r) => [r.id, r]));
       const menu = MENU.flatMap(({ category, dishes }) =>
-        dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
+        dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], reviewed: false, updatedAt: now })),
       );
       // New dishes come with starting amounts.
       await backend.addRecipes(menu.filter((r) => !existing.has(r.id)));
@@ -64,7 +75,7 @@ export default function RecipesPage() {
       for (const r of menu) {
         const cur = existing.get(r.id);
         if (cur && !cur.ingredients?.length && r.ingredients.length)
-          await backend.saveRecipe(cur.id, { name: cur.name, category: cur.category, ingredients: r.ingredients, updatedAt: now });
+          await backend.saveRecipe(cur.id, { name: cur.name, category: cur.category, ingredients: r.ingredients, reviewed: false, updatedAt: now });
       }
       toast.success(t("recipes.loaded"));
     } catch (e) {
@@ -91,9 +102,36 @@ export default function RecipesPage() {
         }
       />
 
-      <div className="relative sm:max-w-sm">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="bg-card pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+      {total > 0 && (
+        <Card className="gap-3 py-4">
+          <CardContent className="grid gap-2 px-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="flex items-center gap-2 font-medium">
+                <ClipboardCheck className="size-4 text-moss" /> {t("recipes.progress", { done, total })}
+              </span>
+              {done < total && <span className="text-xs text-muted-foreground">{t("recipes.progressHint")}</span>}
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-label={t("recipes.progress", { done, total })}
+              aria-valuenow={done} aria-valuemin={0} aria-valuemax={total}>
+              <div className="h-full rounded-full bg-leaf-deep transition-all" style={{ width: `${(done / total) * 100}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1 sm:max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="bg-card pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <div className="flex gap-1 rounded-full bg-secondary p-1" role="radiogroup" aria-label={t("recipes.filter")}>
+          {(["all", "todo", "done"] as const).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={show === k} onClick={() => setShow(k)}
+              className={`rounded-full px-3 py-1 text-sm transition ${show === k ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
+              {t(k === "all" ? "dash.all" : k === "todo" ? "recipes.todo" : "recipes.done")}
+            </button>
+          ))}
+        </div>
       </div>
 
       {!recipes.data ? (
@@ -118,10 +156,16 @@ export default function RecipesPage() {
                           {r.ingredients.map((i) => `${i.name} ${qty(i.qtyPerPerson, i.unit)}`).join(" · ")}
                         </p>
                       ) : null}
-                      <div>
-                        <Badge variant="secondary" className={r.ingredients.length ? "rounded-full bg-leaf/30 text-leaf-deep" : "rounded-full"}>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="secondary" className="rounded-full">
                           {r.ingredients.length ? t("recipes.ingredients", { n: r.ingredients.length }) : t("supply.noRecipe")}
                         </Badge>
+                        {r.ingredients.length > 0 && (
+                          <Badge variant="secondary" className={r.reviewed ? "rounded-full bg-leaf/30 text-leaf-deep" : "rounded-full bg-amber/20 text-amber-deep"}>
+                            {r.reviewed && <Check />}
+                            {t(r.reviewed ? "recipes.reviewed" : "recipes.needsCheck")}
+                          </Badge>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -173,7 +217,8 @@ function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }
     setBusy(true);
     try {
       const id = recipe.id || newDishId(parsed.data.name);
-      await backend.saveRecipe(id, { ...parsed.data, updatedAt: Date.now() });
+      // Saving from the editor means the chef has checked it.
+      await backend.saveRecipe(id, { ...parsed.data, reviewed: true, updatedAt: Date.now() });
       toast.success(t("recipes.saved"));
       onDone();
     } catch (err) {
@@ -191,6 +236,7 @@ function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }
     <form onSubmit={save} className="grid gap-5" noValidate>
       <DialogHeader>
         <DialogTitle className="font-display text-2xl">{recipe.id ? recipe.name : t("recipes.addDish")}</DialogTitle>
+        <p className="text-sm text-muted-foreground">{t("recipes.saveMarks")}</p>
       </DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("recipes.dishName")} htmlFor="r-name" error={errors.name}>
