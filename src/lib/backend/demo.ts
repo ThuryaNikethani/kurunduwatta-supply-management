@@ -1,3 +1,4 @@
+import { DEFAULT_INGREDIENTS } from "../default-recipes";
 import { MENU } from "../menu";
 import type {
   AppNotification,
@@ -29,7 +30,7 @@ interface State {
   notifications: Record<string, AppNotification[]>;
 }
 
-const KEY = "kw-demo-v2";
+const KEY = "kw-demo-v3";
 const SESSION = "kw-demo-session";
 export const DEMO_PASSWORD = "123456";
 
@@ -38,47 +39,6 @@ export const DEMO_ACCOUNTS: { email: string; role: Role; name: string }[] = [
   { email: "supervisor@demo.lk", role: "supervisor", name: "කමලා" },
   { email: "hr@demo.lk", role: "hr", name: "සුනිල්" },
 ];
-
-const SAMPLE_INGREDIENTS: Record<string, Recipe["ingredients"]> = {
-  "traditional-sri-lankan-rice-and-curry-set": [
-    { name: "සම්බා හාල්", unit: "g", qtyPerPerson: 150 },
-    { name: "රතු පරිප්පු", unit: "g", qtyPerPerson: 40 },
-    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 120 },
-    { name: "පොල් කිරි", unit: "ml", qtyPerPerson: 100 },
-    { name: "රතු ළූණු", unit: "g", qtyPerPerson: 30 },
-    { name: "අමු මිරිස්", unit: "g", qtyPerPerson: 5 },
-    { name: "තුනපහ", unit: "g", qtyPerPerson: 8 },
-  ],
-  "live-style-kothu-roti": [
-    { name: "ගෝදම්බා රොටි", unit: "pcs", qtyPerPerson: 2 },
-    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 100 },
-    { name: "බිත්තර", unit: "pcs", qtyPerPerson: 1 },
-    { name: "ලීක්ස්", unit: "g", qtyPerPerson: 30 },
-    { name: "කැරට්", unit: "g", qtyPerPerson: 30 },
-  ],
-  "pol-roti-platter": [
-    { name: "තිරිඟු පිටි", unit: "g", qtyPerPerson: 100 },
-    { name: "ගාපු පොල්", unit: "g", qtyPerPerson: 50 },
-    { name: "රතු ළූණු", unit: "g", qtyPerPerson: 20 },
-    { name: "අමු මිරිස්", unit: "g", qtyPerPerson: 5 },
-  ],
-  "sri-lankan-watalappan": [
-    { name: "කිතුල් හකුරු", unit: "g", qtyPerPerson: 40 },
-    { name: "බිත්තර", unit: "pcs", qtyPerPerson: 1 },
-    { name: "පොල් කිරි", unit: "ml", qtyPerPerson: 80 },
-    { name: "එනසාල්", unit: "g", qtyPerPerson: 1 },
-  ],
-  "fresh-tropical-fruit-juices": [
-    { name: "පලතුරු", unit: "g", qtyPerPerson: 200 },
-    { name: "සීනි", unit: "g", qtyPerPerson: 15 },
-  ],
-  "devilled-dish": [
-    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 150 },
-    { name: "මාළු මිරිස්", unit: "g", qtyPerPerson: 40 },
-    { name: "ලොකු ළූණු", unit: "g", qtyPerPerson: 40 },
-    { name: "තක්කාලි සෝස්", unit: "ml", qtyPerPerson: 20 },
-  ],
-};
 
 function seed(): State {
   const now = Date.now();
@@ -92,7 +52,7 @@ function seed(): State {
     createdAt: now,
   }));
   const recipes: Recipe[] = MENU.flatMap(({ category, dishes }) =>
-    dishes.map(([id, name]) => ({ id, name, category, ingredients: SAMPLE_INGREDIENTS[id] ?? [], updatedAt: now })),
+    dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
   );
   const chef = users[0];
   const sample: SupplyList = {
