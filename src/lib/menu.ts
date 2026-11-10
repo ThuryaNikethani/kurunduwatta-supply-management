@@ -1,119 +1,128 @@
-// Villa menu taken from https://kurunduwatta-hospitality.vercel.app/dining
-// The website lists dishes only, so ingredients start empty and the chef
-// fills in per-person quantities on the Recipes page.
+// Villa menu from https://kurunduwatta-hospitality.vercel.app/dining,
+// with simple Sinhala names. The id stays based on the original dish name
+// so saved recipes keep working.
 
-export const MENU: { category: string; dishes: string[] }[] = [
+type Dish = [id: string, name: string];
+
+export const MENU: { category: string; dishes: Dish[] }[] = [
   {
-    category: "Sri Lankan Signature Dishes",
+    category: "ලංකාවේ විශේෂ කෑම",
     dishes: [
-      "Traditional Sri Lankan Rice & Curry Set",
-      "Sri Lankan Seafood Curry Pot",
-      "Devilled Dish",
-      "Live Style Kothu Roti",
-      "Pol Roti Platter",
+      ["traditional-sri-lankan-rice-and-curry-set", "බත් සහ කරි"],
+      ["sri-lankan-seafood-curry-pot", "මුහුදු කෑම කරිය"],
+      ["devilled-dish", "ඩෙවල් කෑම"],
+      ["live-style-kothu-roti", "කොත්තු රොටි"],
+      ["pol-roti-platter", "පොල් රොටි"],
     ],
   },
   {
-    category: "Buffets",
-    dishes: ["Breakfast Buffet", "Lunch Buffet", "Dinner Buffet", "High Tea"],
-  },
-  {
-    category: "Live BBQ Night",
+    category: "බුෆේ",
     dishes: [
-      "Classic Meat & Poultry BBQ",
-      "Surf & Turf / Seafood & Meat BBQ",
-      "Grand Villa BBQ & Live Station",
+      ["breakfast-buffet", "උදේ බුෆේ"],
+      ["lunch-buffet", "දවල් බුෆේ"],
+      ["dinner-buffet", "රෑ බුෆේ"],
+      ["high-tea", "හවස තේ"],
     ],
   },
   {
-    category: "Set Menus",
+    category: "බාබකියු රෑ",
     dishes: [
-      "Sri Lankan Breakfast (Traditional)",
-      "Sri Lankan Breakfast (Village / Farm Style)",
-      "Continental Breakfast",
-      "Full English / Western Breakfast",
-      "Sri Lankan Lunch (Classic)",
-      "Sri Lankan Lunch (Village / Farm Style)",
-      "Continental / Western Lunch",
-      "Pasta or Rice Bowl Lunch",
-      "Sri Lankan Dinner (Classic)",
-      "Sri Lankan Dinner (Village / Farm Style)",
-      "Western Grilled Dinner",
-      "Pasta Dinner",
+      ["classic-meat-and-poultry-bbq", "මස් සහ කුකුල් මස් බාබකියු"],
+      ["surf-and-turf-seafood-and-meat-bbq", "මුහුදු කෑම සහ මස් බාබකියු"],
+      ["grand-villa-bbq-and-live-station", "විලා විශේෂ බාබකියු"],
     ],
   },
   {
-    category: "Soups & Appetizers",
+    category: "සෙට් මෙනු",
     dishes: [
-      "Cream of Wild Mushroom Soup",
-      "Roasted Tomato & Basil Soup",
-      "Sri Lankan Spicy Chicken & Corn Soup",
-      "Garlic Butter Chicken",
-      "Crispy Vegetable Spring Rolls",
+      ["sri-lankan-breakfast-traditional", "ලංකාවේ උදේ කෑම"],
+      ["sri-lankan-breakfast-village-farm-style", "ගැමි උදේ කෑම"],
+      ["continental-breakfast", "බටහිර උදේ කෑම (සරල)"],
+      ["full-english-western-breakfast", "බටහිර උදේ කෑම (පුරා)"],
+      ["sri-lankan-lunch-classic", "ලංකාවේ දවල් කෑම"],
+      ["sri-lankan-lunch-village-farm-style", "ගැමි දවල් කෑම"],
+      ["continental-western-lunch", "බටහිර දවල් කෑම"],
+      ["pasta-or-rice-bowl-lunch", "පාස්තා හෝ බත් බඳුන"],
+      ["sri-lankan-dinner-classic", "ලංකාවේ රෑ කෑම"],
+      ["sri-lankan-dinner-village-farm-style", "ගැමි රෑ කෑම"],
+      ["western-grilled-dinner", "බටහිර ග්‍රිල් රෑ කෑම"],
+      ["pasta-dinner", "පාස්තා රෑ කෑම"],
     ],
   },
   {
-    category: "Salads",
+    category: "සුප් සහ කෙටි කෑම",
     dishes: [
-      "Classic Caesar Salad",
-      "Sri Lankan Green Mango & Avocado Salad",
-      "Villa Tea Garden Salad",
+      ["cream-of-wild-mushroom-soup", "හතු සුප්"],
+      ["roasted-tomato-and-basil-soup", "තක්කාලි සුප්"],
+      ["sri-lankan-spicy-chicken-and-corn-soup", "කුකුල් මස් සහ බඩඉරිඟු සුප්"],
+      ["garlic-butter-chicken", "සුදුළූණු බටර් චිකන්"],
+      ["crispy-vegetable-spring-rolls", "එළවළු රෝල්ස්"],
     ],
   },
   {
-    category: "International Mains & Grill",
+    category: "සලාද",
     dishes: [
-      "Grilled Fresh Catch of the Day",
-      "Pan-Seared Chicken Breast",
-      "Villa Gourmet Beef / Chicken Burger",
-      "Grilled Pork Chops with BBQ Glaze",
+      ["classic-caesar-salad", "සීසර් සලාද"],
+      ["sri-lankan-green-mango-and-avocado-salad", "අමු අඹ සහ අලිගැටපේර සලාද"],
+      ["villa-tea-garden-salad", "තේ වත්ත සලාද"],
     ],
   },
   {
-    category: "Pasta & Rice",
+    category: "ප්‍රධාන කෑම සහ ග්‍රිල්",
     dishes: [
-      "Spaghetti Carbonara / Bolognese",
-      "Penne Arrabbiata",
-      "Villa Special Mixed Fried Rice / Noodles",
-      "Vegetable Chopsuey Rice",
+      ["grilled-fresh-catch-of-the-day", "අද අල්ලපු මාළු ග්‍රිල්"],
+      ["pan-seared-chicken-breast", "බැදපු චිකන්"],
+      ["villa-gourmet-beef-chicken-burger", "හරක් මස් / චිකන් බර්ගර්"],
+      ["grilled-pork-chops-with-bbq-glaze", "ග්‍රිල් කරපු ඌරු මස්"],
     ],
   },
   {
-    category: "Snacks & Tea-Time Bites",
+    category: "පාස්තා සහ බත්",
     dishes: [
-      "Hot Butter Cuttlefish",
-      "Spicy Devilled Sausages",
-      "Basket of French Fries",
-      "Sri Lankan Fried Cassava Chips",
+      ["spaghetti-carbonara-bolognese", "ස්පැගටි"],
+      ["penne-arrabbiata", "සැර පාස්තා"],
+      ["villa-special-mixed-fried-rice-noodles", "මික්ස් ෆ්‍රයිඩ් රයිස් / නූඩ්ල්ස්"],
+      ["vegetable-chopsuey-rice", "එළවළු චොප්සුයි බත්"],
     ],
   },
   {
-    category: "Desserts",
+    category: "තේ වෙලාවට කෑම",
     dishes: [
-      "Traditional Curd & Kithul Treacle",
-      "Sri Lankan Watalappan",
-      "Warm Chocolate Lava Cake",
-      "Tropical Fresh Fruit Salad with Ice Cream",
+      ["hot-butter-cuttlefish", "හොට් බටර් දැල්ලෝ"],
+      ["spicy-devilled-sausages", "සොසේජස් ඩෙවල්"],
+      ["basket-of-french-fries", "අල චිප්ස්"],
+      ["sri-lankan-fried-cassava-chips", "මඤ්ඤොක්කා චිප්ස්"],
     ],
   },
   {
-    category: "Beverages",
+    category: "අතුරුපස",
     dishes: [
-      "Fresh Tropical Fruit Juices",
-      "Fresh King Coconut",
-      "Ceylon Pure Tea / Spiced Chai / Green Tea",
-      "Barista Coffee",
-      "Soft Drinks & Chilled Mineral Water",
+      ["traditional-curd-and-kithul-treacle", "මී කිරි සහ කිතුල් පැණි"],
+      ["sri-lankan-watalappan", "වටලප්පන්"],
+      ["warm-chocolate-lava-cake", "චොකලට් කේක්"],
+      ["tropical-fresh-fruit-salad-with-ice-cream", "පලතුරු සලාද සහ අයිස්ක්‍රීම්"],
+    ],
+  },
+  {
+    category: "බීම",
+    dishes: [
+      ["fresh-tropical-fruit-juices", "පලතුරු යුෂ"],
+      ["fresh-king-coconut", "තැඹිලි"],
+      ["ceylon-pure-tea-spiced-chai-green-tea", "තේ"],
+      ["barista-coffee", "කෝපි"],
+      ["soft-drinks-and-chilled-mineral-water", "සිසිල් බීම සහ වතුර"],
     ],
   },
 ];
 
 export const CATEGORIES = MENU.map((m) => m.category);
 
-export function slugify(s: string) {
-  return s
+/** Id for a dish the chef adds. Works for Sinhala names too. */
+export function newDishId(name: string) {
+  const latin = name
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+  return latin || `dish-${Date.now().toString(36)}`;
 }
