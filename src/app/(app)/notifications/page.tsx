@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 export default function NotificationsPage() {
   const { profile } = useAuth();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const list = useNotifications(profile?.uid);
   const [push, setPush] = useState<PushState>("unsupported");
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
               <>
                 <BellRing className="size-5 text-leaf-deep" />
                 <p className="flex-1 text-sm text-leaf-deep">{t("notif.enabled")}</p>
-                <Button variant="ghost" size="icon" onClick={turnOn} disabled={busy} aria-label="Refresh"><RefreshCw /></Button>
+                <Button variant="ghost" size="icon" onClick={turnOn} disabled={busy} aria-label={t("notif.refresh")}><RefreshCw /></Button>
               </>
             ) : push === "denied" ? (
               <>
@@ -99,9 +99,9 @@ export default function NotificationsPage() {
                     <Bell className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={cn("block text-sm", !n.read && "font-medium")}>{notificationText(n)[lang]}</span>
+                    <span className={cn("block text-sm", !n.read && "font-medium")}>{notificationText(n)}</span>
                     {n.note && <span className="mt-0.5 block text-sm text-muted-foreground">“{n.note}”</span>}
-                    <span className="mt-0.5 block text-xs text-muted-foreground">{formatDateTime(n.createdAt, lang)}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{formatDateTime(n.createdAt)}</span>
                   </span>
                 </button>
               </li>
