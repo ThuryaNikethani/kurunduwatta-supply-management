@@ -26,14 +26,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { useSupplyLists, useTransferOuts } from "@/lib/hooks";
-import { useI18n, type TKey } from "@/lib/i18n";
+import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { STATUSES, type Status, type SupplyList, type TransferOut } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { WAITING_ON } from "@/lib/workflow";
 
 export default function Dashboard() {
   const { profile } = useAuth();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const supply = useSupplyLists();
   const transfers = useTransferOuts();
   const [filter, setFilter] = useState<Status | "all">("all");
@@ -72,7 +72,7 @@ export default function Dashboard() {
       <PageHeader
         eyebrow={t(`role.${profile.role}`)}
         title={t("dash.hello", { name: profile.name.split(/[\s(]/)[0] })}
-        subtitle={formatDate(Date.now(), lang)}
+        subtitle={formatDate(Date.now())}
         actions={
           profile.role === "chef" && (
             <Button asChild variant="accent" size="lg">
@@ -84,7 +84,7 @@ export default function Dashboard() {
 
       {error && (
         <Alert variant="destructive">
-          <AlertDescription>{t("error")} ({error.message})</AlertDescription>
+          <AlertDescription>{errorText(error)}</AlertDescription>
         </Alert>
       )}
 
@@ -197,11 +197,11 @@ function Row({ href, title, status, highlight, tag, Icon, meta }: {
 }
 
 function SupplyRow({ d, highlight }: { d: SupplyList; highlight?: boolean }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   return (
     <Row href={`/requests/${d.id}`} title={d.title} tag="dash.supplyLists" Icon={ClipboardList} status={d.status} highlight={highlight}
       meta={[
-        { Icon: CalendarDays, text: `${formatDate(d.eventDate, lang)} · ${t(`meal.${d.meal}` as TKey)}` },
+        { Icon: CalendarDays, text: `${formatDate(d.eventDate)} · ${t(`meal.${d.meal}` as TKey)}` },
         { Icon: Users, text: String(d.guestCount) },
         { Icon: ClipboardList, text: t("supply.totalItems", { n: d.items.length }) },
       ]} />
@@ -209,12 +209,12 @@ function SupplyRow({ d, highlight }: { d: SupplyList; highlight?: boolean }) {
 }
 
 function TransferRow({ d, highlight }: { d: TransferOut; highlight?: boolean }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const portions = d.items.reduce((s, i) => s + (Number(i.portions) || 0), 0);
   return (
     <Row href={`/leftovers/${d.id}`} title={d.supplyTitle} tag="dash.transfers" Icon={Soup} status={d.status} highlight={highlight}
       meta={[
-        { Icon: CalendarDays, text: formatDate(d.date, lang) },
+        { Icon: CalendarDays, text: formatDate(d.date) },
         { Icon: Soup, text: t("transfer.summary", { guests: d.guestCount, portions }) },
       ]} />
   );
