@@ -9,7 +9,6 @@ import {
   BookOpen,
   ChefHat,
   FlaskConical,
-  Languages,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -47,16 +46,6 @@ const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
-
-export function LangToggle({ className }: { className?: string }) {
-  const { t, toggle } = useI18n();
-  return (
-    <Button variant="ghost" size="sm" onClick={toggle} className={className}>
-      <Languages />
-      {t("language")}
-    </Button>
-  );
-}
 
 function Brand() {
   const { t } = useI18n();
@@ -108,7 +97,7 @@ function NavLinks({ unread, onNavigate }: { unread: number; onNavigate?: () => v
 
 function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
   const { profile, logout } = useAuth();
-  const { t, toggle } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   if (!profile) return null;
   return (
@@ -138,9 +127,6 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
           <p className="truncate text-xs font-normal text-muted-foreground">{profile.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={toggle}>
-          <Languages /> {t("language")}
-        </DropdownMenuItem>
         {isDemo && (
           <DropdownMenuItem
             onSelect={() => {
@@ -162,7 +148,7 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
 /** Watches notifications: unread badge + toast + system notification. */
 function useLiveNotifications() {
   const { profile } = useAuth();
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
   const list = useNotifications(profile?.uid);
   const seen = useRef<Set<string> | null>(null);
@@ -177,12 +163,12 @@ function useLiveNotifications() {
       if (seen.current.has(n.id)) continue;
       seen.current.add(n.id);
       if (n.read) continue;
-      const text = notificationText(n)[lang];
+      const text = notificationText(n);
       const href = docLink(n.kind, n.docId);
       toast(text, {
         description: n.note || undefined,
         icon: <Bell className="size-4 text-amber-deep" />,
-        action: { label: "→", onClick: () => router.push(href) },
+        action: { label: t("notif.open"), onClick: () => router.push(href) },
         duration: 8000,
       });
       if (document.hidden && "Notification" in window && Notification.permission === "granted") {
@@ -194,7 +180,7 @@ function useLiveNotifications() {
         } catch {}
       }
     }
-  }, [list, lang, router]);
+  }, [list, router, t]);
 
   return (list ?? []).filter((n) => !n.read).length;
 }
@@ -213,7 +199,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Brand />
         <NavLinks unread={unread} />
         <div className="mt-auto grid gap-2">
-          <LangToggle className="justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground" />
           <UserMenu light />
         </div>
       </aside>
@@ -223,7 +208,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="no-print sticky top-0 z-40 flex items-center gap-2 bg-sidebar px-3 py-2.5 text-sidebar-foreground shadow lg:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label="Menu">
+              <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label={t("nav.menu")}>
                 <Menu />
               </Button>
             </SheetTrigger>
