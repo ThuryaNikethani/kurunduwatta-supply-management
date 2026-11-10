@@ -59,6 +59,8 @@ export interface Recipe {
   name: string;
   category: string;
   ingredients: Ingredient[];
+  /** True once the chef has checked the amounts (starting amounts are estimates). */
+  reviewed?: boolean;
   updatedAt?: number;
 }
 
@@ -120,10 +122,89 @@ export interface TransferOut extends WorkflowDoc {
   recipients: string[];
 }
 
+// ---------------------------------------------------------------- stock & orders
+
+export interface StockItem {
+  id: string;
+  name: string;
+  unit: Unit;
+  qty: number;
+  /** Below or at this amount the item shows as running low. */
+  minQty: number;
+  updatedAt?: number;
+}
+
+export type StockReason = "issue" | "receive" | "adjust";
+
+export interface StockMove {
+  id: string;
+  itemId: string;
+  itemName: string;
+  unit: Unit;
+  change: number;
+  qtyAfter: number;
+  reason: StockReason;
+  note: string;
+  refKind?: string | null;
+  refId?: string | null;
+  byName: string;
+  createdAt: number;
+}
+
+export interface StockLine {
+  itemId: string | null;
+  name: string;
+  unit: Unit;
+  qty: number;
+}
+
+export interface StockIssue {
+  supplyId: string;
+  lines: StockLine[];
+  byName: string;
+  createdAt: number;
+}
+
+export type OrderStatus = "pending_hr" | "returned" | "approved" | "received";
+export const ORDER_STATUSES: OrderStatus[] = ["pending_hr", "returned", "approved", "received"];
+export type OrderAction = "po_submit" | "po_resubmit" | "po_approve" | "po_return" | "po_receive";
+
+export interface OrderItem {
+  name: string;
+  unit: Unit;
+  qty: number;
+  note: string;
+}
+
+export interface OrderHistoryEntry {
+  at: number;
+  uid: string;
+  name: string;
+  role: Role;
+  action: OrderAction;
+  note: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  supplier: string;
+  items: OrderItem[];
+  status: OrderStatus;
+  history: OrderHistoryEntry[];
+  createdBy: string;
+  createdByName: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** What a notification is about. */
+export type NotifKind = DocKind | "po";
+export type AnyAction = Action | OrderAction;
+
 export interface AppNotification {
   id: string;
-  kind: DocKind;
-  action: Action;
+  kind: NotifKind;
+  action: AnyAction;
   docId: string;
   docTitle: string;
   byName: string;
@@ -138,6 +219,7 @@ export const COLLECTION: Record<DocKind, string> = {
   transfer: "transferOuts",
 };
 
-export function docLink(kind: DocKind, id: string) {
+export function docLink(kind: NotifKind, id: string) {
+  if (kind === "po") return `/orders/${id}`;
   return kind === "supply" ? `/requests/${id}` : `/leftovers/${id}`;
 }
