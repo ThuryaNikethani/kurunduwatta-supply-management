@@ -1,22 +1,27 @@
 "use client";
 
-import { CheckCircle2, Forward, History, Send, Undo2 } from "lucide-react";
+import { CheckCircle2, Forward, History, PackageCheck, Send, Undo2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n";
-import type { Action, HistoryEntry } from "@/lib/types";
+import type { AnyAction, HistoryEntry, OrderHistoryEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const ICON: Record<Action, { Icon: typeof Send; cls: string }> = {
+const ICON: Record<AnyAction, { Icon: typeof Send; cls: string }> = {
   submit: { Icon: Send, cls: "bg-amber/20 text-amber-deep" },
   resubmit: { Icon: Send, cls: "bg-amber/20 text-amber-deep" },
   forward_to_hr: { Icon: Forward, cls: "bg-amber/20 text-amber-deep" },
   return_to_chef: { Icon: Undo2, cls: "bg-destructive/10 text-destructive" },
   reject_to_supervisor: { Icon: Undo2, cls: "bg-destructive/10 text-destructive" },
   approve: { Icon: CheckCircle2, cls: "bg-leaf/30 text-leaf-deep" },
+  po_submit: { Icon: Send, cls: "bg-amber/20 text-amber-deep" },
+  po_resubmit: { Icon: Send, cls: "bg-amber/20 text-amber-deep" },
+  po_approve: { Icon: CheckCircle2, cls: "bg-leaf/30 text-leaf-deep" },
+  po_return: { Icon: Undo2, cls: "bg-destructive/10 text-destructive" },
+  po_receive: { Icon: PackageCheck, cls: "bg-leaf/30 text-leaf-deep" },
 };
 
-export function Timeline({ history }: { history: HistoryEntry[] }) {
+export function Timeline({ history }: { history: (HistoryEntry | OrderHistoryEntry)[] }) {
   const { t } = useI18n();
   const items = [...history].sort((a, b) => a.at - b.at);
   return (
