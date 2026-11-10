@@ -88,7 +88,14 @@ interface WorkflowDoc {
   updatedAt: number;
 }
 
+/** Who the food is for: hotel guests or the villa's own staff. */
+export type Audience = "guests" | "staff";
+
+export const AUDIENCES: Audience[] = ["guests", "staff"];
+
 export interface SupplyList extends WorkflowDoc {
+  /** Missing on older lists, which were all for guests. */
+  audience?: Audience;
   title: string;
   eventDate: string;
   meal: string;
