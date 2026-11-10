@@ -106,7 +106,7 @@ function NavLinks({ unread, onNavigate }: { unread: number; onNavigate?: () => v
   );
 }
 
-function UserMenu({ light }: { light?: boolean }) {
+function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
   const { profile, logout } = useAuth();
   const { t, toggle } = useI18n();
   const router = useRouter();
@@ -116,14 +116,15 @@ function UserMenu({ light }: { light?: boolean }) {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex w-full items-center gap-3 rounded-lg p-2 text-left transition",
+            "flex items-center gap-3 rounded-lg p-2 text-left transition",
+            compact ? "shrink-0 rounded-full p-1" : "w-full",
             light ? "hover:bg-sidebar-accent" : "hover:bg-secondary",
           )}
         >
           <Avatar className="size-9">
             <AvatarFallback className="bg-amber font-semibold text-forest">{initials(profile.name)}</AvatarFallback>
           </Avatar>
-          <span className="hidden min-w-0 flex-1 sm:block">
+          <span className={cn("min-w-0 flex-1", compact ? "hidden" : "hidden sm:block")}>
             <span className="block truncate text-sm font-medium">{profile.name}</span>
             <span className={cn("block truncate text-xs", light ? "text-sidebar-foreground/60" : "text-muted-foreground")}>
               {t(`role.${profile.role}`)}
@@ -243,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             )}
           </Link>
-          <UserMenu light />
+          <UserMenu light compact />
         </header>
 
         {isDemo && (
