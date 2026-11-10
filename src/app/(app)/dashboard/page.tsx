@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  BookOpen,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
@@ -11,6 +12,7 @@ import {
   Inbox,
   Plus,
   Search,
+  ShoppingCart,
   Soup,
   Users,
   type LucideIcon,
@@ -25,7 +27,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { useSupplyLists, useTransferOuts } from "@/lib/hooks";
+import { useOrders, useRecipes, useSupplyLists, useTransferOuts } from "@/lib/hooks";
+import { ORDER_WAITING_ON } from "@/lib/orders";
+import { OrderBadge } from "@/components/OrderBadge";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { AUDIENCES, STATUSES, type Audience, type Status, type SupplyList, type TransferOut } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -36,6 +40,8 @@ export default function Dashboard() {
   const { t } = useI18n();
   const supply = useSupplyLists();
   const transfers = useTransferOuts();
+  const recipes = useRecipes();
+  const orders = useOrders();
   const [filter, setFilter] = useState<Status | "all">("all");
   const [audience, setAudience] = useState<Audience | "all">("all");
   const [search, setSearch] = useState("");
@@ -60,6 +66,7 @@ export default function Dashboard() {
 
   const waitingSupply = s.filter((d) => mine(d.status));
   const waitingTransfer = tr.filter((d) => mine(d.status));
+  const waitingOrders = (orders.data ?? []).filter((o) => ORDER_WAITING_ON[o.status] === role);
 
   const q = search.trim().toLowerCase();
   const match = (d: SupplyList | TransferOut) =>
@@ -90,8 +97,20 @@ export default function Dashboard() {
         </Alert>
       )}
 
+      {profile.role === "chef" && (recipes.data ?? []).some((r) => !r.reviewed && r.ingredients.length) && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber/60 bg-amber/10 p-4 sm:flex-row sm:items-center">
+          <BookOpen className="size-5 shrink-0 text-amber-deep" />
+          <p className="min-w-0 flex-1 text-sm">
+            {t("recipes.reminder", { n: (recipes.data ?? []).filter((r) => !r.reviewed && r.ingredients.length).length })}
+          </p>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/recipes?filter=todo">{t("recipes.reminderAction")}</Link>
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat Icon={Inbox} label={t("stat.waiting")} value={stats.waiting} highlight={stats.waiting > 0} />
+        <Stat Icon={Inbox} label={t("stat.waiting")} value={stats.waiting + waitingOrders.length} highlight={stats.waiting + waitingOrders.length > 0} />
         <Stat Icon={Hourglass} label={t("stat.inReview")} value={stats.review} />
         <Stat Icon={CheckCircle2} label={t("stat.approved")} value={stats.approved} />
         <Stat Icon={Soup} label={t("stat.leftovers")} value={stats.leftovers} />
@@ -101,12 +120,30 @@ export default function Dashboard() {
         <h2 className="font-display text-2xl font-semibold">{t("dash.needsAction")}</h2>
         {!supply.data || !transfers.data ? (
           <CardsSkeleton count={2} />
-        ) : waitingSupply.length + waitingTransfer.length === 0 ? (
+        ) : waitingSupply.length + waitingTransfer.length + waitingOrders.length === 0 ? (
           <EmptyState icon={CheckCircle2} text={t("dash.nothing")} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {waitingSupply.map((d) => <SupplyRow key={d.id} d={d} highlight />)}
             {waitingTransfer.map((d) => <TransferRow key={d.id} d={d} highlight />)}
+            {waitingOrders.map((o) => (
+              <Link key={o.id} href={`/orders/${o.id}`} className="group">
+                <Card className="h-full gap-3 border-amber/60 py-4 ring-2 ring-amber/25 transition group-hover:-translate-y-0.5 group-hover:shadow-md">
+                  <CardContent className="grid gap-3 px-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[11px] tracking-wide text-muted-foreground uppercase">
+                        <ShoppingCart className="size-3.5" /> {t("dash.orders")}
+                      </span>
+                      <OrderBadge status={o.status} />
+                    </div>
+                    <p className="font-display text-xl leading-snug font-semibold">{o.supplier}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(o.createdAt)} · {t("orders.itemCount", { n: o.items.length })} · {o.createdByName}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         )}
       </section>
