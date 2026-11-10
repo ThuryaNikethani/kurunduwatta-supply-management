@@ -11,11 +11,13 @@ import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { fieldErrors, transferSchema } from "@/lib/schemas";
 import type { LeftoverItem, TransferOut } from "@/lib/types";
 import { Field, StepTitle } from "./common";
+import { DraftNotice } from "./DraftNotice";
+import { useDraft } from "@/lib/draft";
 
 export type TransferFormData = Pick<TransferOut, "date" | "items" | "recipients">;
 
 export function TransferForm({
-  dishOptions, guestCount, initial, submitLabel, onSubmit, onCancel,
+  dishOptions, guestCount, initial, submitLabel, onSubmit, onCancel, draftKey,
 }: {
   dishOptions: string[];
   guestCount: number;
@@ -23,6 +25,8 @@ export function TransferForm({
   submitLabel: string;
   onSubmit: (data: TransferFormData, note: string) => Promise<void>;
   onCancel?: () => void;
+  /** Where unsent input is kept so a refresh doesn't lose it. */
+  draftKey: string;
 }) {
   const { t } = useI18n();
   const [date, setDate] = useState(initial?.date ?? today());
@@ -32,6 +36,22 @@ export function TransferForm({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  type Draft = TransferFormData & { name: string; note: string };
+  const [start] = useState<Draft>(() => ({ date, items, recipients, name: "", note: "" }));
+  const draft = useDraft<Draft>(
+    draftKey,
+    { date, items, recipients, name, note },
+    (d) => {
+      setDate(d.date);
+      setItems(d.items);
+      setRecipients(d.recipients);
+      setName(d.name);
+      setNote(d.note);
+      setErrors({});
+    },
+    start,
+  );
 
   const update = (i: number, patch: Partial<LeftoverItem>) =>
     setItems((cur) => cur.map((it, j) => (j === i ? { ...it, ...patch } : it)));
@@ -58,6 +78,7 @@ export function TransferForm({
     setBusy(true);
     try {
       await onSubmit(parsed.data, note);
+      draft.clear();
     } catch (err) {
       setErrors({ form: errorText(err) });
       setBusy(false);
@@ -68,6 +89,7 @@ export function TransferForm({
 
   return (
     <form onSubmit={submit} className="grid gap-6" noValidate>
+      <DraftNotice restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       <datalist id="dish-options">
         {dishOptions.map((d) => <option key={d} value={d} />)}
       </datalist>
@@ -155,7 +177,7 @@ export function TransferForm({
             <Button type="submit" variant="accent" size="lg" disabled={busy}>
               <Send /> {busy ? t("saving") : submitLabel}
             </Button>
-            {onCancel && <Button type="button" variant="outline" size="lg" onClick={onCancel}>{t("cancel")}</Button>}
+            {onCancel && <Button type="button" variant="outline" size="lg" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
           </div>
         </CardContent>
       </Card>
