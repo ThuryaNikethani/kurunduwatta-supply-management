@@ -25,6 +25,8 @@ create table if not exists public.recipes (
   name text not null,
   category text not null,
   ingredients jsonb not null default '[]'::jsonb,
+  -- true once the chef has checked the amounts (starting amounts are estimates)
+  reviewed boolean not null default false,
   updated_at bigint
 );
 
