@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calculator, Check, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { Calculator, Check, HardHat, Plus, Search, Send, Trash2, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -24,13 +24,13 @@ import { qty, today, unitLabel } from "@/lib/format";
 import { useRecipes } from "@/lib/hooks";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { fieldErrors, supplySchema } from "@/lib/schemas";
-import { UNITS, type DishRef, type Recipe, type SupplyItem, type SupplyList, type Unit } from "@/lib/types";
+import { AUDIENCES, UNITS, type Audience, type DishRef, type Recipe, type SupplyItem, type SupplyList, type Unit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState, Field, StepTitle } from "./common";
 
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
 
-export type SupplyFormData = Pick<SupplyList, "title" | "eventDate" | "meal" | "guestCount" | "dishes" | "items">;
+export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "dishes" | "items">;
 
 export function UnitSelect({ value, onChange, className }: { value: Unit; onChange: (u: Unit) => void; className?: string }) {
   return (
@@ -57,6 +57,7 @@ export function SupplyForm({
 }) {
   const { t } = useI18n();
   const recipes = useRecipes();
+  const [audience, setAudience] = useState<Audience>(initial?.audience ?? "guests");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
   const [meal, setMeal] = useState(initial?.meal ?? "lunch");
@@ -95,6 +96,7 @@ export function SupplyForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = supplySchema.safeParse({
+      audience,
       title,
       eventDate,
       meal,
@@ -126,8 +128,39 @@ export function SupplyForm({
           <StepTitle n={1} title={t("supply.step1")} />
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label={t("supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
-            <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title}
+          <div className="grid gap-2 sm:col-span-2 lg:col-span-4">
+            <p className="text-xs tracking-wide text-muted-foreground">{t("audience.question")}</p>
+            <div role="radiogroup" aria-label={t("audience.question")} className="grid gap-2 sm:grid-cols-2">
+              {AUDIENCES.map((a) => {
+                const on = audience === a;
+                const Icon = a === "staff" ? HardHat : Users;
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setAudience(a)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
+                      on ? "border-amber bg-amber/10" : "border-border bg-card hover:border-amber/50",
+                    )}
+                  >
+                    <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", on ? "bg-amber text-forest" : "bg-secondary text-moss")}>
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{t(a === "staff" ? "audience.staff" : "audience.guests")}</span>
+                      <span className="block text-xs text-muted-foreground">{t(a === "staff" ? "audience.staffHint" : "audience.guestsHint")}</span>
+                    </span>
+                    {on && <Check className="size-5 text-amber-deep" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <Field label={t(audience === "staff" ? "supply.titleStaff" : "supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
+            <Input id="title" placeholder={t(audience === "staff" ? "supply.titleStaffPh" : "supply.titlePh")} value={title} aria-invalid={!!errors.title}
               onChange={(e) => setTitle(e.target.value)} />
           </Field>
           <Field label={t("supply.date")} htmlFor="date" error={errors.eventDate}>
@@ -143,7 +176,7 @@ export function SupplyForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t("supply.guests")} htmlFor="guests" error={errors.guestCount}>
+            <Field label={t(audience === "staff" ? "supply.staffCount" : "supply.guests")} htmlFor="guests" error={errors.guestCount}>
               <Input id="guests" type="number" inputMode="numeric" min={1} value={guestCount || ""}
                 aria-invalid={!!errors.guestCount}
                 onChange={(e) => setGuestCount(Math.max(0, parseInt(e.target.value) || 0))} />
