@@ -257,7 +257,7 @@ export function SupplyForm({
                     <Input className="col-span-12 bg-card sm:col-span-3" placeholder={t("supply.note")} value={it.note}
                       onChange={(e) => update(i, { note: e.target.value })} />
                     {it.calculated != null && (
-                      <p className="col-span-12 px-1 text-[11px] text-muted-foreground">
+                      <p className="order-last col-span-12 px-1 text-[11px] text-muted-foreground">
                         {t("supply.calc")}: {it.calculated} {it.unit}
                         {changed && <span className="ml-2 font-medium text-amber-deep">• {t("supply.changed")}</span>}
                       </p>
