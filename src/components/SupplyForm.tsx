@@ -20,9 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateItems, round } from "@/lib/calc";
-import { today } from "@/lib/format";
+import { qty, today, unitLabel } from "@/lib/format";
 import { useRecipes } from "@/lib/hooks";
-import { useI18n, type TKey } from "@/lib/i18n";
+import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { fieldErrors, supplySchema } from "@/lib/schemas";
 import { UNITS, type DishRef, type Recipe, type SupplyItem, type SupplyList, type Unit } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export function UnitSelect({ value, onChange, className }: { value: Unit; onChan
       </SelectTrigger>
       <SelectContent>
         {UNITS.map((u) => (
-          <SelectItem key={u} value={u}>{u}</SelectItem>
+          <SelectItem key={u} value={u}>{unitLabel(u)}</SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -111,7 +111,7 @@ export function SupplyForm({
     try {
       await onSubmit(parsed.data as SupplyFormData, note);
     } catch (err) {
-      setErrors({ form: err instanceof Error ? err.message : "error" });
+      setErrors({ form: errorText(err) });
       setBusy(false);
     }
   }
@@ -258,7 +258,7 @@ export function SupplyForm({
                       onChange={(e) => update(i, { note: e.target.value })} />
                     {it.calculated != null && (
                       <p className="order-last col-span-12 px-1 text-[11px] text-muted-foreground">
-                        {t("supply.calc")}: {it.calculated} {it.unit}
+                        {t("supply.calc")}: {qty(it.calculated, it.unit)}
                         {changed && <span className="ml-2 font-medium text-amber-deep">• {t("supply.changed")}</span>}
                       </p>
                     )}
@@ -283,7 +283,7 @@ export function SupplyForm({
             <Textarea id="chef-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
           {hasErrors && (
-            <p className="text-sm text-destructive">{errors.form && errors.form !== "error" ? errors.form : t("v.fix")}</p>
+            <p className="text-sm text-destructive">{errors.form || t("v.fix")}</p>
           )}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="accent" size="lg" disabled={busy}>
