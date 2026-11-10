@@ -1,5 +1,15 @@
 import { accessToken, fromRow, supabase, toRow, vapidPublicKey } from "../supabase";
-import type { AppNotification, DocKind, Recipe, TransferOut, UserProfile } from "../types";
+import type {
+  AppNotification,
+  DocKind,
+  PurchaseOrder,
+  Recipe,
+  StockIssue,
+  StockItem,
+  StockMove,
+  TransferOut,
+  UserProfile,
+} from "../types";
 import { isPushOff, setPushOff } from "./push-off";
 import type { AuthSnapshot, Backend, PushState, Unsub } from "./types";
 
@@ -12,6 +22,13 @@ function profileFromRow(row: Row): UserProfile {
   const p = fromRow<UserProfile & { id: string }>(row);
   return { uid: p.id, name: p.name, email: p.email, role: p.role, active: p.active, createdAt: p.createdAt };
 }
+
+/** PostgREST may return numeric columns as strings. */
+const num = (v: unknown) => Number(v ?? 0);
+const stockFromRow = (r: Row): StockItem => {
+  const s = fromRow<StockItem>(r);
+  return { ...s, qty: num(s.qty), minQty: num(s.minQty) };
+};
 
 function fail(error: { message: string; code?: string } | null) {
   if (error) throw Object.assign(new Error(error.message), { code: error.code });
@@ -335,6 +352,146 @@ export const supabaseBackend: Backend = {
   async markNotificationsRead(_uid, ids) {
     if (!ids.length) return;
     const { error } = await supabase.from("notifications").update({ read: true }).in("id", ids);
+    fail(error);
+  },
+
+  watchStock(cb) {
+    return live(
+      "stock_items",
+      async () => {
+        const { data, error } = await supabase.from("stock_items").select("*").order("name");
+        fail(error);
+        return (data ?? []).map(stockFromRow);
+      },
+      cb,
+    );
+  },
+
+  watchStockMoves(itemId, cb) {
+    return live(
+      "stock_moves",
+      async () => {
+        const { data, error } = await supabase
+          .from("stock_moves")
+          .select("*")
+          .eq("item_id", itemId)
+          .order("created_at", { ascending: false })
+          .limit(100);
+        fail(error);
+        return (data ?? []).map((r) => {
+          const m = fromRow<StockMove>(r);
+          return { ...m, change: num(m.change), qtyAfter: num(m.qtyAfter) };
+        });
+      },
+      cb,
+      { filter: `item_id=eq.${itemId}` },
+    );
+  },
+
+  async addStockItem({ name, unit, minQty }) {
+    const { data, error } = await supabase
+      .from("stock_items")
+      .insert({ name: name.trim(), unit, min_qty: minQty, qty: 0, updated_at: Date.now() })
+      .select("id")
+      .single();
+    if (error?.code === "23505") throw Object.assign(new Error("stock-exists"), { code: "stock-exists" });
+    fail(error);
+    return data!.id as string;
+  },
+
+  async updateStockItem(id, patch) {
+    const row: Row = { updated_at: Date.now() };
+    if (patch.name !== undefined) row.name = patch.name.trim();
+    if (patch.unit !== undefined) row.unit = patch.unit;
+    if (patch.minQty !== undefined) row.min_qty = patch.minQty;
+    const { error } = await supabase.from("stock_items").update(row).eq("id", id);
+    if (error?.code === "23505") throw Object.assign(new Error("stock-exists"), { code: "stock-exists" });
+    fail(error);
+  },
+
+  async changeStock(itemId, change, note) {
+    const { error } = await supabase.rpc("stock_change", { p_item: itemId, p_change: change, p_reason: "adjust", p_note: note });
+    fail(error);
+  },
+
+  watchStockIssue(supplyId, cb) {
+    if (!UUID.test(supplyId)) {
+      setTimeout(() => cb(null), 0);
+      return () => {};
+    }
+    return live(
+      "stock_issues",
+      async () => {
+        const { data, error } = await supabase.from("stock_issues").select("*").eq("supply_id", supplyId).maybeSingle();
+        fail(error);
+        return data ? fromRow<StockIssue>(data) : null;
+      },
+      cb,
+      { filter: `supply_id=eq.${supplyId}` },
+    );
+  },
+
+  async issueSupply(supplyId, lines) {
+    const { error } = await supabase.rpc("issue_supply", { p_supply: supplyId, p_lines: lines });
+    fail(error);
+  },
+
+  watchOrders(cb, onError) {
+    return live(
+      "purchase_orders",
+      async () => {
+        const { data, error } = await supabase
+          .from("purchase_orders")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200);
+        fail(error);
+        return (data ?? []).map((r) => fromRow<PurchaseOrder>(r));
+      },
+      cb,
+      { onError },
+    );
+  },
+
+  watchOrder(id, cb) {
+    if (!UUID.test(id)) {
+      setTimeout(() => cb(null), 0);
+      return () => {};
+    }
+    return live(
+      "purchase_orders",
+      async () => {
+        const { data, error } = await supabase.from("purchase_orders").select("*").eq("id", id).maybeSingle();
+        fail(error);
+        return data ? fromRow<PurchaseOrder>(data) : null;
+      },
+      cb,
+      { filter: `id=eq.${id}`, onError: () => cb(null) },
+    );
+  },
+
+  async createOrder(order) {
+    const { data, error } = await supabase
+      .from("purchase_orders")
+      .insert(toRow(order as unknown as Row))
+      .select("id")
+      .single();
+    fail(error);
+    return data!.id as string;
+  },
+
+  async updateOrder(id, changes, entry) {
+    const { data: cur, error: readError } = await supabase.from("purchase_orders").select("history").eq("id", id).single();
+    fail(readError);
+    const { error } = await supabase
+      .from("purchase_orders")
+      .update({ ...toRow(changes), history: [...((cur?.history as unknown[]) ?? []), entry] })
+      .eq("id", id);
+    fail(error);
+  },
+
+  async receiveOrder(id, lines, entry) {
+    const { error } = await supabase.rpc("receive_order", { p_order: id, p_lines: lines, p_entry: entry });
     fail(error);
   },
 
