@@ -1,5 +1,6 @@
 import { accessToken, fromRow, supabase, toRow, vapidPublicKey } from "../supabase";
 import type { AppNotification, DocKind, Recipe, TransferOut, UserProfile } from "../types";
+import { isPushOff, setPushOff } from "./push-off";
 import type { AuthSnapshot, Backend, PushState, Unsub } from "./types";
 
 const TABLE: Record<DocKind, string> = { supply: "supply_lists", transfer: "transfer_outs" };
@@ -181,6 +182,15 @@ export const supabaseBackend: Backend = {
     await api("/api/users", input);
   },
 
+  async resetPassword(uid, password) {
+    await api("/api/users/password", { uid, password });
+  },
+
+  async changeOwnPassword(password) {
+    const { error } = await supabase.auth.updateUser({ password });
+    fail(error);
+  },
+
   async updateUser(uid, patch) {
     const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
     fail(error);
@@ -334,16 +344,28 @@ export const supabaseBackend: Backend = {
 
   pushState,
 
-  async enablePush() {
+  async enablePush(uid) {
     const state = await pushState();
     if (state === "unsupported") return state;
     const perm = await Notification.requestPermission();
     if (perm !== "granted") return perm as PushState;
+    setPushOff(uid, false);
     await registerDevice();
     return "granted";
   },
 
-  async refreshPush() {
-    if ((await pushState()) === "granted") await registerDevice().catch(() => {});
+  async refreshPush(uid) {
+    // Everyone who signs in on a device with popups allowed gets them there,
+    // unless they turned theirs off on this device.
+    if ((await pushState()) === "granted" && !isPushOff(uid)) await registerDevice().catch(() => {});
   },
+
+  async disablePush(uid) {
+    setPushOff(uid, true);
+    const reg = await navigator.serviceWorker?.getRegistration("/");
+    const sub = await reg?.pushManager.getSubscription();
+    if (sub) await api("/api/push/unregister", { endpoint: sub.endpoint });
+  },
+
+  isPushOff,
 };
