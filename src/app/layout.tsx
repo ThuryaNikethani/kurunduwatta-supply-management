@@ -14,13 +14,13 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const sinhala = Noto_Sans_Sinhala({
   variable: "--font-sinhala",
   subsets: ["sinhala"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Kurunduwatta Supply",
-  description: "Kitchen supply approvals for Kurunduwatta Villa",
-  appleWebApp: { capable: true, title: "KW Supply", statusBarStyle: "black-translucent" },
+  title: "කුරුඳුවත්ත බඩු ලැයිස්තු",
+  description: "කුරුඳුවත්ත විලා කුස්සියට ඕන බඩු අනුමත කරගන්න",
+  appleWebApp: { capable: true, title: "බඩු ලැයිස්තු", statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/192", apple: "/icons/192" },
 };
 
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="si">
       <body
         className={`${cormorant.variable} ${inter.variable} ${sinhala.variable} min-h-screen font-sans antialiased`}
       >
