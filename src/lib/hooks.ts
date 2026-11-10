@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import { backend } from "./backend";
 import type { DocOf } from "./backend/types";
-import type { AppNotification, DocKind, Recipe, TransferOut, UserProfile } from "./types";
+import type {
+  AppNotification,
+  DocKind,
+  PurchaseOrder,
+  Recipe,
+  StockIssue,
+  StockItem,
+  StockMove,
+  TransferOut,
+  UserProfile,
+} from "./types";
 
 interface Live<T> {
   data: T | null;
@@ -81,5 +91,46 @@ export function useNotifications(uid: string | undefined) {
     if (!uid) return;
     return backend.watchNotifications(uid, (l) => setData([...l].sort((a, b) => b.createdAt - a.createdAt)));
   }, [uid]);
+  return data;
+}
+
+export function useStock() {
+  const [data, setData] = useState<StockItem[] | null>(null);
+  useEffect(() => backend.watchStock(setData), []);
+  return data;
+}
+
+export function useStockMoves(itemId: string | null) {
+  const [data, setData] = useState<StockMove[] | null>(null);
+  useEffect(() => {
+    if (!itemId) return setData(null);
+    setData(null);
+    return backend.watchStockMoves(itemId, setData);
+  }, [itemId]);
+  return data;
+}
+
+export function useStockIssue(supplyId: string) {
+  const [data, setData] = useState<StockIssue | null | undefined>(undefined);
+  useEffect(() => backend.watchStockIssue(supplyId, setData), [supplyId]);
+  return data;
+}
+
+export function useOrders(): Live<PurchaseOrder[]> {
+  const [state, setState] = useState<Live<PurchaseOrder[]>>({ data: null, error: null });
+  useEffect(
+    () =>
+      backend.watchOrders(
+        (data) => setState({ data, error: null }),
+        (error) => setState((s) => ({ ...s, error })),
+      ),
+    [],
+  );
+  return state;
+}
+
+export function useOrder(id: string) {
+  const [data, setData] = useState<PurchaseOrder | null | undefined>(undefined);
+  useEffect(() => backend.watchOrder(id, setData), [id]);
   return data;
 }
