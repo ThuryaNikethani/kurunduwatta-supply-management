@@ -1,11 +1,11 @@
 import { backend } from "./backend";
 import { translate } from "./i18n";
-import { docLink, type Action, type DocKind, type Role } from "./types";
+import { docLink, type AnyAction, type NotifKind, type Role } from "./types";
 
 interface NotifyInput {
   roles: Role[];
-  kind: DocKind;
-  action: Action;
+  kind: NotifKind;
+  action: AnyAction;
   docId: string;
   docTitle: string;
   byName: string;
@@ -18,7 +18,8 @@ type TextInput = Pick<NotifyInput, "kind" | "action" | "docTitle" | "byName" | "
 
 /** One-line Sinhala text for a notification. */
 export function notificationText(n: TextInput) {
-  return translate(n.kind === "supply" ? "notif.msg.supply" : "notif.msg.transfer", {
+  const key = n.kind === "po" ? "notif.msg.po" : n.kind === "supply" ? "notif.msg.supply" : "notif.msg.transfer";
+  return translate(key, {
     by: n.byName,
     role: translate(`role.${n.byRole}`),
     did: translate(`did.${n.action}`),
