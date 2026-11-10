@@ -1,5 +1,12 @@
 import type {
   AppNotification,
+  OrderHistoryEntry,
+  PurchaseOrder,
+  StockIssue,
+  StockItem,
+  StockLine,
+  StockMove,
+  Unit,
   DocKind,
   HistoryEntry,
   Recipe,
@@ -69,6 +76,25 @@ export interface Backend {
   addNotifications(uids: string[], n: Omit<AppNotification, "id">): Promise<void>;
   watchNotifications(uid: string, cb: (list: AppNotification[]) => void): Unsub;
   markNotificationsRead(uid: string, ids: string[]): Promise<void>;
+
+  // stock (ගබඩාව) — amounts only change through changeStock / issueSupply / receiveOrder
+  watchStock(cb: (items: StockItem[]) => void): Unsub;
+  watchStockMoves(itemId: string, cb: (moves: StockMove[]) => void): Unsub;
+  addStockItem(input: { name: string; unit: Unit; minQty: number }): Promise<string>;
+  updateStockItem(id: string, patch: { name?: string; unit?: Unit; minQty?: number }): Promise<void>;
+  /** Correct stock by +/− amount with a reason. */
+  changeStock(itemId: string, change: number, note: string): Promise<void>;
+  watchStockIssue(supplyId: string, cb: (issue: StockIssue | null) => void): Unsub;
+  /** Take an approved supply list out of stock (once). */
+  issueSupply(supplyId: string, lines: StockLine[]): Promise<void>;
+
+  // purchase orders (ඇණවුම්)
+  watchOrders(cb: (orders: PurchaseOrder[]) => void, onError?: (e: Error) => void): Unsub;
+  watchOrder(id: string, cb: (order: PurchaseOrder | null) => void): Unsub;
+  createOrder(order: Omit<PurchaseOrder, "id">): Promise<string>;
+  updateOrder(id: string, changes: Record<string, unknown>, entry: OrderHistoryEntry): Promise<void>;
+  /** Mark an approved order received and add its lines to stock. */
+  receiveOrder(id: string, lines: StockLine[], entry: OrderHistoryEntry): Promise<void>;
 
   // push (phone / desktop, works when the app is closed)
   sendPush(uids: string[], payload: PushPayload): Promise<void>;
