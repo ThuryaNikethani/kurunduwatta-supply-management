@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, ChefHat, ClipboardList, Pencil, Soup, Users } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
+import { hasDraft } from "@/lib/draft";
 import { formatDate } from "@/lib/format";
 import { useDoc } from "@/lib/hooks";
 import { useI18n } from "@/lib/i18n";
@@ -30,6 +31,12 @@ export default function TransferDetail() {
   const d = useDoc("transfer", id);
   const supply = useDoc("supply", d?.supplyId ?? null);
   const [editing, setEditing] = useState(false);
+  const draftKey = `transfer-edit-${id}`;
+  const editable = profile?.role === "chef" && d?.status === "returned_to_chef";
+  // Came back after a refresh with unsent changes: reopen the edit form.
+  useEffect(() => {
+    if (editable && hasDraft(profile?.uid, draftKey)) setEditing(true);
+  }, [editable, profile?.uid, draftKey]);
 
   if (d === undefined) return <Skeleton className="h-96" />;
   if (d === null || !profile) return <EmptyState text={t("detail.notFound")} />;
@@ -42,6 +49,7 @@ export default function TransferDetail() {
       <div className="grid gap-6">
         <PageHeader eyebrow={d.supplyTitle} title={t("transfer.new")} />
         <TransferForm
+          draftKey={draftKey}
           dishOptions={supply?.dishes.map((x) => x.name) ?? []}
           guestCount={d.guestCount}
           initial={d}
