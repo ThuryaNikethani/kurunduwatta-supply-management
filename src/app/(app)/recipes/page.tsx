@@ -23,8 +23,9 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { backend } from "@/lib/backend";
 import { useRecipes } from "@/lib/hooks";
-import { useI18n, type TKey } from "@/lib/i18n";
-import { CATEGORIES, MENU, slugify } from "@/lib/menu";
+import { errorText, useI18n } from "@/lib/i18n";
+import { qty } from "@/lib/format";
+import { CATEGORIES, MENU, newDishId } from "@/lib/menu";
 import { fieldErrors, recipeSchema } from "@/lib/schemas";
 import type { Ingredient, Recipe } from "@/lib/types";
 
@@ -53,12 +54,12 @@ export default function RecipesPage() {
       const now = Date.now();
       await backend.addRecipes(
         MENU.flatMap(({ category, dishes }) =>
-          dishes.map((name) => ({ id: slugify(name), name, category, ingredients: [], updatedAt: now })),
+          dishes.map(([id, name]) => ({ id, name, category, ingredients: [], updatedAt: now })),
         ).filter((r) => !(recipes.data ?? []).some((x) => x.id === r.id)),
       );
       toast.success(t("recipes.loaded"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("error"));
+      toast.error(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -105,7 +106,7 @@ export default function RecipesPage() {
                       </div>
                       {r.ingredients.length > 0 ? (
                         <p className="line-clamp-2 text-xs text-muted-foreground">
-                          {r.ingredients.map((i) => `${i.name} ${i.qtyPerPerson}${i.unit}`).join(" · ")}
+                          {r.ingredients.map((i) => `${i.name} ${qty(i.qtyPerPerson, i.unit)}`).join(" · ")}
                         </p>
                       ) : null}
                       <div>
@@ -162,12 +163,12 @@ function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }
     setErrors({});
     setBusy(true);
     try {
-      const id = recipe.id || slugify(parsed.data.name) || String(Date.now());
+      const id = recipe.id || newDishId(parsed.data.name);
       await backend.saveRecipe(id, { ...parsed.data, updatedAt: Date.now() });
-      toast.success(t("save"));
+      toast.success(t("recipes.saved"));
       onDone();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("error"));
+      toast.error(errorText(err));
       setBusy(false);
     }
   }
@@ -243,7 +244,7 @@ function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }
           <Button type="submit" variant="accent" disabled={busy}>{busy ? t("saving") : t("save")}</Button>
         </div>
       </DialogFooter>
-      {Object.values(errors).some(Boolean) && <p className="text-sm text-destructive">{t("v.fix" as TKey)}</p>}
+      {Object.values(errors).some(Boolean) && <p className="text-sm text-destructive">{t("v.fix")}</p>}
     </form>
   );
 }
