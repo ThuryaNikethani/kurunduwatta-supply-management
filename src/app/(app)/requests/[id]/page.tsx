@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
+import { formatDate, qty } from "@/lib/format";
 import { useDoc, useTransfersFor } from "@/lib/hooks";
 import { useI18n, type TKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 export default function SupplyDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const d = useDoc("supply", id);
   const transfers = useTransfersFor(id);
   const [editing, setEditing] = useState(false);
@@ -49,7 +49,7 @@ export default function SupplyDetail() {
           onSubmit={async (data, note) => {
             await performAction("supply", d.id, data.title, profile, "resubmit", note, { ...data });
             setEditing(false);
-            toast.success(t("action.resubmit"));
+            toast.success(t("did.resubmit"));
           }}
         />
       </div>
@@ -67,7 +67,7 @@ export default function SupplyDetail() {
 
       <InfoGrid
         items={[
-          { Icon: CalendarDays, label: t("supply.date"), value: formatDate(d.eventDate, lang) },
+          { Icon: CalendarDays, label: t("supply.date"), value: formatDate(d.eventDate) },
           { Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) },
           { Icon: Users, label: t("supply.guests"), value: d.guestCount },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
@@ -111,10 +111,10 @@ export default function SupplyDetail() {
                       <TableRow key={i} className={cn(changed && "bg-amber/10 hover:bg-amber/15")}>
                         <TableCell className="font-medium">{it.name}</TableCell>
                         <TableCell className={cn("text-right tabular-nums", changed && "font-semibold text-amber-deep")}>
-                          {it.qty} {it.unit}
+                          {qty(it.qty, it.unit)}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground tabular-nums">
-                          {it.calculated != null ? `${it.calculated} ${it.unit}` : "—"}
+                          {it.calculated != null ? qty(it.calculated, it.unit) : "—"}
                         </TableCell>
                         <TableCell className="max-w-56 whitespace-normal text-muted-foreground">{it.note}</TableCell>
                       </TableRow>
@@ -148,7 +148,7 @@ export default function SupplyDetail() {
                       <li key={x.id}>
                         <Link href={`/leftovers/${x.id}`} className="flex items-center gap-3 py-3 text-sm hover:text-moss">
                           <span className="flex-1">
-                            {formatDate(x.date, lang)} ·{" "}
+                            {formatDate(x.date)} ·{" "}
                             {t("transfer.summary", { guests: x.guestCount, portions: x.items.reduce((s, i) => s + (Number(i.portions) || 0), 0) })}
                           </span>
                           <StatusBadge status={x.status} />
