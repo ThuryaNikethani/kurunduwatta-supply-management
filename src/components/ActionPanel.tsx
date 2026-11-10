@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
-import { useI18n } from "@/lib/i18n";
+import { errorText, useI18n } from "@/lib/i18n";
 import type { Action, DocKind, Status } from "@/lib/types";
 import { availableActions, noteRequired } from "@/lib/workflow";
 import { Field } from "./common";
@@ -52,9 +52,9 @@ export function ActionPanel({
     try {
       await performAction(kind, id, title, profile, action, note);
       setNote("");
-      toast.success(t(`action.${action}`));
+      toast.success(t(`did.${action}`));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("error"));
+      toast.error(errorText(e));
     } finally {
       setBusy(null);
     }
