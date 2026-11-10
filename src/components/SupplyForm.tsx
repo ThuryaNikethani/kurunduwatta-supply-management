@@ -27,6 +27,8 @@ import { fieldErrors, supplySchema } from "@/lib/schemas";
 import { AUDIENCES, UNITS, type Audience, type DishRef, type Recipe, type SupplyItem, type SupplyList, type Unit } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState, Field, StepTitle } from "./common";
+import { DraftNotice } from "./DraftNotice";
+import { useDraft } from "@/lib/draft";
 
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
 
@@ -48,9 +50,11 @@ export function UnitSelect({ value, onChange, className }: { value: Unit; onChan
 }
 
 export function SupplyForm({
-  initial, submitLabel, onSubmit, onCancel,
+  initial, submitLabel, onSubmit, onCancel, draftKey,
 }: {
   initial?: SupplyFormData;
+  /** Where unsent input is kept so a refresh doesn't lose it. */
+  draftKey: string;
   submitLabel: string;
   onSubmit: (data: SupplyFormData, note: string) => Promise<void>;
   onCancel?: () => void;
@@ -71,6 +75,35 @@ export function SupplyForm({
   const [confirmRecalc, setConfirmRecalc] = useState(false);
   /** Dishes picked for calculation that have no recipe yet. */
   const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
+
+  type Draft = SupplyFormData & { note: string };
+  const [start] = useState<Draft>(() => ({
+    audience: initial?.audience ?? "guests",
+    title: initial?.title ?? "",
+    eventDate: initial?.eventDate ?? today(),
+    meal: initial?.meal ?? "lunch",
+    guestCount: initial?.guestCount ?? 10,
+    dishes: initial?.dishes ?? [],
+    items: initial?.items ?? [],
+    note: "",
+  }));
+  const draft = useDraft<Draft>(
+    draftKey,
+    { audience, title, eventDate, meal, guestCount, dishes, items, note },
+    (d) => {
+      setAudience(d.audience ?? "guests");
+      setTitle(d.title);
+      setEventDate(d.eventDate);
+      setMeal(d.meal);
+      setGuestCount(d.guestCount);
+      setDishes(d.dishes);
+      setItems(d.items);
+      setNote(d.note);
+      setErrors({});
+      setNoRecipe(null);
+    },
+    start,
+  );
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -125,6 +158,7 @@ export function SupplyForm({
     setBusy(true);
     try {
       await onSubmit(parsed.data as SupplyFormData, note);
+      draft.clear();
     } catch (err) {
       setErrors({ form: errorText(err) });
       setBusy(false);
@@ -135,6 +169,7 @@ export function SupplyForm({
 
   return (
     <form onSubmit={submit} className="grid gap-6" noValidate>
+      <DraftNotice restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       {/* 1. booking */}
       <Card>
         <CardHeader>
@@ -354,7 +389,7 @@ export function SupplyForm({
             <Button type="submit" variant="accent" size="lg" disabled={busy}>
               <Send /> {busy ? t("saving") : submitLabel}
             </Button>
-            {onCancel && <Button type="button" variant="outline" size="lg" onClick={onCancel}>{t("cancel")}</Button>}
+            {onCancel && <Button type="button" variant="outline" size="lg" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
           </div>
         </CardContent>
       </Card>
