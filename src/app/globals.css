@@ -14,8 +14,8 @@
   --color-leaf: #b5d343;
   --color-leaf-deep: #5f7d14;
 
-  --font-display: var(--font-cormorant), Georgia, serif;
-  --font-sans: var(--font-inter), var(--font-sinhala), system-ui, sans-serif;
+  --font-display: var(--font-sinhala), var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-sinhala), var(--font-inter), system-ui, sans-serif;
 }
 
 /* shadcn/ui tokens mapped onto the villa palette */
