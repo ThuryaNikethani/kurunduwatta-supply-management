@@ -11,7 +11,7 @@ import type {
 
 /**
  * Everything the UI needs from a backend. The UI only talks to this
- * interface, so Firebase can be swapped (e.g. for Supabase) without
+ * interface, so the database can be swapped without
  * touching any page or component.
  */
 
@@ -33,7 +33,7 @@ export interface PushPayload {
 }
 
 export interface Backend {
-  name: "firebase" | "demo";
+  name: "supabase" | "demo";
 
   // auth
   onAuth(cb: (s: AuthSnapshot) => void): Unsub;
