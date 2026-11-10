@@ -46,6 +46,10 @@ export interface Backend {
   watchUsers(cb: (users: UserProfile[]) => void): Unsub;
   createUser(input: { name: string; email: string; password: string; role: Role }): Promise<void>;
   updateUser(uid: string, patch: Partial<Pick<UserProfile, "role" | "active">>): Promise<void>;
+  /** HR sets a new password for someone who forgot theirs. */
+  resetPassword(uid: string, password: string): Promise<void>;
+  /** The signed-in user changes their own password. */
+  changeOwnPassword(password: string): Promise<void>;
   activeUserIds(roles: Role[]): Promise<string[]>;
 
   // recipes
@@ -71,4 +75,8 @@ export interface Backend {
   pushState(): Promise<PushState>;
   enablePush(uid: string): Promise<PushState>;
   refreshPush(uid: string): Promise<void>;
+  /** Stop this user's popups on this device only (shared devices keep others'). */
+  disablePush(uid: string): Promise<void>;
+  /** True if this user turned popups off on this device. */
+  isPushOff(uid: string): boolean;
 }
