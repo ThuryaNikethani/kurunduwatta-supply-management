@@ -20,6 +20,7 @@ export default function NewSupplyList() {
     <div className="grid gap-6">
       <PageHeader eyebrow={t("dash.supplyLists")} title={t("supply.new")} />
       <SupplyForm
+        draftKey="supply-new"
         submitLabel={t("supply.send")}
         onSubmit={async (data, note) => {
           const id = await createWorkflowDoc("supply", profile, data, note);
