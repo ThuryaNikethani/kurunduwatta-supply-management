@@ -97,6 +97,7 @@ function seed(): State {
   const chef = users[0];
   const sample: SupplyList = {
     id: "demo-1",
+    audience: "guests",
     title: "පෙරේරා පවුල – 10 දෙනා",
     eventDate: new Date(now + 86400000).toISOString().slice(0, 10),
     meal: "lunch",
