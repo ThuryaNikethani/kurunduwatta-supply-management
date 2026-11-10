@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   PlusCircle,
+  KeyRound,
   RotateCcw,
   Users,
   type LucideIcon,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth";
-import { isDemo } from "@/lib/backend";
+import { backend, isDemo } from "@/lib/backend";
 import { resetDemo } from "@/lib/backend/demo";
 import { useNotifications } from "@/lib/hooks";
 import { useI18n, type TKey } from "@/lib/i18n";
@@ -37,6 +38,8 @@ import { notificationText } from "@/lib/notify";
 import { docLink, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { initials } from "./common";
+import { IosInstallHint } from "./IosInstallHint";
+import { PasswordDialog } from "./PasswordDialog";
 import { PushBanner } from "./PushBanner";
 
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
@@ -99,8 +102,10 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
   const { profile, logout } = useAuth();
   const { t } = useI18n();
   const router = useRouter();
+  const [pwOpen, setPwOpen] = useState(false);
   if (!profile) return null;
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -127,6 +132,9 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
           <p className="truncate text-xs font-normal text-muted-foreground">{profile.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setPwOpen(true)}>
+          <KeyRound /> {t("pw.mine")}
+        </DropdownMenuItem>
         {isDemo && (
           <DropdownMenuItem
             onSelect={() => {
@@ -142,6 +150,8 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <PasswordDialog open={pwOpen} onOpenChange={setPwOpen} title={t("pw.mine")} onSave={(pw) => backend.changeOwnPassword(pw)} />
+    </>
   );
 }
 
@@ -240,6 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <main className="print-main mx-auto w-full max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
+          <IosInstallHint />
           <PushBanner />
           {children}
         </main>
