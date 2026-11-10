@@ -19,6 +19,10 @@ export const newUserSchema = z.object({
   password: z.string().min(6, "v.password"),
 });
 
+export const passwordSchema = z
+  .object({ password: z.string().min(6, "v.password"), confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "pw.mismatch" });
+
 export const supplyItemSchema = z.object({
   name,
   unit: z.enum(UNITS),
