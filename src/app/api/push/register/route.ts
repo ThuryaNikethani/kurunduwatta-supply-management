@@ -4,8 +4,8 @@ import { adminClient, callerProfile } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 
 /**
- * Links this phone/browser's push subscription to the signed-in user.
- * If someone else used the same device before, it moves to the new user.
+ * Links this phone/browser to the signed-in user for popups. A shared device
+ * can belong to several accounts; each person gets their own popups on it.
  * It stays after logout, so popups keep arriving when not signed in.
  */
 export async function POST(req: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await admin
     .from("push_subscriptions")
-    .upsert({ endpoint: sub.endpoint, user_id: caller.uid, subscription: sub }, { onConflict: "endpoint" });
+    .upsert({ endpoint: sub.endpoint, user_id: caller.uid, subscription: sub }, { onConflict: "endpoint,user_id" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
