@@ -23,7 +23,7 @@ export default function NewSupplyList() {
         submitLabel={t("supply.send")}
         onSubmit={async (data, note) => {
           const id = await createWorkflowDoc("supply", profile, data, note);
-          toast.success(t("supply.send"));
+          toast.success(t("did.submit"));
           router.replace(`/requests/${id}`);
         }}
       />
