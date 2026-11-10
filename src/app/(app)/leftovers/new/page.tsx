@@ -47,6 +47,7 @@ function NewTransfer() {
         }
       />
       <TransferForm
+        draftKey={`transfer-new-${supply.id}`}
         dishOptions={supply.dishes.map((d) => d.name)}
         guestCount={supply.guestCount}
         submitLabel={t("supply.send")}
