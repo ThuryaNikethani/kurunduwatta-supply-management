@@ -1,17 +1,15 @@
-import { firebaseConfigured } from "../firebase";
+import { supabaseConfigured } from "../supabase";
 import { demoBackend } from "./demo";
-import { firebaseBackend } from "./firebase";
+import { supabaseBackend } from "./supabase";
 import type { Backend } from "./types";
 
 /**
- * Pick the backend: NEXT_PUBLIC_BACKEND=demo forces demo mode; otherwise
- * Firebase is used when its keys are set. To move to another provider
- * (e.g. Supabase), add an implementation of `Backend` and select it here.
+ * NEXT_PUBLIC_BACKEND=demo uses browser-only practice data; otherwise the
+ * real Supabase database is used when its keys are set.
  */
 const wanted = process.env.NEXT_PUBLIC_BACKEND;
 
-export const backend: Backend =
-  wanted === "demo" || !firebaseConfigured ? demoBackend : firebaseBackend;
+export const backend: Backend = wanted === "demo" || !supabaseConfigured ? demoBackend : supabaseBackend;
 
 export const isDemo = backend.name === "demo";
 
