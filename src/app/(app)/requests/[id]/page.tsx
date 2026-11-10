@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
+import { hasDraft } from "@/lib/draft";
 import { formatDate, qty } from "@/lib/format";
 import { useDoc, useTransfersFor } from "@/lib/hooks";
 import { useI18n, type TKey } from "@/lib/i18n";
@@ -31,6 +32,12 @@ export default function SupplyDetail() {
   const d = useDoc("supply", id);
   const transfers = useTransfersFor(id);
   const [editing, setEditing] = useState(false);
+  const draftKey = `supply-edit-${id}`;
+  const editable = profile?.role === "chef" && d?.status === "returned_to_chef";
+  // Came back after a refresh with unsent changes: reopen the edit form.
+  useEffect(() => {
+    if (editable && hasDraft(profile?.uid, draftKey)) setEditing(true);
+  }, [editable, profile?.uid, draftKey]);
 
   if (d === undefined) return <Skeleton className="h-96" />;
   if (d === null || !profile) return <EmptyState text={t("detail.notFound")} />;
@@ -43,6 +50,7 @@ export default function SupplyDetail() {
       <div className="grid gap-6">
         <PageHeader eyebrow={d.title} title={t("supply.edit")} />
         <SupplyForm
+          draftKey={draftKey}
           initial={d}
           submitLabel={t("supply.saveResend")}
           onCancel={() => setEditing(false)}
