@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/lib/auth";
 import { backend } from "@/lib/backend";
 import { useUsers } from "@/lib/hooks";
-import { useI18n } from "@/lib/i18n";
+import { errorText, useI18n } from "@/lib/i18n";
 import { fieldErrors, newUserSchema } from "@/lib/schemas";
 import { ROLES, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default function UsersPage() {
       setForm({ name: "", email: "", password: "", role: form.role });
       toast.success(t("users.created"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("error"));
+      toast.error(errorText(err));
     } finally {
       setBusy(false);
     }
