@@ -260,10 +260,12 @@ export function translate(key: TKey, vars?: Record<string, string | number>) {
 /** Turn any thrown error into a simple Sinhala message. */
 export function errorText(e: unknown) {
   const m = e instanceof Error ? `${e.message} ${(e as { code?: string }).code ?? ""}` : String(e);
-  if (/email-already-in-use|already in use/i.test(m)) return translate("err.emailUsed");
+  if (/email-already-in-use|email_exists|already (in use|registered|been registered)/i.test(m)) return translate("err.emailUsed");
   if (/weak-password/i.test(m)) return translate("v.password");
   if (/invalid-email/i.test(m)) return translate("v.email");
-  if (/invalid-credential|wrong-password|user-not-found/i.test(m)) return translate("login.failed");
+  if (/invalid-credential|invalid login credentials|invalid_credentials|wrong-password|user-not-found/i.test(m)) return translate("login.failed");
+  if (/already-set-up/i.test(m)) return translate("setup.done");
+  if (/weak_password|password should be/i.test(m)) return translate("v.password");
   if (/network|offline|unavailable/i.test(m)) return translate("err.network");
   if (/permission|insufficient/i.test(m)) return translate("err.permission");
   return translate("error");
