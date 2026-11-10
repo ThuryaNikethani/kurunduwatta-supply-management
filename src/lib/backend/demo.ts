@@ -1,4 +1,4 @@
-import { MENU, slugify } from "../menu";
+import { MENU } from "../menu";
 import type {
   AppNotification,
   DocKind,
@@ -29,54 +29,54 @@ interface State {
   notifications: Record<string, AppNotification[]>;
 }
 
-const KEY = "kw-demo-v1";
+const KEY = "kw-demo-v2";
 const SESSION = "kw-demo-session";
-export const DEMO_PASSWORD = "demo1234";
+export const DEMO_PASSWORD = "123456";
 
 export const DEMO_ACCOUNTS: { email: string; role: Role; name: string }[] = [
-  { email: "chef@demo.lk", role: "chef", name: "Nimal (Chef)" },
-  { email: "supervisor@demo.lk", role: "supervisor", name: "Kamala (Supervisor)" },
-  { email: "hr@demo.lk", role: "hr", name: "Sunil (HR)" },
+  { email: "chef@demo.lk", role: "chef", name: "නිමල්" },
+  { email: "supervisor@demo.lk", role: "supervisor", name: "කමලා" },
+  { email: "hr@demo.lk", role: "hr", name: "සුනිල්" },
 ];
 
 const SAMPLE_INGREDIENTS: Record<string, Recipe["ingredients"]> = {
-  "Traditional Sri Lankan Rice & Curry Set": [
-    { name: "Samba rice", unit: "g", qtyPerPerson: 150 },
-    { name: "Red dhal", unit: "g", qtyPerPerson: 40 },
-    { name: "Chicken", unit: "g", qtyPerPerson: 120 },
-    { name: "Coconut milk", unit: "ml", qtyPerPerson: 100 },
-    { name: "Red onion", unit: "g", qtyPerPerson: 30 },
-    { name: "Green chilli", unit: "g", qtyPerPerson: 5 },
-    { name: "Curry powder", unit: "g", qtyPerPerson: 8 },
+  "traditional-sri-lankan-rice-and-curry-set": [
+    { name: "සම්බා හාල්", unit: "g", qtyPerPerson: 150 },
+    { name: "රතු පරිප්පු", unit: "g", qtyPerPerson: 40 },
+    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 120 },
+    { name: "පොල් කිරි", unit: "ml", qtyPerPerson: 100 },
+    { name: "රතු ළූණු", unit: "g", qtyPerPerson: 30 },
+    { name: "අමු මිරිස්", unit: "g", qtyPerPerson: 5 },
+    { name: "තුනපහ", unit: "g", qtyPerPerson: 8 },
   ],
-  "Live Style Kothu Roti": [
-    { name: "Godamba roti", unit: "pcs", qtyPerPerson: 2 },
-    { name: "Chicken", unit: "g", qtyPerPerson: 100 },
-    { name: "Eggs", unit: "pcs", qtyPerPerson: 1 },
-    { name: "Leeks", unit: "g", qtyPerPerson: 30 },
-    { name: "Carrot", unit: "g", qtyPerPerson: 30 },
+  "live-style-kothu-roti": [
+    { name: "ගෝදම්බා රොටි", unit: "pcs", qtyPerPerson: 2 },
+    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 100 },
+    { name: "බිත්තර", unit: "pcs", qtyPerPerson: 1 },
+    { name: "ලීක්ස්", unit: "g", qtyPerPerson: 30 },
+    { name: "කැරට්", unit: "g", qtyPerPerson: 30 },
   ],
-  "Pol Roti Platter": [
-    { name: "Wheat flour", unit: "g", qtyPerPerson: 100 },
-    { name: "Grated coconut", unit: "g", qtyPerPerson: 50 },
-    { name: "Red onion", unit: "g", qtyPerPerson: 20 },
-    { name: "Green chilli", unit: "g", qtyPerPerson: 5 },
+  "pol-roti-platter": [
+    { name: "තිරිඟු පිටි", unit: "g", qtyPerPerson: 100 },
+    { name: "ගාපු පොල්", unit: "g", qtyPerPerson: 50 },
+    { name: "රතු ළූණු", unit: "g", qtyPerPerson: 20 },
+    { name: "අමු මිරිස්", unit: "g", qtyPerPerson: 5 },
   ],
-  "Sri Lankan Watalappan": [
-    { name: "Kithul jaggery", unit: "g", qtyPerPerson: 40 },
-    { name: "Eggs", unit: "pcs", qtyPerPerson: 1 },
-    { name: "Coconut milk", unit: "ml", qtyPerPerson: 80 },
-    { name: "Cardamom", unit: "g", qtyPerPerson: 1 },
+  "sri-lankan-watalappan": [
+    { name: "කිතුල් හකුරු", unit: "g", qtyPerPerson: 40 },
+    { name: "බිත්තර", unit: "pcs", qtyPerPerson: 1 },
+    { name: "පොල් කිරි", unit: "ml", qtyPerPerson: 80 },
+    { name: "එනසාල්", unit: "g", qtyPerPerson: 1 },
   ],
-  "Fresh Tropical Fruit Juices": [
-    { name: "Fresh fruit", unit: "g", qtyPerPerson: 200 },
-    { name: "Sugar", unit: "g", qtyPerPerson: 15 },
+  "fresh-tropical-fruit-juices": [
+    { name: "පලතුරු", unit: "g", qtyPerPerson: 200 },
+    { name: "සීනි", unit: "g", qtyPerPerson: 15 },
   ],
-  "Devilled Dish": [
-    { name: "Chicken", unit: "g", qtyPerPerson: 150 },
-    { name: "Capsicum", unit: "g", qtyPerPerson: 40 },
-    { name: "Big onion", unit: "g", qtyPerPerson: 40 },
-    { name: "Tomato sauce", unit: "ml", qtyPerPerson: 20 },
+  "devilled-dish": [
+    { name: "කුකුල් මස්", unit: "g", qtyPerPerson: 150 },
+    { name: "මාළු මිරිස්", unit: "g", qtyPerPerson: 40 },
+    { name: "ලොකු ළූණු", unit: "g", qtyPerPerson: 40 },
+    { name: "තක්කාලි සෝස්", unit: "ml", qtyPerPerson: 20 },
   ],
 };
 
@@ -92,26 +92,26 @@ function seed(): State {
     createdAt: now,
   }));
   const recipes: Recipe[] = MENU.flatMap(({ category, dishes }) =>
-    dishes.map((name) => ({ id: slugify(name), name, category, ingredients: SAMPLE_INGREDIENTS[name] ?? [], updatedAt: now })),
+    dishes.map(([id, name]) => ({ id, name, category, ingredients: SAMPLE_INGREDIENTS[id] ?? [], updatedAt: now })),
   );
   const chef = users[0];
   const sample: SupplyList = {
     id: "demo-1",
-    title: "Perera family – 10 guests",
+    title: "පෙරේරා පවුල – 10 දෙනා",
     eventDate: new Date(now + 86400000).toISOString().slice(0, 10),
     meal: "lunch",
     guestCount: 10,
     dishes: [
-      { id: slugify("Traditional Sri Lankan Rice & Curry Set"), name: "Traditional Sri Lankan Rice & Curry Set" },
-      { id: slugify("Sri Lankan Watalappan"), name: "Sri Lankan Watalappan" },
+      { id: "traditional-sri-lankan-rice-and-curry-set", name: "බත් සහ කරි" },
+      { id: "sri-lankan-watalappan", name: "වටලප්පන්" },
     ],
     items: [
-      { name: "Samba rice", unit: "kg", qty: 1.5, calculated: 1.5, note: "" },
-      { name: "Red dhal", unit: "g", qty: 400, calculated: 400, note: "" },
-      { name: "Chicken", unit: "kg", qty: 1.5, calculated: 1.2, note: "Guests asked for extra chicken" },
-      { name: "Coconut milk", unit: "l", qty: 1.8, calculated: 1.8, note: "" },
-      { name: "Kithul jaggery", unit: "g", qty: 400, calculated: 400, note: "" },
-      { name: "Eggs", unit: "pcs", qty: 10, calculated: 10, note: "" },
+      { name: "සම්බා හාල්", unit: "kg", qty: 1.5, calculated: 1.5, note: "" },
+      { name: "රතු පරිප්පු", unit: "g", qty: 400, calculated: 400, note: "" },
+      { name: "කුකුල් මස්", unit: "kg", qty: 1.5, calculated: 1.2, note: "අමුත්තෝ කුකුල් මස් වැඩිපුර ඉල්ලුවා" },
+      { name: "පොල් කිරි", unit: "l", qty: 1.8, calculated: 1.8, note: "" },
+      { name: "කිතුල් හකුරු", unit: "g", qty: 400, calculated: 400, note: "" },
+      { name: "බිත්තර", unit: "pcs", qty: 10, calculated: 10, note: "" },
     ],
     status: "pending_supervisor",
     history: [{ at: now - 3600000, uid: chef.uid, name: chef.name, role: "chef", action: "submit", note: "" }],
@@ -259,7 +259,7 @@ export const demoBackend: Backend = {
   },
 
   async setupFirstHr() {
-    throw new Error("Demo mode is already set up.");
+    throw new Error("already-set-up");
   },
 
   watchUsers(cb) {
@@ -269,7 +269,7 @@ export const demoBackend: Backend = {
   async createUser({ name, email, password, role }) {
     await delay();
     if (load().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-      throw new Error("Email already in use.");
+      throw new Error("auth/email-already-in-use");
     mutate((s) => s.users.push({ uid: newId(), name, email, password, role, active: true, createdAt: Date.now() }));
   },
 
