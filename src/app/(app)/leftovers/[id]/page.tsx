@@ -74,7 +74,7 @@ export default function TransferDetail() {
       <InfoGrid
         items={[
           { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date) },
-          { Icon: Users, label: t("supply.guests"), value: d.guestCount },
+          { Icon: Users, label: t("transfer.madeFor"), value: t("people", { n: d.guestCount }) },
           { Icon: Soup, label: t("transfer.portions"), value: portions },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
         ]}
