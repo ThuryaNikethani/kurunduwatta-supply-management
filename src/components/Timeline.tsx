@@ -17,7 +17,7 @@ const ICON: Record<Action, { Icon: typeof Send; cls: string }> = {
 };
 
 export function Timeline({ history }: { history: HistoryEntry[] }) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const items = [...history].sort((a, b) => a.at - b.at);
   return (
     <Card>
@@ -42,7 +42,7 @@ export function Timeline({ history }: { history: HistoryEntry[] }) {
                     <span className="font-medium">{h.name}</span>{" "}
                     <span className="text-muted-foreground">({t(`role.${h.role}`)})</span> {t(`did.${h.action}`)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(h.at, lang)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(h.at)}</p>
                   {h.note && (
                     <p className="mt-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-sm whitespace-pre-wrap">“{h.note}”</p>
                   )}
