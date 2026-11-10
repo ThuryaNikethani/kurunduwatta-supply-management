@@ -3,7 +3,6 @@
 import { ChefHat, ClipboardCheck, ShieldCheck, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
-import { LangToggle } from "./AppShell";
 
 /** Split screen used by the sign-in and setup pages. */
 export function AuthLayout({ title, children }: { title: string; children: React.ReactNode }) {
@@ -22,7 +21,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
           <span className="flex size-11 items-center justify-center rounded-xl bg-amber text-forest">
             <ChefHat className="size-6" />
           </span>
-          <span className="font-display text-2xl font-semibold">Kurunduwatta Villa</span>
+          <span className="font-display text-2xl font-semibold">{t("villa")}</span>
         </div>
         <div className="relative">
           <p className="font-display text-5xl leading-tight font-semibold">{t("appName")}</p>
@@ -48,7 +47,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
             </div>
           </div>
         </div>
-        <p className="relative text-xs text-cream/50">© Kurunduwatta Villa</p>
+        <p className="relative text-xs text-cream/50">© {t("villa")}</p>
       </div>
 
       <div className="flex flex-col bg-background">
@@ -56,7 +55,6 @@ export function AuthLayout({ title, children }: { title: string; children: React
           <span className="flex items-center gap-2 font-display text-xl font-semibold lg:invisible">
             <ChefHat className="size-5 text-amber-deep" /> {t("appName")}
           </span>
-          <LangToggle />
         </div>
         <div className="flex flex-1 items-center justify-center px-4 pb-16">
           <Card className="w-full max-w-sm">
