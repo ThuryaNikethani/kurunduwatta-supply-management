@@ -16,16 +16,14 @@ interface NotifyInput {
 
 type TextInput = Pick<NotifyInput, "kind" | "action" | "docTitle" | "byName" | "byRole">;
 
-/** Notification text in both languages (push messages show both). */
+/** One-line Sinhala text for a notification. */
 export function notificationText(n: TextInput) {
-  const line = (lang: "en" | "si") =>
-    translate(lang, n.kind === "supply" ? "notif.msg.supply" : "notif.msg.transfer", {
-      by: n.byName,
-      role: translate(lang, `role.${n.byRole}`),
-      did: translate(lang, `did.${n.action}`),
-      title: n.docTitle,
-    });
-  return { en: line("en"), si: line("si") };
+  return translate(n.kind === "supply" ? "notif.msg.supply" : "notif.msg.transfer", {
+    by: n.byName,
+    role: translate(`role.${n.byRole}`),
+    did: translate(`did.${n.action}`),
+    title: n.docTitle,
+  });
 }
 
 /**
@@ -48,11 +46,10 @@ export async function notifyRoles(n: NotifyInput) {
     createdAt: Date.now(),
   });
 
-  const text = notificationText(n);
   backend
     .sendPush(uids, {
-      title: text.en,
-      body: n.note ? `${text.si}\n“${n.note}”` : text.si,
+      title: translate("appName"),
+      body: n.note ? `${notificationText(n)}\n“${n.note}”` : notificationText(n),
       link: docLink(n.kind, n.docId),
     })
     .catch(() => {});
