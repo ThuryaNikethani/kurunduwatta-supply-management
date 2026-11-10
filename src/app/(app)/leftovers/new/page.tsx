@@ -42,7 +42,7 @@ function NewTransfer() {
         subtitle={
           <span className="flex flex-wrap gap-4">
             <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" /> {formatDate(supply.eventDate)}</span>
-            <span className="inline-flex items-center gap-1"><Users className="size-4" /> {supply.guestCount} {t("supply.guests")}</span>
+            <span className="inline-flex items-center gap-1"><Users className="size-4" /> {t("people", { n: supply.guestCount })}</span>
           </span>
         }
       />
