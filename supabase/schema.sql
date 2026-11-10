@@ -77,13 +77,16 @@ create table if not exists public.notifications (
 );
 create index if not exists notifications_user_idx on public.notifications (user_id, created_at desc);
 
--- One row per phone/browser that turned on popups. Only the server touches it.
+-- One row per (phone/browser, account) that turned on popups. A shared
+-- device can belong to several accounts. Only the server touches it.
 create table if not exists public.push_subscriptions (
-  endpoint text primary key,
+  endpoint text not null,
   user_id uuid not null references public.profiles (id) on delete cascade,
   subscription jsonb not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  primary key (endpoint, user_id)
 );
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
 
 -- ---------------------------------------------------------------- helpers
 
