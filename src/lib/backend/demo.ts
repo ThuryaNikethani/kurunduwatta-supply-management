@@ -1,6 +1,11 @@
 import { DEFAULT_INGREDIENTS } from "../default-recipes";
 import { MENU } from "../menu";
 import type {
+  OrderHistoryEntry,
+  PurchaseOrder,
+  StockIssue,
+  StockItem,
+  StockMove,
   AppNotification,
   DocKind,
   Recipe,
@@ -29,6 +34,10 @@ interface State {
   supply: SupplyList[];
   transfer: TransferOut[];
   notifications: Record<string, AppNotification[]>;
+  stock?: StockItem[];
+  moves?: StockMove[];
+  issues?: StockIssue[];
+  orders?: PurchaseOrder[];
 }
 
 const KEY = "kw-demo-v3";
@@ -341,6 +350,102 @@ export const demoBackend: Backend = {
     });
   },
 
+  watchStock(cb) {
+    return watch((s) => [...(s.stock ?? [])].sort((a, b) => a.name.localeCompare(b.name)), cb);
+  },
+
+  watchStockMoves(itemId, cb) {
+    return watch((s) => (s.moves ?? []).filter((m) => m.itemId === itemId).sort((a, b) => b.createdAt - a.createdAt), cb);
+  },
+
+  async addStockItem({ name, unit, minQty }) {
+    await delay();
+    const st = load();
+    if ((st.stock ?? []).some((i) => i.name.toLowerCase() === name.trim().toLowerCase() && i.unit === unit))
+      throw Object.assign(new Error("stock-exists"), { code: "stock-exists" });
+    const id = newId();
+    mutate((s) => {
+      s.stock = [...(s.stock ?? []), { id, name: name.trim(), unit, qty: 0, minQty, updatedAt: Date.now() }];
+    });
+    return id;
+  },
+
+  async updateStockItem(id, patch) {
+    mutate((s) => {
+      const i = (s.stock ?? []).find((x) => x.id === id);
+      if (i) Object.assign(i, patch, { updatedAt: Date.now() });
+    });
+  },
+
+  async changeStock(itemId, change, note) {
+    await delay();
+    demoStockChange(itemId, change, "adjust", note);
+  },
+
+  watchStockIssue(supplyId, cb) {
+    return watch((s) => (s.issues ?? []).find((i) => i.supplyId === supplyId) ?? null, cb);
+  },
+
+  async issueSupply(supplyId, lines) {
+    await delay();
+    const st = load();
+    const list = st.supply.find((l) => l.id === supplyId);
+    if (!list || list.status !== "approved") throw new Error("only an approved list can be issued");
+    if ((st.issues ?? []).some((i) => i.supplyId === supplyId)) throw new Error("already issued");
+    for (const l of lines) if (l.itemId && l.qty > 0) demoStockChange(l.itemId, -l.qty, "issue", list.title, "supply", supplyId);
+    const me = st.users.find((u) => u.uid === currentSession());
+    mutate((s) => {
+      s.issues = [...(s.issues ?? []), { supplyId, lines, byName: me?.name ?? "", createdAt: Date.now() }];
+    });
+  },
+
+  watchOrders(cb) {
+    return watch((s) => [...(s.orders ?? [])].sort(byNewest), cb);
+  },
+
+  watchOrder(id, cb) {
+    return watch((s) => (s.orders ?? []).find((o) => o.id === id) ?? null, cb);
+  },
+
+  async createOrder(order) {
+    await delay();
+    const id = newId();
+    mutate((s) => {
+      s.orders = [...(s.orders ?? []), { id, ...order }];
+    });
+    return id;
+  },
+
+  async updateOrder(id, changes, entry: OrderHistoryEntry) {
+    await delay();
+    mutate((s) => {
+      const o = (s.orders ?? []).find((x) => x.id === id);
+      if (!o) throw new Error("Not found");
+      Object.assign(o, changes);
+      o.history = [...o.history, entry];
+    });
+  },
+
+  async receiveOrder(id, lines, entry) {
+    await delay();
+    const o = (load().orders ?? []).find((x) => x.id === id);
+    if (!o || o.status !== "approved") throw new Error("only an approved order can be received");
+    for (const l of lines) {
+      let itemId = l.itemId;
+      if (!itemId) {
+        const found = (load().stock ?? []).find((i) => i.name.toLowerCase() === l.name.toLowerCase() && i.unit === l.unit);
+        itemId = found?.id ?? (await demoBackend.addStockItem({ name: l.name, unit: l.unit, minQty: 0 }));
+      }
+      if (l.qty > 0) demoStockChange(itemId, l.qty, "receive", o.supplier, "po", id);
+    }
+    mutate((s) => {
+      const x = (s.orders ?? []).find((y) => y.id === id)!;
+      x.status = "received";
+      x.history = [...x.history, entry];
+      x.updatedAt = Date.now();
+    });
+  },
+
   async sendPush() {
     // No server in demo mode; the in-app listener shows system
     // notifications while another tab of the app is open.
@@ -365,6 +470,31 @@ export const demoBackend: Backend = {
 
   isPushOff,
 };
+
+function demoStockChange(
+  itemId: string,
+  change: number,
+  reason: StockMove["reason"],
+  note: string,
+  refKind: string | null = null,
+  refId: string | null = null,
+) {
+  const st = load();
+  const item = (st.stock ?? []).find((i) => i.id === itemId);
+  if (!item) throw new Error("stock item not found");
+  const after = Math.round((item.qty + change) * 1000) / 1000;
+  if (after < 0) throw new Error("not enough stock");
+  const me = st.users.find((u) => u.uid === currentSession());
+  mutate((s) => {
+    const i = (s.stock ?? []).find((x) => x.id === itemId)!;
+    i.qty = after;
+    i.updatedAt = Date.now();
+    s.moves = [
+      ...(s.moves ?? []),
+      { id: newId(), itemId, itemName: i.name, unit: i.unit, change, qtyAfter: after, reason, note, refKind, refId, byName: me?.name ?? "", createdAt: Date.now() },
+    ];
+  });
+}
 
 function byNewest(a: unknown, b: unknown) {
   return (b as { createdAt: number }).createdAt - (a as { createdAt: number }).createdAt;
