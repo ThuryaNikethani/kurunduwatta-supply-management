@@ -1,10 +1,11 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Inbox } from "lucide-react";
+import { HardHat, Inbox, Users } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n, type TKey } from "@/lib/i18n";
+import type { Audience } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -89,4 +90,22 @@ export function initials(name: string) {
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
     .join("");
+}
+
+/** Shows whether a list is for guests or for villa staff. */
+export function AudienceBadge({ audience = "guests", className }: { audience?: Audience; className?: string }) {
+  const { t } = useI18n();
+  const Icon = audience === "staff" ? HardHat : Users;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        audience === "staff" ? "bg-moss/10 text-moss" : "bg-amber/15 text-amber-deep",
+        className,
+      )}
+    >
+      <Icon className="size-3.5" />
+      {t(audience === "staff" ? "audience.staff" : "audience.guests")}
+    </span>
+  );
 }
