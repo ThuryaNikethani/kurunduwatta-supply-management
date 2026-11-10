@@ -26,7 +26,7 @@ import { useI18n } from "@/lib/i18n";
 export default function TransferDetail() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const d = useDoc("transfer", id);
   const supply = useDoc("supply", d?.supplyId ?? null);
   const [editing, setEditing] = useState(false);
@@ -50,7 +50,7 @@ export default function TransferDetail() {
           onSubmit={async (data, note) => {
             await performAction("transfer", d.id, d.supplyTitle, profile, "resubmit", note, { ...data });
             setEditing(false);
-            toast.success(t("action.resubmit"));
+            toast.success(t("did.resubmit"));
           }}
         />
       </div>
@@ -73,7 +73,7 @@ export default function TransferDetail() {
 
       <InfoGrid
         items={[
-          { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date, lang) },
+          { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date) },
           { Icon: Users, label: t("supply.guests"), value: d.guestCount },
           { Icon: Soup, label: t("transfer.portions"), value: portions },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
