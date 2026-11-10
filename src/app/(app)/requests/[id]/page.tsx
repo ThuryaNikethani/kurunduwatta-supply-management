@@ -10,6 +10,7 @@ import { AudienceBadge, EmptyState, PageHeader } from "@/components/common";
 import { BackBar, InfoGrid } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StockIssuePanel } from "@/components/StockIssuePanel";
 import { SupplyForm } from "@/components/SupplyForm";
 import { Timeline } from "@/components/Timeline";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +133,8 @@ export default function SupplyDetail() {
               </Table>
             </CardContent>
           </Card>
+
+          {d.status === "approved" && <StockIssuePanel supply={d} />}
 
           {d.status === "approved" && (
             <Card>
