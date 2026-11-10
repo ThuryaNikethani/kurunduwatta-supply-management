@@ -25,10 +25,13 @@ export function PushBanner() {
   if (!profile || state !== "default") return null;
 
   return (
-    <div className="no-print mb-6 flex flex-wrap items-center gap-3 rounded-xl bg-forest p-4 text-cream shadow-sm">
-      <BellRing className="size-5 shrink-0 text-amber" />
-      <p className="min-w-0 flex-1 text-sm">{t("notif.prompt")}</p>
+    <div className="no-print mb-6 flex flex-col gap-3 rounded-xl bg-forest p-4 text-cream shadow-sm sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+        <BellRing className="size-5 shrink-0 text-amber" />
+        <p className="text-sm">{t("notif.prompt")}</p>
+      </div>
       <Button
+        className="w-full sm:w-auto"
         variant="accent"
         disabled={busy}
         onClick={async () => {
