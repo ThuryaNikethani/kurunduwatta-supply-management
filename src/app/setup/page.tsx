@@ -9,7 +9,7 @@ import { Field } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { backend } from "@/lib/backend";
-import { useI18n } from "@/lib/i18n";
+import { errorText, useI18n } from "@/lib/i18n";
 import { fieldErrors, newUserSchema } from "@/lib/schemas";
 
 /** One-time page that creates the first HR account. */
@@ -37,7 +37,7 @@ export default function SetupPage() {
       await backend.setupFirstHr(parsed.data);
       router.replace("/dashboard");
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : t("error"));
+      setFormError(errorText(err));
     } finally {
       setBusy(false);
     }
