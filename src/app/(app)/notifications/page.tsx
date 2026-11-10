@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, BellOff, BellRing, CheckCheck, RefreshCw } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCheck } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,10 +23,12 @@ export default function NotificationsPage() {
   const list = useNotifications(profile?.uid);
   const [push, setPush] = useState<PushState>("unsupported");
   const [busy, setBusy] = useState(false);
+  const [offHere, setOffHere] = useState(false);
 
   useEffect(() => {
     backend.pushState().then(setPush);
-  }, []);
+    if (profile) setOffHere(backend.isPushOff(profile.uid));
+  }, [profile]);
 
   if (!profile) return null;
   const unread = (list ?? []).filter((n) => !n.read);
@@ -40,6 +42,7 @@ export default function NotificationsPage() {
     setBusy(true);
     try {
       setPush(await backend.enablePush(profile!.uid));
+      setOffHere(false);
     } catch {
       setPush(await backend.pushState());
     } finally {
@@ -63,11 +66,30 @@ export default function NotificationsPage() {
       {push !== "unsupported" && (
         <Card className="py-4">
           <CardContent className="flex flex-wrap items-center gap-3 px-4">
-            {push === "granted" ? (
+            {push === "granted" && offHere ? (
+              <>
+                <BellOff className="size-5 text-muted-foreground" />
+                <p className="flex-1 text-sm">{t("notif.stoppedHere")}</p>
+                <Button variant="accent" onClick={turnOn} disabled={busy}>{t("notif.startHere")}</Button>
+              </>
+            ) : push === "granted" ? (
               <>
                 <BellRing className="size-5 text-leaf-deep" />
-                <p className="flex-1 text-sm text-leaf-deep">{t("notif.enabled")}</p>
-                <Button variant="ghost" size="icon" onClick={turnOn} disabled={busy} aria-label={t("notif.refresh")}><RefreshCw /></Button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-leaf-deep">{t("notif.enabled")}</p>
+                  <p className="text-xs text-muted-foreground">{t("notif.sharedHint")}</p>
+                </div>
+                <Button variant="outline" size="sm" disabled={busy} onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await backend.disablePush(profile.uid);
+                    setOffHere(true);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}>
+                  <BellOff /> {t("notif.stopHere")}
+                </Button>
               </>
             ) : push === "denied" ? (
               <>
