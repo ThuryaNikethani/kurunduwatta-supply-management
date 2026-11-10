@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calculator, Check, HardHat, Plus, Search, Send, Trash2, Users, X } from "lucide-react";
+import { BookOpen, Calculator, Check, HardHat, Plus, Search, Send, Trash2, TriangleAlert, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -69,6 +69,8 @@ export function SupplyForm({
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmRecalc, setConfirmRecalc] = useState(false);
+  /** Dishes picked for calculation that have no recipe yet. */
+  const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -86,8 +88,19 @@ export function SupplyForm({
 
   function calculate() {
     const chosen = (recipes.data ?? []).filter((r) => selected.has(r.id));
-    setItems(calculateItems(chosen, guestCount));
+    const ready = chosen.filter((r) => r.ingredients?.length);
+    setNoRecipe(chosen.filter((r) => !r.ingredients?.length).map((r) => r.name));
+    // Nothing to calculate: keep whatever the chef already typed.
+    if (!ready.length) return;
+    setItems(calculateItems(ready, guestCount));
     setErrors((e) => ({ ...e, items: "" }));
+  }
+
+  /** Recalculating replaces the list, so ask first if it has items. */
+  function onCalculateClick() {
+    const anyRecipe = (recipes.data ?? []).some((r) => selected.has(r.id) && r.ingredients?.length);
+    if (items.length && anyRecipe) setConfirmRecalc(true);
+    else calculate();
   }
 
   const update = (i: number, patch: Partial<SupplyItem>) =>
@@ -242,11 +255,30 @@ export function SupplyForm({
           )}
           <div>
             <Button type="button" disabled={!dishes.length || guestCount < 1}
-              onClick={() => (items.length ? setConfirmRecalc(true) : calculate())}>
+              onClick={onCalculateClick}>
               <Calculator />
               {t("supply.calculate")} ({guestCount} × {dishes.length})
             </Button>
           </div>
+          {noRecipe && noRecipe.length > 0 && (
+            <div role="alert" className="flex gap-3 rounded-xl border border-amber/60 bg-amber/10 p-3 text-sm">
+              <TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-deep" />
+              <div className="grid gap-2">
+                <p className="font-medium">
+                  {t(noRecipe.length === dishes.length ? "supply.noRecipeAll" : "supply.noRecipeSome")}
+                </p>
+                <p className="text-muted-foreground">{noRecipe.join(" · ")}</p>
+                <p className="text-muted-foreground">{t("supply.noRecipeHelp")}</p>
+                <div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/recipes" target="_blank" rel="noopener">
+                      <BookOpen /> {t("supply.addRecipes")}
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
