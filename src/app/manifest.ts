@@ -2,9 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kurunduwatta Supply",
-    short_name: "KW Supply",
-    description: "Kitchen supply approvals for Kurunduwatta Villa",
+    name: "කුරුඳුවත්ත බඩු ලැයිස්තු",
+    short_name: "බඩු ලැයිස්තු",
+    description: "කුරුඳුවත්ත විලා කුස්සියට ඕන බඩු අනුමත කරගන්න",
+    lang: "si",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#f7f6ee",
