@@ -212,6 +212,10 @@ const si = {
   "notif.msg.supply": "{by} ({role}) {did}: බඩු ලැයිස්තුව “{title}”",
   "notif.msg.transfer": "{by} ({role}) {did}: ඉතුරු කෑම “{title}”",
 
+  // සේව් නොකළ වැඩ
+  "draft.restored": "ඔයා කලින් පුරවපු දේවල් ආපහු ගත්තා ({time})",
+  "draft.discard": "මකලා මුල ඉඳන් පටන් ගන්න",
+
   // ප්‍රින්ට්
   "print.button": "ප්‍රින්ට් කරන්න",
   "print.printed": "ප්‍රින්ට් කළේ",
