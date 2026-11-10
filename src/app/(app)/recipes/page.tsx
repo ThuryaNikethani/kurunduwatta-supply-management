@@ -25,6 +25,7 @@ import { backend } from "@/lib/backend";
 import { useRecipes } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
 import { qty } from "@/lib/format";
+import { DEFAULT_INGREDIENTS } from "@/lib/default-recipes";
 import { CATEGORIES, MENU, newDishId } from "@/lib/menu";
 import { fieldErrors, recipeSchema } from "@/lib/schemas";
 import type { Ingredient, Recipe } from "@/lib/types";
@@ -52,11 +53,19 @@ export default function RecipesPage() {
     setBusy(true);
     try {
       const now = Date.now();
-      await backend.addRecipes(
-        MENU.flatMap(({ category, dishes }) =>
-          dishes.map(([id, name]) => ({ id, name, category, ingredients: [], updatedAt: now })),
-        ).filter((r) => !(recipes.data ?? []).some((x) => x.id === r.id)),
+      const existing = new Map((recipes.data ?? []).map((r) => [r.id, r]));
+      const menu = MENU.flatMap(({ category, dishes }) =>
+        dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
       );
+      // New dishes come with starting amounts.
+      await backend.addRecipes(menu.filter((r) => !existing.has(r.id)));
+      // Dishes already here but still empty get the starting amounts too.
+      // Anything the chef already entered is left alone.
+      for (const r of menu) {
+        const cur = existing.get(r.id);
+        if (cur && !cur.ingredients?.length && r.ingredients.length)
+          await backend.saveRecipe(cur.id, { name: cur.name, category: cur.category, ingredients: r.ingredients, updatedAt: now });
+      }
       toast.success(t("recipes.loaded"));
     } catch (e) {
       toast.error(errorText(e));
