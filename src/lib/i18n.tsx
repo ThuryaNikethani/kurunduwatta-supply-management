@@ -1,431 +1,276 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect } from "react";
 
-export type Lang = "en" | "si";
+/**
+ * The whole app is in simple, everyday Sinhala only.
+ * Add every piece of text here — never hard-code text in components.
+ */
 
-const en = {
-  appName: "Kurunduwatta Supply",
-  appTagline: "Kitchen supply approvals",
-  // roles
-  "role.chef": "Chef",
-  "role.supervisor": "Supervisor",
-  "role.hr": "HR",
-  // statuses
-  "status.pending_supervisor": "Waiting for Supervisor",
-  "status.returned_to_chef": "Returned to Chef",
-  "status.pending_hr": "Waiting for HR",
-  "status.returned_to_supervisor": "Returned by HR",
-  "status.approved": "Approved",
-  // action buttons
-  "action.submit": "Send to Supervisor",
-  "action.resubmit": "Resend to Supervisor",
-  "action.return_to_chef": "Return to Chef",
-  "action.forward_to_hr": "Send to HR",
-  "action.approve": "Approve",
-  "action.reject_to_supervisor": "Return to Supervisor",
-  // history (past tense)
-  "did.submit": "sent it for review",
-  "did.resubmit": "sent it again",
-  "did.return_to_chef": "returned it to the chef",
-  "did.forward_to_hr": "sent it to HR",
-  "did.approve": "approved it",
-  "did.reject_to_supervisor": "returned it to the supervisor",
-  // nav
-  "nav.dashboard": "Dashboard",
-  "nav.newList": "New list",
-  "nav.recipes": "Recipes",
-  "nav.users": "Users",
-  "nav.notifications": "Notifications",
-  logout: "Log out",
-  // auth
-  "login.title": "Sign in",
-  "login.email": "Email",
-  "login.password": "Password",
-  "login.submit": "Sign in",
-  "login.failed": "Wrong email or password.",
-  "login.noProfile": "This account has no role yet. Ask HR to add you.",
-  "login.inactive": "This account is disabled. Please contact HR.",
-  "setup.title": "First-time setup",
-  "setup.intro": "Create the first HR account. HR can then add Chef and Supervisor accounts.",
-  "setup.name": "Your name",
-  "setup.submit": "Create HR account",
-  "setup.done": "Setup is already complete. Please sign in.",
-  "setup.link": "First time? Set up the system",
-  "config.missing":
-    "Firebase is not configured. Copy .env.local.example to .env.local and add your Firebase keys.",
-  // dashboard
-  "dash.needsAction": "Needs your action",
-  "dash.nothing": "Nothing waiting for you.",
-  "dash.supplyLists": "Supply lists",
-  "dash.transfers": "Leftovers to staff",
-  "dash.all": "All",
-  "dash.empty": "Nothing here yet.",
-  // supply list
-  "supply.new": "New supply list",
-  "supply.title": "Guest / booking name",
-  "supply.titlePh": "e.g. Perera family – 10 guests",
-  "supply.date": "Meal date",
-  "supply.meal": "Meal",
-  "supply.guests": "Guests",
-  "supply.dishes": "Dishes the guests ordered",
-  "supply.searchDish": "Search dishes…",
-  "supply.noRecipe": "no recipe yet",
-  "supply.calculate": "Calculate quantities",
-  "supply.recalcWarn": "This replaces the item list with freshly calculated quantities. Continue?",
-  "supply.items": "Items needed",
-  "supply.item": "Item",
-  "supply.qty": "Qty",
-  "supply.unit": "Unit",
-  "supply.calc": "Calculated",
-  "supply.note": "Note / reason",
-  "supply.addItem": "Add item",
-  "supply.noItems": "No items yet. Choose dishes and press “Calculate quantities”, or add items yourself.",
-  "supply.chefNote": "Note to supervisor (optional)",
-  "supply.send": "Send to Supervisor",
-  "supply.saveResend": "Save changes & resend",
-  "supply.edit": "Edit list",
-  "supply.cancelEdit": "Cancel",
-  "supply.changed": "changed",
-  "supply.missing": "Please fill guest name, date, guests and at least one item.",
-  "supply.recordLeftovers": "Record leftovers",
-  "meal.breakfast": "Breakfast",
-  "meal.lunch": "Lunch",
-  "meal.dinner": "Dinner",
-  "meal.hightea": "High tea",
-  "meal.bbq": "BBQ night",
-  "meal.other": "Other",
-  // transfer out
-  "transfer.new": "Leftovers given to staff",
-  "transfer.for": "For",
-  "transfer.date": "Date given",
-  "transfer.items": "Leftover food",
-  "transfer.dish": "Dish",
-  "transfer.portions": "Enough for (people)",
-  "transfer.addRow": "Add dish",
-  "transfer.recipients": "Staff who received it",
-  "transfer.recipientPh": "Type a name and press Add",
-  "transfer.add": "Add",
-  "transfer.summary": "Planned for {guests} guests · leftovers for {portions} people",
-  "transfer.missing": "Add at least one dish with portions and one staff name.",
-  "transfer.onlyApproved": "Leftovers can be recorded only for an approved supply list.",
-  "transfer.linked": "Leftover records",
-  // detail
-  "detail.history": "History",
-  "detail.by": "by",
-  "detail.createdBy": "Created by",
-  "detail.reason": "Reason / note",
-  "detail.reasonRequired": "Please write the reason.",
-  "detail.notePh": "Write a note…",
-  "detail.notFound": "Not found.",
-  "detail.yourTurn": "Your action",
-  // recipes
-  "recipes.title": "Recipes",
-  "recipes.intro": "Quantities are per person. They are multiplied by the guest count on each supply list.",
-  "recipes.load": "Load villa menu",
-  "recipes.loaded": "Menu loaded.",
-  "recipes.addDish": "Add dish",
-  "recipes.dishName": "Dish name",
-  "recipes.category": "Category",
-  "recipes.ingredient": "Ingredient",
-  "recipes.perPerson": "Per person",
-  "recipes.addIngredient": "Add ingredient",
-  "recipes.ingredients": "{n} ingredients",
-  "recipes.empty": "No dishes yet.",
-  "recipes.delete": "Delete dish",
-  "recipes.deleteConfirm": "Delete this dish?",
-  // users
-  "users.title": "Users",
-  "users.add": "Add user",
-  "users.name": "Name",
-  "users.role": "Role",
-  "users.active": "Active",
-  "users.disabled": "Disabled",
-  "users.passwordHint": "At least 6 characters",
-  "users.created": "User created.",
-  // notifications
-  "notif.title": "Notifications",
-  "notif.markAll": "Mark all as read",
-  "notif.empty": "No notifications.",
-  "notif.enable": "Turn on phone notifications",
-  "notif.enabled": "Phone notifications are on",
-  "notif.blocked": "Notifications are blocked in this browser’s settings.",
-  "notif.prompt": "Turn on notifications on this device to get alerts even when the app is closed or you are logged out.",
-  "print.button": "Print / PDF",
-  "print.printed": "Printed",
-  "notif.msg.supply": "{by} ({role}) {did}: supply list “{title}”",
-  "notif.msg.transfer": "{by} ({role}) {did}: leftovers “{title}”",
-  "demo.banner": "Demo mode — data is saved only in this browser. Open another tab and sign in as a different role to see live notifications.",
-  "demo.accounts": "Demo accounts — tap to sign in",
-  "demo.password": "Password: {pw}",
-  "demo.reset": "Reset demo data",
-  "demo.resetConfirm": "Delete all demo data and start again?",
-  "v.required": "Required",
-  "v.email": "Enter a valid email",
-  "v.password": "At least 6 characters",
-  "v.number": "Enter a number",
-  "v.positive": "Must be more than 0",
-  "v.guests": "At least 1 guest",
-  "v.items": "Add at least one item",
-  "v.leftovers": "Add at least one dish",
-  "v.recipients": "Add at least one staff name",
-  "v.fix": "Please fix the highlighted fields.",
-  "stat.waiting": "Waiting for you",
-  "stat.inReview": "In review",
-  "stat.approved": "Approved",
-  "stat.leftovers": "Leftovers to staff",
-  "dash.hello": "Hello, {name}",
-  "dash.recent": "All records",
-  "dash.search": "Search…",
-  "supply.step1": "Booking details",
-  "supply.step2": "Choose dishes",
-  "supply.step3": "Check quantities",
-  "supply.selected": "{n} selected",
-  "supply.recalcTitle": "Recalculate quantities?",
-  "supply.totalItems": "{n} items",
-  "confirm": "Confirm",
-  "account": "Account",
-  // common
-  save: "Save",
-  saving: "Saving…",
-  cancel: "Cancel",
-  remove: "Remove",
-  loading: "Loading…",
-  error: "Something went wrong. Please try again.",
-  back: "Back",
-  language: "සිංහල",
-};
+export type Lang = "si";
 
-type Dict = Record<keyof typeof en, string>;
+const si = {
+  appName: "කුරුඳුවත්ත බඩු ලැයිස්තු",
+  appTagline: "කුස්සියට ඕන බඩු අනුමත කරගන්න",
+  villa: "කුරුඳුවත්ත විලා",
 
-const si: Dict = {
-  appName: "කුරුඳුවත්ත සැපයුම්",
-  appTagline: "මුළුතැන්ගෙයි ද්‍රව්‍ය අනුමැතිය",
-  "role.chef": "සූපවේදී",
-  "role.supervisor": "අධීක්ෂක",
-  "role.hr": "මානව සම්පත් (HR)",
-  "status.pending_supervisor": "අධීක්ෂක බලාපොරොත්තුවෙන්",
-  "status.returned_to_chef": "සූපවේදීට ආපසු යවා ඇත",
-  "status.pending_hr": "HR බලාපොරොත්තුවෙන්",
-  "status.returned_to_supervisor": "HR විසින් ආපසු යවා ඇත",
+  // තනතුරු
+  "role.chef": "චෙෆ්",
+  "role.supervisor": "සුපවයිසර්",
+  "role.hr": "එච්.ආර්.",
+
+  // තත්ත්වය
+  "status.pending_supervisor": "සුපවයිසර් බලනකම්",
+  "status.returned_to_chef": "චෙෆ්ට ආපහු යැව්වා",
+  "status.pending_hr": "එච්.ආර්. බලනකම්",
+  "status.returned_to_supervisor": "එච්.ආර්. ආපහු යැව්වා",
   "status.approved": "අනුමතයි",
-  "action.submit": "අධීක්ෂකට යවන්න",
-  "action.resubmit": "නැවත අධීක්ෂකට යවන්න",
-  "action.return_to_chef": "සූපවේදීට ආපසු යවන්න",
-  "action.forward_to_hr": "HR වෙත යවන්න",
+
+  // බොත්තම්
+  "action.submit": "සුපවයිසර්ට යවන්න",
+  "action.resubmit": "ආයෙත් සුපවයිසර්ට යවන්න",
+  "action.return_to_chef": "චෙෆ්ට ආපහු යවන්න",
+  "action.forward_to_hr": "එච්.ආර්. එකට යවන්න",
   "action.approve": "අනුමත කරන්න",
-  "action.reject_to_supervisor": "අධීක්ෂකට ආපසු යවන්න",
-  "did.submit": "පරීක්ෂාවට යැව්වා",
-  "did.resubmit": "නැවත යැව්වා",
-  "did.return_to_chef": "සූපවේදීට ආපසු යැව්වා",
-  "did.forward_to_hr": "HR වෙත යැව්වා",
+  "action.reject_to_supervisor": "සුපවයිසර්ට ආපහු යවන්න",
+
+  // කවුද මොකද කළේ
+  "did.submit": "බලන්න යැව්වා",
+  "did.resubmit": "ආයෙත් යැව්වා",
+  "did.return_to_chef": "චෙෆ්ට ආපහු යැව්වා",
+  "did.forward_to_hr": "එච්.ආර්. එකට යැව්වා",
   "did.approve": "අනුමත කළා",
-  "did.reject_to_supervisor": "අධීක්ෂකට ආපසු යැව්වා",
+  "did.reject_to_supervisor": "සුපවයිසර්ට ආපහු යැව්වා",
+
+  // මෙනුව
   "nav.dashboard": "මුල් පිටුව",
-  "nav.newList": "නව ලැයිස්තුව",
-  "nav.recipes": "වට්ටෝරු",
-  "nav.users": "පරිශීලකයින්",
-  "nav.notifications": "දැනුම්දීම්",
-  logout: "ඉවත් වන්න",
-  "login.title": "පුරනය වන්න",
-  "login.email": "ඊමේල්",
+  "nav.newList": "අලුත් ලැයිස්තුවක්",
+  "nav.recipes": "කෑම වට්ටෝරු",
+  "nav.users": "ගිණුම්",
+  "nav.notifications": "පණිවිඩ",
+  "nav.menu": "මෙනුව",
+  logout: "පිටවෙන්න",
+
+  // ඇතුල් වීම
+  "login.title": "ඇතුල් වෙන්න",
+  "login.email": "ඊමේල් ලිපිනය",
   "login.password": "මුරපදය",
-  "login.submit": "පුරනය වන්න",
-  "login.failed": "ඊමේල් හෝ මුරපදය වැරදියි.",
-  "login.noProfile": "මෙම ගිණුමට තවම භූමිකාවක් නැත. HR හට කියන්න.",
-  "login.inactive": "මෙම ගිණුම අක්‍රිය කර ඇත. HR අමතන්න.",
-  "setup.title": "මුල් සැකසුම",
-  "setup.intro": "පළමු HR ගිණුම සාදන්න. පසුව HR හට සූපවේදී සහ අධීක්ෂක ගිණුම් එකතු කළ හැක.",
-  "setup.name": "ඔබගේ නම",
-  "setup.submit": "HR ගිණුම සාදන්න",
-  "setup.done": "සැකසුම දැනටමත් අවසන්. කරුණාකර පුරනය වන්න.",
-  "setup.link": "පළමු වතාවද? පද්ධතිය සකසන්න",
-  "config.missing":
-    "Firebase සකසා නැත. .env.local.example ගොනුව .env.local ලෙස පිටපත් කර Firebase යතුරු එක් කරන්න.",
-  "dash.needsAction": "ඔබ කළ යුතු දේ",
-  "dash.nothing": "ඔබ වෙනුවෙන් කිසිවක් බලාපොරොත්තුවෙන් නැත.",
-  "dash.supplyLists": "ද්‍රව්‍ය ලැයිස්තු",
-  "dash.transfers": "කාර්ය මණ්ඩලයට දුන් ඉතිරි කෑම",
-  "dash.all": "සියල්ල",
-  "dash.empty": "තවම කිසිවක් නැත.",
-  "supply.new": "නව ද්‍රව්‍ය ලැයිස්තුව",
-  "supply.title": "අමුත්තා / වෙන්කිරීමේ නම",
-  "supply.titlePh": "උදා: පෙරේරා පවුල – අමුත්තන් 10",
-  "supply.date": "ආහාර දිනය",
+  "login.submit": "ඇතුල් වෙන්න",
+  "login.failed": "ඊමේල් එක හරි මුරපදය හරි වැරදියි.",
+  "login.noProfile": "මේ ගිණුමට තාම තනතුරක් දීලා නෑ. එච්.ආර්. එකෙන් අහන්න.",
+  "login.inactive": "මේ ගිණුම නවත්වලා තියෙන්නේ. එච්.ආර්. එකට කතා කරන්න.",
+  "setup.title": "මුලින්ම සකස් කරන්න",
+  "setup.intro": "මුලින්ම එච්.ආර්. ගිණුම හදන්න. ඊට පස්සේ එච්.ආර්. එකට චෙෆ් සහ සුපවයිසර් ගිණුම් හදන්න පුළුවන්.",
+  "setup.name": "ඔයාගේ නම",
+  "setup.submit": "එච්.ආර්. ගිණුම හදන්න",
+  "setup.done": "සකස් කරලා ඉවරයි. දැන් ඇතුල් වෙන්න.",
+  "setup.link": "පළවෙනි පාරද? මෙතනින් සකස් කරන්න",
+  "config.missing": "පද්ධතිය තාම සම්බන්ධ කරලා නෑ. පරිපාලකට කියන්න.",
+
+  // මුල් පිටුව
+  "dash.hello": "ආයුබෝවන්, {name}",
+  "dash.needsAction": "ඔයා කරන්න ඕන දේවල්",
+  "dash.nothing": "දැනට ඔයා කරන්න ඕන දෙයක් නෑ.",
+  "dash.supplyLists": "බඩු ලැයිස්තු",
+  "dash.transfers": "ඉතුරු කෑම",
+  "dash.all": "ඔක්කොම",
+  "dash.empty": "තාම මුකුත් නෑ.",
+  "dash.recent": "ඔක්කොම වාර්තා",
+  "dash.search": "හොයන්න…",
+  "stat.waiting": "ඔයා බලන්න ඕන",
+  "stat.inReview": "තාම බලනවා",
+  "stat.approved": "අනුමතයි",
+  "stat.leftovers": "මේ මාසේ ඉතුරු කෑම (දෙනා)",
+
+  // බඩු ලැයිස්තුව
+  "supply.new": "අලුත් බඩු ලැයිස්තුවක්",
+  "supply.step1": "අමුත්තන්ගේ විස්තර",
+  "supply.step2": "කෑම තෝරන්න",
+  "supply.step3": "ප්‍රමාණ බලන්න",
+  "supply.title": "අමුත්තන්ගේ නම",
+  "supply.titlePh": "උදා: පෙරේරා පවුල – 10 දෙනා",
+  "supply.date": "කෑම දවස",
   "supply.meal": "වේල",
-  "supply.guests": "අමුත්තන්",
-  "supply.dishes": "අමුත්තන් ඉල්ලූ කෑම",
-  "supply.searchDish": "කෑම සොයන්න…",
-  "supply.noRecipe": "තවම වට්ටෝරුවක් නැත",
-  "supply.calculate": "ප්‍රමාණ ගණනය කරන්න",
-  "supply.recalcWarn": "මෙයින් ද්‍රව්‍ය ලැයිස්තුව අලුතින් ගණනය කළ ප්‍රමාණවලින් ප්‍රතිස්ථාපනය වේ. ඉදිරියට යනවාද?",
-  "supply.items": "අවශ්‍ය ද්‍රව්‍ය",
-  "supply.item": "ද්‍රව්‍යය",
+  "supply.guests": "අමුත්තෝ ගණන",
+  "supply.dishes": "අමුත්තෝ ඉල්ලපු කෑම",
+  "supply.searchDish": "කෑම හොයන්න…",
+  "supply.noRecipe": "වට්ටෝරුව නෑ",
+  "supply.selected": "කෑම {n}ක් තෝරලා",
+  "supply.calculate": "ප්‍රමාණ හදන්න",
+  "supply.recalcTitle": "ආයෙත් ගණන් හදන්නද?",
+  "supply.recalcWarn": "දැනට තියෙන බඩු ලැයිස්තුව මැකිලා අලුතෙන් ගණන් හැදෙනවා. කරන්නද?",
+  "supply.items": "ඕන බඩු",
+  "supply.totalItems": "බඩු {n}ක්",
+  "supply.item": "බඩුව",
   "supply.qty": "ප්‍රමාණය",
   "supply.unit": "ඒකකය",
-  "supply.calc": "ගණනය කළ",
+  "supply.calc": "ගණන් හැදුණු ප්‍රමාණය",
   "supply.note": "සටහන / හේතුව",
-  "supply.addItem": "ද්‍රව්‍යයක් එක් කරන්න",
-  "supply.noItems": "තවම ද්‍රව්‍ය නැත. කෑම තෝරා “ප්‍රමාණ ගණනය කරන්න” ඔබන්න, නැතහොත් ඔබම එක් කරන්න.",
-  "supply.chefNote": "අධීක්ෂකට සටහනක් (අවශ්‍ය නම්)",
-  "supply.send": "අධීක්ෂකට යවන්න",
-  "supply.saveResend": "වෙනස්කම් සුරකින්න සහ නැවත යවන්න",
-  "supply.edit": "ලැයිස්තුව සංස්කරණය",
-  "supply.cancelEdit": "අවලංගු කරන්න",
+  "supply.addItem": "බඩුවක් එකතු කරන්න",
+  "supply.noItems": "තාම බඩු නෑ. කෑම තෝරලා “ප්‍රමාණ හදන්න” ඔබන්න. නැත්නම් ඔයාටම බඩු එකතු කරන්න පුළුවන්.",
+  "supply.chefNote": "සුපවයිසර්ට සටහනක් (ඕන නම් විතරක්)",
+  "supply.send": "සුපවයිසර්ට යවන්න",
+  "supply.saveResend": "වෙනස් කරලා ආයෙත් යවන්න",
+  "supply.edit": "ලැයිස්තුව වෙනස් කරන්න",
   "supply.changed": "වෙනස් කළා",
-  "supply.missing": "අමුත්තාගේ නම, දිනය, අමුත්තන් ගණන සහ අවම වශයෙන් එක් ද්‍රව්‍යයක් ඇතුළත් කරන්න.",
-  "supply.recordLeftovers": "ඉතිරි කෑම සටහන් කරන්න",
-  "meal.breakfast": "උදේ ආහාරය",
-  "meal.lunch": "දිවා ආහාරය",
-  "meal.dinner": "රාත්‍රී ආහාරය",
-  "meal.hightea": "සවස තේ",
-  "meal.bbq": "BBQ රාත්‍රිය",
+  "supply.recordLeftovers": "ඉතුරු කෑම ලියන්න",
+
+  // වේල්
+  "meal.breakfast": "උදේ කෑම",
+  "meal.lunch": "දවල් කෑම",
+  "meal.dinner": "රෑ කෑම",
+  "meal.hightea": "හවස තේ",
+  "meal.bbq": "බාබකියු රෑ",
   "meal.other": "වෙනත්",
-  "transfer.new": "කාර්ය මණ්ඩලයට දුන් ඉතිරි කෑම",
-  "transfer.for": "සඳහා",
-  "transfer.date": "දුන් දිනය",
-  "transfer.items": "ඉතිරි වූ කෑම",
+
+  // ඒකක
+  "unit.g": "ග්‍රෑම්",
+  "unit.kg": "කිලෝ",
+  "unit.ml": "මිලි",
+  "unit.l": "ලීටර්",
+  "unit.pcs": "කෑලි",
+  "unit.pkt": "පැකට්",
+  "unit.btl": "බෝතල්",
+  "unit.bunch": "මිටි",
+
+  // ඉතුරු කෑම
+  "transfer.new": "සේවකයන්ට දුන්න ඉතුරු කෑම",
+  "transfer.date": "දුන්න දවස",
+  "transfer.items": "ඉතුරු වුණ කෑම",
   "transfer.dish": "කෑම",
-  "transfer.portions": "කී දෙනෙකුට ප්‍රමාණවත්ද",
-  "transfer.addRow": "කෑමක් එක් කරන්න",
-  "transfer.recipients": "ලබාගත් කාර්ය මණ්ඩල සාමාජිකයින්",
-  "transfer.recipientPh": "නම ටයිප් කර එක් කරන්න ඔබන්න",
-  "transfer.add": "එක් කරන්න",
-  "transfer.summary": "අමුත්තන් {guests} දෙනෙකුට සැලසුම් කළා · ඉතිරි {portions} දෙනෙකුට",
-  "transfer.missing": "ප්‍රමාණය සමඟ අවම වශයෙන් එක් කෑමක් සහ එක් නමක් එක් කරන්න.",
-  "transfer.onlyApproved": "ඉතිරි කෑම සටහන් කළ හැක්කේ අනුමත ලැයිස්තුවකට පමණි.",
-  "transfer.linked": "ඉතිරි කෑම වාර්තා",
-  "detail.history": "ඉතිහාසය",
-  "detail.by": "විසින්",
-  "detail.createdBy": "සාදන ලද්දේ",
+  "transfer.portions": "කී දෙනෙකුට ඇති ද",
+  "transfer.addRow": "කෑමක් එකතු කරන්න",
+  "transfer.recipients": "කෑම ගත්ත සේවකයෝ",
+  "transfer.recipientPh": "නම ලියලා “එකතු කරන්න” ඔබන්න",
+  "transfer.add": "එකතු කරන්න",
+  "transfer.summary": "අමුත්තෝ {guests} දෙනෙකුට හැදුවා · {portions} දෙනෙකුට ඇති කෑම ඉතුරුයි",
+  "transfer.onlyApproved": "ඉතුරු කෑම ලියන්න පුළුවන් අනුමත වුණ ලැයිස්තුවකට විතරයි.",
+  "transfer.linked": "ඉතුරු කෑම වාර්තා",
+
+  // විස්තර පිටුව
+  "detail.history": "සිද්ධ වුණ දේවල්",
+  "detail.createdBy": "හැදුවේ",
   "detail.reason": "හේතුව / සටහන",
-  "detail.reasonRequired": "කරුණාකර හේතුව ලියන්න.",
+  "detail.reasonRequired": "ආපහු යවනවා නම් හේතුව ලියන්න.",
   "detail.notePh": "සටහනක් ලියන්න…",
-  "detail.notFound": "හමු නොවීය.",
-  "detail.yourTurn": "ඔබගේ ක්‍රියාව",
-  "recipes.title": "වට්ටෝරු",
-  "recipes.intro": "ප්‍රමාණ එක් අයෙකුට වේ. සෑම ලැයිස්තුවකම අමුත්තන් ගණනින් ගුණ කෙරේ.",
-  "recipes.load": "විලා මෙනුව පූරණය කරන්න",
-  "recipes.loaded": "මෙනුව පූරණය විය.",
-  "recipes.addDish": "කෑමක් එක් කරන්න",
+  "detail.notFound": "හොයාගන්න බැරි වුණා.",
+  "detail.yourTurn": "ඔයාගේ වාරය",
+
+  // වට්ටෝරු
+  "recipes.title": "කෑම වට්ටෝරු",
+  "recipes.intro": "මෙතන තියෙන්නේ එක්කෙනෙකුට යන ප්‍රමාණ. ලැයිස්තුවක අමුත්තෝ ගණනින් මේවා වැඩි වෙනවා.",
+  "recipes.load": "විලා මෙනුව ගන්න",
+  "recipes.loaded": "මෙනුව එකතු වුණා.",
+  "recipes.addDish": "කෑමක් එකතු කරන්න",
   "recipes.dishName": "කෑමේ නම",
-  "recipes.category": "කාණ්ඩය",
-  "recipes.ingredient": "ද්‍රව්‍යය",
-  "recipes.perPerson": "එක් අයෙකුට",
-  "recipes.addIngredient": "ද්‍රව්‍යයක් එක් කරන්න",
-  "recipes.ingredients": "ද්‍රව්‍ය {n}",
-  "recipes.empty": "තවම කෑම නැත.",
+  "recipes.category": "වර්ගය",
+  "recipes.ingredient": "බඩුව",
+  "recipes.perPerson": "එක්කෙනෙකුට",
+  "recipes.addIngredient": "බඩුවක් එකතු කරන්න",
+  "recipes.ingredients": "බඩු {n}ක්",
+  "recipes.empty": "තාම කෑම නෑ.",
   "recipes.delete": "කෑම මකන්න",
-  "recipes.deleteConfirm": "මෙම කෑම මකන්නද?",
-  "users.title": "පරිශීලකයින්",
-  "users.add": "පරිශීලකයෙකු එක් කරන්න",
+  "recipes.deleteConfirm": "මේ කෑම මකන්නද?",
+  "recipes.saved": "සේව් කළා.",
+
+  // ගිණුම්
+  "users.title": "ගිණුම්",
+  "users.add": "අලුත් ගිණුමක්",
   "users.name": "නම",
-  "users.role": "භූමිකාව",
-  "users.active": "සක්‍රියයි",
-  "users.disabled": "අක්‍රියයි",
-  "users.passwordHint": "අවම අකුරු 6ක්",
-  "users.created": "පරිශීලකයා සාදන ලදී.",
-  "notif.title": "දැනුම්දීම්",
-  "notif.markAll": "සියල්ල කියවූ ලෙස සලකුණු කරන්න",
-  "notif.empty": "දැනුම්දීම් නැත.",
-  "notif.enable": "දුරකථන දැනුම්දීම් සක්‍රිය කරන්න",
-  "notif.enabled": "දුරකථන දැනුම්දීම් සක්‍රියයි",
-  "notif.blocked": "මෙම බ්‍රව්සරයේ සැකසුම්වල දැනුම්දීම් අවහිර කර ඇත.",
-  "notif.prompt": "යෙදුම වසා ඇති විට හෝ ඉවත් වී සිටින විටත් දැනුම්දීම් ලබා ගැනීමට මෙම උපාංගයේ දැනුම්දීම් සක්‍රිය කරන්න.",
-  "print.button": "මුද්‍රණය / PDF",
-  "print.printed": "මුද්‍රණය කළේ",
-  "notif.msg.supply": "{by} ({role}) {did}: ද්‍රව්‍ය ලැයිස්තුව “{title}”",
-  "notif.msg.transfer": "{by} ({role}) {did}: ඉතිරි කෑම “{title}”",
-  "demo.banner": "ආදර්ශන මාදිලිය — දත්ත සුරැකෙන්නේ මෙම බ්‍රව්සරයේ පමණි. සජීවී දැනුම්දීම් බැලීමට තවත් ටැබයක් විවෘත කර වෙනත් භූමිකාවකින් පුරනය වන්න.",
-  "demo.accounts": "ආදර්ශන ගිණුම් — පුරනය වීමට ඔබන්න",
+  "users.role": "තනතුර",
+  "users.active": "වැඩ කරනවා",
+  "users.disabled": "නවත්වලා",
+  "users.passwordHint": "අකුරු 6කට වඩා",
+  "users.created": "ගිණුම හැදුවා.",
+
+  // පණිවිඩ
+  "notif.title": "පණිවිඩ",
+  "notif.markAll": "ඔක්කොම කියෙව්වා",
+  "notif.empty": "පණිවිඩ නෑ.",
+  "notif.open": "බලන්න",
+  "notif.close": "වහන්න",
+  "notif.refresh": "ආයෙත් සම්බන්ධ කරන්න",
+  "notif.prompt": "ඇප් එක වහලා තිබුණත් පණිවිඩ එන්න, මේ ෆෝන් එකේ පණිවිඩ දාන්න.",
+  "notif.enable": "පණිවිඩ එන්න දාන්න",
+  "notif.enabled": "මේ ෆෝන් එකට පණිවිඩ එනවා",
+  "notif.blocked": "මේ බ්‍රවුසරයේ පණිවිඩ නවත්වලා. සැකසුම් වලින් ඉඩ දෙන්න.",
+  "notif.msg.supply": "{by} ({role}) {did}: බඩු ලැයිස්තුව “{title}”",
+  "notif.msg.transfer": "{by} ({role}) {did}: ඉතුරු කෑම “{title}”",
+
+  // ප්‍රින්ට්
+  "print.button": "ප්‍රින්ට් කරන්න",
+  "print.printed": "ප්‍රින්ට් කළේ",
+
+  // පුහුණු මාදිලිය
+  "demo.banner": "පුහුණු මාදිලිය — දත්ත සේව් වෙන්නේ මේ බ්‍රවුසරයේ විතරයි. තව ටැබ් එකක් ඇරලා වෙන තනතුරකින් ඇතුල් වුණොත් පණිවිඩ එන හැටි බලන්න පුළුවන්.",
+  "demo.accounts": "පුහුණු ගිණුම් — ඔබලා ඇතුල් වෙන්න",
   "demo.password": "මුරපදය: {pw}",
-  "demo.reset": "ආදර්ශන දත්ත යළි සකසන්න",
-  "demo.resetConfirm": "සියලු ආදර්ශන දත්ත මකා නැවත ආරම්භ කරන්නද?",
-  "v.required": "අවශ්‍යයි",
-  "v.email": "නිවැරදි ඊමේල් එකක් ඇතුළත් කරන්න",
-  "v.password": "අවම අකුරු 6ක්",
-  "v.number": "අංකයක් ඇතුළත් කරන්න",
-  "v.positive": "0ට වඩා වැඩි විය යුතුයි",
-  "v.guests": "අවම අමුත්තන් 1ක්",
-  "v.items": "අවම වශයෙන් එක් ද්‍රව්‍යයක් එක් කරන්න",
-  "v.leftovers": "අවම වශයෙන් එක් කෑමක් එක් කරන්න",
-  "v.recipients": "අවම වශයෙන් එක් නමක් එක් කරන්න",
-  "v.fix": "කරුණාකර සලකුණු කළ ක්ෂේත්‍ර නිවැරදි කරන්න.",
-  "stat.waiting": "ඔබ බලාපොරොත්තුවෙන්",
-  "stat.inReview": "පරීක්ෂාවේ",
-  "stat.approved": "අනුමතයි",
-  "stat.leftovers": "කාර්ය මණ්ඩලයට ඉතිරි කෑම",
-  "dash.hello": "ආයුබෝවන්, {name}",
-  "dash.recent": "සියලු වාර්තා",
-  "dash.search": "සොයන්න…",
-  "supply.step1": "වෙන්කිරීමේ විස්තර",
-  "supply.step2": "කෑම තෝරන්න",
-  "supply.step3": "ප්‍රමාණ පරීක්ෂා කරන්න",
-  "supply.selected": "{n}ක් තෝරා ඇත",
-  "supply.recalcTitle": "ප්‍රමාණ නැවත ගණනය කරන්නද?",
-  "supply.totalItems": "ද්‍රව්‍ය {n}",
-  "confirm": "තහවුරු කරන්න",
-  "account": "ගිණුම",
-  save: "සුරකින්න",
-  saving: "සුරකිමින්…",
-  cancel: "අවලංගු කරන්න",
-  remove: "ඉවත් කරන්න",
-  loading: "පූරණය වෙමින්…",
-  error: "යමක් වැරදුණා. නැවත උත්සාහ කරන්න.",
-  back: "ආපසු",
-  language: "English",
+  "demo.reset": "පුහුණු දත්ත මුල ඉඳන්",
+  "demo.resetConfirm": "පුහුණු දත්ත ඔක්කොම මකලා මුල ඉඳන් පටන් ගන්නද?",
+
+  // පිරවීම් වැරදි
+  "v.required": "මේක පුරවන්න",
+  "v.email": "හරි ඊමේල් එකක් දාන්න",
+  "v.password": "අකුරු 6කට වඩා දාන්න",
+  "v.number": "අංකයක් දාන්න",
+  "v.positive": "0ට වඩා වැඩි වෙන්න ඕන",
+  "v.guests": "අඩුම තරමේ එක්කෙනෙක් ඉන්න ඕන",
+  "v.items": "අඩුම තරමේ එක බඩුවක් දාන්න",
+  "v.leftovers": "අඩුම තරමේ එක කෑමක් දාන්න",
+  "v.recipients": "අඩුම තරමේ එක නමක් දාන්න",
+  "v.fix": "රතු පාටින් පෙන්නන තැන් හදන්න.",
+
+  // වැරදි
+  "err.emailUsed": "මේ ඊමේල් එකෙන් දැනටමත් ගිණුමක් තියෙනවා.",
+  "err.network": "අන්තර්ජාලය නෑ. සම්බන්ධ වෙලා ආයෙත් උත්සාහ කරන්න.",
+  "err.permission": "මේක කරන්න ඔයාට අවසර නෑ.",
+
+  // පොදු
+  save: "සේව් කරන්න",
+  saving: "සේව් වෙනවා…",
+  cancel: "එපා",
+  remove: "අයින් කරන්න",
+  loading: "පොඩ්ඩක් ඉන්න…",
+  error: "මොකක් හරි වැරැද්දක් වුණා. ආයෙත් උත්සාහ කරන්න.",
+  back: "ආපහු",
+  confirm: "හරි",
+  done: "හරි, කළා",
 };
 
-export type TKey = keyof typeof en;
-const DICTS: Record<Lang, Dict> = { en, si };
+export type TKey = keyof typeof si;
 
-/** Translate outside React (e.g. for push messages in both languages). */
-export function translate(lang: Lang, key: TKey, vars?: Record<string, string | number>) {
-  let s = DICTS[lang][key] ?? en[key] ?? key;
+/** Translate outside React (e.g. push notification text). */
+export function translate(key: TKey, vars?: Record<string, string | number>) {
+  let s: string = si[key] ?? key;
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
 }
 
+/** Turn any thrown error into a simple Sinhala message. */
+export function errorText(e: unknown) {
+  const m = e instanceof Error ? `${e.message} ${(e as { code?: string }).code ?? ""}` : String(e);
+  if (/email-already-in-use|already in use/i.test(m)) return translate("err.emailUsed");
+  if (/weak-password/i.test(m)) return translate("v.password");
+  if (/invalid-email/i.test(m)) return translate("v.email");
+  if (/invalid-credential|wrong-password|user-not-found/i.test(m)) return translate("login.failed");
+  if (/network|offline|unavailable/i.test(m)) return translate("err.network");
+  if (/permission|insufficient/i.test(m)) return translate("err.permission");
+  return translate("error");
+}
+
 interface I18n {
   lang: Lang;
-  setLang: (l: Lang) => void;
-  toggle: () => void;
   t: (key: TKey, vars?: Record<string, string | number>) => string;
 }
 
 const Ctx = createContext<I18n | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
-
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("lang");
-      if (saved === "en" || saved === "si") setLangState(saved);
-    } catch {}
+    document.documentElement.lang = "si";
   }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    try {
-      localStorage.setItem("lang", l);
-    } catch {}
-  }, []);
-
-  const t = useCallback(
-    (key: TKey, vars?: Record<string, string | number>) => translate(lang, key, vars),
-    [lang],
-  );
-
-  return (
-    <Ctx.Provider value={{ lang, setLang, toggle: () => setLang(lang === "en" ? "si" : "en"), t }}>
-      {children}
-    </Ctx.Provider>
-  );
+  const t = useCallback((key: TKey, vars?: Record<string, string | number>) => translate(key, vars), []);
+  return <Ctx.Provider value={{ lang: "si", t }}>{children}</Ctx.Provider>;
 }
 
 export function useI18n() {
