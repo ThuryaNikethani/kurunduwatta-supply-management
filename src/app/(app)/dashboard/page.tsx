@@ -15,7 +15,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { CardsSkeleton, EmptyState, PageHeader } from "@/components/common";
+import { AudienceBadge, CardsSkeleton, EmptyState, PageHeader } from "@/components/common";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { useSupplyLists, useTransferOuts } from "@/lib/hooks";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
-import { STATUSES, type Status, type SupplyList, type TransferOut } from "@/lib/types";
+import { AUDIENCES, STATUSES, type Audience, type Status, type SupplyList, type TransferOut } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { WAITING_ON } from "@/lib/workflow";
 
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const supply = useSupplyLists();
   const transfers = useTransferOuts();
   const [filter, setFilter] = useState<Status | "all">("all");
+  const [audience, setAudience] = useState<Audience | "all">("all");
   const [search, setSearch] = useState("");
 
   const role = profile?.role;
@@ -63,6 +64,7 @@ export default function Dashboard() {
   const q = search.trim().toLowerCase();
   const match = (d: SupplyList | TransferOut) =>
     (filter === "all" || d.status === filter) &&
+    (audience === "all" || !("title" in d) || (d.audience ?? "guests") === audience) &&
     (!q || ("title" in d ? d.title : d.supplyTitle).toLowerCase().includes(q) || d.createdByName.toLowerCase().includes(q));
 
   const error = supply.error || transfers.error;
@@ -128,6 +130,13 @@ export default function Dashboard() {
                 {STATUSES.map((st) => <SelectItem key={st} value={st}>{t(`status.${st}`)}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Select value={audience} onValueChange={(v) => setAudience(v as Audience | "all")}>
+              <SelectTrigger className="w-auto bg-card" aria-label={t("audience.question")}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("dash.everyone")}</SelectItem>
+                {AUDIENCES.map((a) => <SelectItem key={a} value={a}>{t(`audience.${a}`)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <TabsContent value="supply">
             <List loading={!supply.data} items={s.filter(match)} render={(d) => <SupplyRow key={d.id} d={d as SupplyList} />} />
@@ -168,9 +177,9 @@ function Stat({ Icon, label, value, highlight }: {
   );
 }
 
-function Row({ href, title, status, highlight, tag, Icon, meta }: {
+function Row({ href, title, status, highlight, tag, Icon, meta, badge }: {
   href: string; title: string; status: Status; highlight?: boolean; tag: TKey; Icon: LucideIcon;
-  meta: { Icon: LucideIcon; text: string }[];
+  meta: { Icon: LucideIcon; text: string }[]; badge?: React.ReactNode;
 }) {
   const { t } = useI18n();
   return (
@@ -183,7 +192,10 @@ function Row({ href, title, status, highlight, tag, Icon, meta }: {
             </span>
             <StatusBadge status={status} />
           </div>
-          <p className="font-display text-xl leading-snug font-semibold">{title}</p>
+          <div className="grid gap-1.5">
+            <p className="font-display text-xl leading-snug font-semibold">{title}</p>
+            {badge && <div>{badge}</div>}
+          </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {meta.map((m, i) => (
               <span key={i} className="inline-flex items-center gap-1"><m.Icon className="size-3.5" /> {m.text}</span>
@@ -200,6 +212,7 @@ function SupplyRow({ d, highlight }: { d: SupplyList; highlight?: boolean }) {
   const { t } = useI18n();
   return (
     <Row href={`/requests/${d.id}`} title={d.title} tag="dash.supplyLists" Icon={ClipboardList} status={d.status} highlight={highlight}
+      badge={<AudienceBadge audience={d.audience} />}
       meta={[
         { Icon: CalendarDays, text: `${formatDate(d.eventDate)} · ${t(`meal.${d.meal}` as TKey)}` },
         { Icon: Users, text: String(d.guestCount) },
