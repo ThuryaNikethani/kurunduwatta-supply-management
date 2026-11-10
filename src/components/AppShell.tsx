@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  BarChart3,
   Bell,
   BookOpen,
   ChefHat,
@@ -12,9 +13,11 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Package,
   PlusCircle,
   KeyRound,
   RotateCcw,
+  ShoppingCart,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +49,9 @@ const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
   { href: "/recipes", key: "nav.recipes", roles: ["chef", "supervisor", "hr"], Icon: BookOpen },
+  { href: "/stock", key: "nav.stock", roles: ["chef", "supervisor", "hr"], Icon: Package },
+  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], Icon: ShoppingCart },
+  { href: "/reports", key: "nav.reports", roles: ["chef", "supervisor", "hr"], Icon: BarChart3 },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
