@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
-import { EmptyState, PageHeader } from "@/components/common";
+import { AudienceBadge, EmptyState, PageHeader } from "@/components/common";
 import { BackBar, InfoGrid } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -62,14 +62,14 @@ export default function SupplyDetail() {
       <PageHeader
         eyebrow={t("dash.supplyLists")}
         title={d.title}
-        subtitle={<StatusBadge status={d.status} className="mt-1" />}
+        subtitle={<span className="mt-1 flex flex-wrap gap-2"><StatusBadge status={d.status} /><AudienceBadge audience={d.audience} /></span>}
       />
 
       <InfoGrid
         items={[
           { Icon: CalendarDays, label: t("supply.date"), value: formatDate(d.eventDate) },
           { Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) },
-          { Icon: Users, label: t("supply.guests"), value: d.guestCount },
+          { Icon: Users, label: t(d.audience === "staff" ? "supply.staffCount" : "supply.guests"), value: d.guestCount },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
         ]}
       />
