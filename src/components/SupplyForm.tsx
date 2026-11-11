@@ -33,6 +33,12 @@ import { RecipeEditor } from "./RecipeEditor";
 import { CATEGORIES, STAFF_CATEGORIES } from "@/lib/menu";
 import { useDraft } from "@/lib/draft";
 
+/** Dishes the chef typed in a hand-written list (not from the menu). */
+const OWN = "own:";
+const isOwn = (d: DishRef) => d.id.startsWith(OWN);
+/** A hand-written list has no menu dishes, only ones the chef typed. */
+const wasManual = (d?: SupplyFormData) => !!d?.items.length && d.dishes.every(isOwn);
+
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
 
 export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "dishes" | "items">;
@@ -69,7 +75,7 @@ export function SupplyForm({
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
   const [meal, setMeal] = useState(initial?.meal ?? "lunch");
   const [guestCount, setGuestCount] = useState<number>(initial?.guestCount ?? 10);
-  const [dishes, setDishes] = useState<DishRef[]>(initial?.dishes ?? []);
+  const [dishes, setDishes] = useState<DishRef[]>(wasManual(initial) ? [] : (initial?.dishes ?? []));
   const [items, setItems] = useState<SupplyItem[]>(initial?.items ?? []);
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
@@ -80,26 +86,30 @@ export function SupplyForm({
   const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
   const [addingDish, setAddingDish] = useState(false);
   /** Write the items by hand instead of working them out from dishes. */
-  const [manual, setManual] = useState(() => !!initial?.items.length && !initial.dishes.length);
+  const [manual, setManual] = useState(() => wasManual(initial));
   /** The list for the way not shown right now (calculated vs hand-written). */
   const [otherItems, setOtherItems] = useState<SupplyItem[]>([]);
+  /** Dish names typed by the chef for a hand-written list. */
+  const [ownDishes, setOwnDishes] = useState<string[]>(() => (wasManual(initial) ? initial!.dishes.map((d) => d.name) : []));
+  const [dishInput, setDishInput] = useState("");
 
-  type Draft = SupplyFormData & { note: string; manual?: boolean; otherItems?: SupplyItem[] };
+  type Draft = SupplyFormData & { note: string; manual?: boolean; otherItems?: SupplyItem[]; ownDishes?: string[] };
   const [start] = useState<Draft>(() => ({
     audience: initial?.audience ?? "guests",
     title: initial?.title ?? "",
     eventDate: initial?.eventDate ?? today(),
     meal: initial?.meal ?? "lunch",
     guestCount: initial?.guestCount ?? 10,
-    dishes: initial?.dishes ?? [],
+    dishes: wasManual(initial) ? [] : (initial?.dishes ?? []),
     items: initial?.items ?? [],
     note: "",
-    manual: !!initial?.items.length && !initial.dishes.length,
+    manual: wasManual(initial),
     otherItems: [],
+    ownDishes: wasManual(initial) ? initial!.dishes.map((d) => d.name) : [],
   }));
   const draft = useDraft<Draft>(
     draftKey,
-    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual, otherItems },
+    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual, otherItems, ownDishes },
     (d) => {
       setAudience(d.audience ?? "guests");
       setTitle(d.title);
@@ -111,6 +121,7 @@ export function SupplyForm({
       setNote(d.note);
       setManual(!!d.manual);
       setOtherItems(d.otherItems ?? []);
+      setOwnDishes(d.ownDishes ?? []);
       setErrors({});
       setNoRecipe(null);
     },
@@ -160,6 +171,13 @@ export function SupplyForm({
     setOtherItems(items);
   }
 
+  function addOwnDish() {
+    const name = dishInput.trim();
+    if (!name) return;
+    setOwnDishes((cur) => (cur.includes(name) ? cur : [...cur, name]));
+    setDishInput("");
+  }
+
   const update = (i: number, patch: Partial<SupplyItem>) =>
     setItems((cur) => cur.map((it, j) => (j === i ? { ...it, ...patch } : it)));
 
@@ -172,7 +190,7 @@ export function SupplyForm({
       meal,
       guestCount,
       // A hand-written list isn't tied to any dishes.
-      dishes: manual ? [] : dishes,
+      dishes: manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
     });
     if (!parsed.success) {
@@ -297,9 +315,33 @@ export function SupplyForm({
             })}
           </div>
           {manual ? (
-            <p className="flex gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-              <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
-            </p>
+            <>
+              <p className="flex gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
+                <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
+              </p>
+              <div className="grid gap-2">
+                <label htmlFor="own-dish" className="text-xs tracking-wide text-muted-foreground">{t("supply.ownDishes")}</label>
+                <div className="flex gap-2">
+                  <Input id="own-dish" placeholder={t("supply.ownDishPh")} value={dishInput}
+                    onChange={(e) => setDishInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOwnDish(); } }} />
+                  <Button type="button" variant="outline" disabled={!dishInput.trim()} onClick={addOwnDish}>
+                    <Plus /> {t("supply.ownDishAdd")}
+                  </Button>
+                </div>
+                {ownDishes.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {ownDishes.map((n) => (
+                      <button type="button" key={n} aria-label={`${t("remove")}: ${n}`}
+                        onClick={() => setOwnDishes((cur) => cur.filter((x) => x !== n))}
+                        className="inline-flex items-center gap-1 rounded-full bg-forest py-1 pr-2 pl-3 text-xs text-cream">
+                        {n} <X className="size-3.5" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
