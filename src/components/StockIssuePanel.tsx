@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PackageCheck, PackageMinus, ShoppingCart, TriangleAlert } from "lucide-react";
+import { PackageCheck, PackageMinus, ShoppingCart, Store, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -39,8 +39,22 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
 
   if (issue === undefined || !stock) return <Skeleton className="h-40" />;
 
+  const rows = previewIssue(supply.items, stock);
+  // Fresh things come straight from the shop; only dry goods go through the store.
+  const fresh = rows.filter((r) => !r.item);
+  const stored = rows.filter((r) => r.item);
+  const freshNote = fresh.length > 0 && (
+    <div className="grid gap-1 rounded-xl border bg-secondary/60 p-3 text-sm">
+      <p className="flex items-center gap-2 font-medium">
+        <Store className="size-4 text-leaf-deep" /> {t("issue.fresh", { n: fresh.length })}
+      </p>
+      <p className="text-muted-foreground">{fresh.map((r) => `${r.name} ${qty(r.need, r.unit)}`).join(" · ")}</p>
+      <p className="text-xs text-muted-foreground">{t("issue.freshHint")}</p>
+    </div>
+  );
+
   if (issue) {
-    const stillShort = shortagesAfterIssue(supply.items, issue);
+    const stillShort = shortagesAfterIssue(supply.items, issue, stock);
     return (
       <Card>
         <CardHeader>
@@ -75,18 +89,28 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
     );
   }
 
-  if (!canIssue)
+  // Nothing on this list is kept in the store: it is all bought fresh.
+  if (!stored.length)
     return (
       <Card className="py-4">
         <CardContent className="flex items-center gap-3 px-4 text-sm text-muted-foreground">
-          <PackageMinus className="size-5" /> {t("issue.waiting")}
+          <Store className="size-5 shrink-0" /> {t("issue.allFresh")}
         </CardContent>
       </Card>
     );
 
-  const rows = previewIssue(supply.items, stock);
-  const short = rows.filter((r) => r.short > 0);
-  const lines = issueLines(rows);
+  if (!canIssue)
+    return (
+      <Card className="py-4">
+        <CardContent className="grid gap-3 px-4 text-sm text-muted-foreground">
+          <p className="flex items-center gap-3"><PackageMinus className="size-5" /> {t("issue.waiting")}</p>
+          {freshNote}
+        </CardContent>
+      </Card>
+    );
+
+  const short = stored.filter((r) => r.short > 0);
+  const lines = issueLines(stored);
 
   async function issueNow() {
     setBusy(true);
@@ -124,12 +148,12 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r, i) => (
+            {stored.map((r, i) => (
               <TableRow key={i} className={cn(r.short > 0 && "bg-amber/10 hover:bg-amber/15")}>
                 <TableCell className="font-medium">{r.name}</TableCell>
                 <TableCell className="text-right tabular-nums">{qty(r.need, r.unit)}</TableCell>
                 <TableCell className="text-right text-muted-foreground tabular-nums">
-                  {r.item ? qty(r.item.qty, r.item.unit) : t("issue.notInStock")}
+                  {r.item && qty(r.item.qty, r.item.unit)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {qty(r.give, r.unit)}
@@ -150,6 +174,7 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
             )}
           </div>
         )}
+        {freshNote}
       </CardContent>
 
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
