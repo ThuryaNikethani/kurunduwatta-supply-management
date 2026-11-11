@@ -107,6 +107,8 @@ export interface SupplyList extends WorkflowDoc {
   eventDate: string;
   meal: string;
   guestCount: number;
+  /** Staff lists: how many days the order is for. */
+  days?: number | null;
   dishes: DishRef[];
   items: SupplyItem[];
 }
