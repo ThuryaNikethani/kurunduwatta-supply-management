@@ -115,7 +115,38 @@ export const MENU: { category: string; dishes: Dish[] }[] = [
   },
 ];
 
+/** Simple everyday meals for villa staff (not the guest menu). */
+export const STAFF_MENU: { category: string; dishes: Dish[] }[] = [
+  {
+    category: "සේවක උදේ කෑම",
+    dishes: [
+      ["staff-bread-dhal", "පාන් සහ පරිප්පු"],
+      ["staff-string-hoppers", "ඉඳිආප්ප සහ හොදි"],
+      ["staff-milk-rice", "කිරිබත් සහ ලුණුමිරිස්"],
+      ["staff-pittu", "පිට්ටු සහ පොල් සම්බෝල"],
+    ],
+  },
+  {
+    category: "සේවක දවල් / රෑ කෑම",
+    dishes: [
+      ["staff-rice-veg", "බත් සහ එළවළු කරි"],
+      ["staff-rice-chicken", "බත් සහ කුකුල් මස් කරිය"],
+      ["staff-rice-fish", "බත් සහ මාළු කරිය"],
+      ["staff-rice-egg", "බත් සහ බිත්තර කරිය"],
+      ["staff-fried-rice", "සරල ෆ්‍රයිඩ් රයිස්"],
+    ],
+  },
+  {
+    category: "සේවක හවස තේ",
+    dishes: [
+      ["staff-tea-biscuits", "තේ සහ බිස්කට්"],
+      ["staff-tea-snack", "තේ සහ කෙටි කෑම"],
+    ],
+  },
+];
+
 export const CATEGORIES = MENU.map((m) => m.category);
+export const STAFF_CATEGORIES = STAFF_MENU.map((m) => m.category);
 
 /** Id for a dish the chef adds. Works for Sinhala names too. */
 export function newDishId(name: string) {
