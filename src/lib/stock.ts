@@ -29,11 +29,15 @@ export interface IssueRow {
   short: number;
 }
 
-/** What taking a supply list out of stock would do, line by line. */
+/**
+ * What taking a supply list out of stock would do, line by line.
+ * Only dry goods are kept in the store; anything not in stock is bought
+ * fresh from the shop, so it is never "short" (item stays null).
+ */
 export function previewIssue(items: SupplyItem[], stock: StockItem[]): IssueRow[] {
   return items.map((it) => {
     const s = findStock(stock, it.name, it.unit);
-    if (!s) return { name: it.name, need: it.qty, unit: it.unit, item: null, give: 0, short: it.qty };
+    if (!s) return { name: it.name, need: it.qty, unit: it.unit, item: null, give: 0, short: 0 };
     const need = round(convert(it.qty, it.unit, s.unit) ?? 0);
     const give = round(Math.min(need, s.qty));
     return { name: it.name, need, unit: s.unit, item: s, give, short: round(need - give) };
@@ -68,11 +72,13 @@ export function receiveLines(items: OrderItem[], stock: StockItem[]): (StockLine
   });
 }
 
-/** After a list was issued: what it still needed but stock didn't have. */
-export function shortagesAfterIssue(items: SupplyItem[], issue: StockIssue): OrderItem[] {
+/** After a list was issued: what it still needed but stock didn't have (store items only). */
+export function shortagesAfterIssue(items: SupplyItem[], issue: StockIssue, stock: StockItem[]): OrderItem[] {
   const out: OrderItem[] = [];
   for (const it of items) {
     const line = issue.lines.find((l) => l.name.trim().toLowerCase() === it.name.trim().toLowerCase() && convert(1, it.unit, l.unit) !== null);
+    // Not kept in the store → bought fresh, not a shortage.
+    if (!line && !findStock(stock, it.name, it.unit)) continue;
     const need = line ? (convert(it.qty, it.unit, line.unit) ?? 0) : it.qty;
     const short = round(need - (line?.qty ?? 0));
     if (short > 0) out.push({ name: it.name, unit: line?.unit ?? it.unit, qty: short, note: "" });
