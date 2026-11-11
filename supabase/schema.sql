@@ -9,11 +9,14 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   name text not null,
+  -- what people type to log in (Sinhala or English); email is internal only
+  username text not null,
   email text not null,
   role text not null check (role in ('chef', 'supervisor', 'hr')),
   active boolean not null default true,
   created_at bigint not null default (extract(epoch from now()) * 1000)::bigint
 );
+create unique index if not exists profiles_username_key on public.profiles (lower(username));
 
 create table if not exists public.app_meta (
   key text primary key,
