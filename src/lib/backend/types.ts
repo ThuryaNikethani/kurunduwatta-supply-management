@@ -44,14 +44,14 @@ export interface Backend {
 
   // auth
   onAuth(cb: (s: AuthSnapshot) => void): Unsub;
-  signIn(email: string, password: string): Promise<void>;
+  signIn(username: string, password: string): Promise<void>;
   signOut(): Promise<void>;
   isSetupDone(): Promise<boolean>;
-  setupFirstHr(input: { name: string; email: string; password: string }): Promise<void>;
+  setupFirstHr(input: { name: string; username: string; password: string }): Promise<void>;
 
   // users
   watchUsers(cb: (users: UserProfile[]) => void): Unsub;
-  createUser(input: { name: string; email: string; password: string; role: Role }): Promise<void>;
+  createUser(input: { name: string; username: string; password: string; role: Role }): Promise<void>;
   updateUser(uid: string, patch: Partial<Pick<UserProfile, "role" | "active">>): Promise<void>;
   /** HR sets a new password for someone who forgot theirs. */
   resetPassword(uid: string, password: string): Promise<void>;
