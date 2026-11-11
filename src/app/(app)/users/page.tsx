@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, UserPlus } from "lucide-react";
 import { EmptyState, Field, PageHeader, initials } from "@/components/common";
+import { BackupsCard } from "@/components/BackupsCard";
 import { PasswordDialog } from "@/components/PasswordDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -134,6 +135,8 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <BackupsCard />
 
       <PasswordDialog
         open={!!pwFor}
