@@ -20,7 +20,7 @@ type Row = Record<string, unknown>;
 
 function profileFromRow(row: Row): UserProfile {
   const p = fromRow<UserProfile & { id: string }>(row);
-  return { uid: p.id, name: p.name, email: p.email, role: p.role, active: p.active, createdAt: p.createdAt };
+  return { uid: p.id, name: p.name, username: p.username, email: p.email, role: p.role, active: p.active, createdAt: p.createdAt };
 }
 
 /** PostgREST may return numeric columns as strings. */
@@ -162,8 +162,16 @@ export const supabaseBackend: Backend = {
     };
   },
 
-  async signIn(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  async signIn(username, password) {
+    // The server finds the account by username (Sinhala or English) and returns a session.
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error ?? `request failed (${res.status})`), { code: data.code });
+    const { error } = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
     fail(error);
   },
 
@@ -180,7 +188,7 @@ export const supabaseBackend: Backend = {
 
   async setupFirstHr(input) {
     await api("/api/setup", input);
-    await this.signIn(input.email, input.password);
+    await this.signIn(input.username, input.password);
   },
 
   watchUsers(cb) {
