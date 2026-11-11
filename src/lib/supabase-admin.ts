@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { UserProfile } from "./types";
+import { usernameKey } from "./username";
 
 /**
  * Server-only Supabase client using the secret key (bypasses RLS).
@@ -20,5 +21,13 @@ export async function callerProfile(admin: SupabaseClient, authHeader: string | 
   if (error || !data.user) return null;
   const { data: row } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
   if (!row || !row.active) return null;
-  return { uid: row.id, name: row.name, email: row.email, role: row.role, active: row.active, createdAt: row.created_at };
+  return { uid: row.id, name: row.name, username: row.username, email: row.email, role: row.role, active: row.active, createdAt: row.created_at };
+}
+
+/** True if another account already uses this login name (Sinhala/English, any case). */
+export async function usernameTaken(admin: SupabaseClient, name: string) {
+  const { data, error } = await admin.from("profiles").select("username");
+  if (error) throw error;
+  const want = usernameKey(name);
+  return (data ?? []).some((r) => usernameKey(r.username) === want);
 }
