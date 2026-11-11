@@ -38,6 +38,8 @@ const OWN = "own:";
 const isOwn = (d: DishRef) => d.id.startsWith(OWN);
 /** A hand-written list has no menu dishes, only ones the chef typed. */
 const wasManual = (d?: SupplyFormData) => !!d?.items.length && d.dishes.every(isOwn);
+/** Staff lists are always written by hand (no dish calculation). */
+const startManual = (d?: SupplyFormData) => d?.audience === "staff" || wasManual(d);
 
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
 
@@ -75,7 +77,7 @@ export function SupplyForm({
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
   const [meal, setMeal] = useState(initial?.meal ?? "lunch");
   const [guestCount, setGuestCount] = useState<number>(initial?.guestCount ?? 10);
-  const [dishes, setDishes] = useState<DishRef[]>(wasManual(initial) ? [] : (initial?.dishes ?? []));
+  const [dishes, setDishes] = useState<DishRef[]>(startManual(initial) ? [] : (initial?.dishes ?? []));
   const [items, setItems] = useState<SupplyItem[]>(initial?.items ?? []);
   const [note, setNote] = useState("");
   const [search, setSearch] = useState("");
@@ -86,11 +88,11 @@ export function SupplyForm({
   const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
   const [addingDish, setAddingDish] = useState(false);
   /** Write the items by hand instead of working them out from dishes. */
-  const [manual, setManual] = useState(() => wasManual(initial));
+  const [manual, setManual] = useState(() => startManual(initial));
   /** The list for the way not shown right now (calculated vs hand-written). */
   const [otherItems, setOtherItems] = useState<SupplyItem[]>([]);
   /** Dish names typed by the chef for a hand-written list. */
-  const [ownDishes, setOwnDishes] = useState<string[]>(() => (wasManual(initial) ? initial!.dishes.map((d) => d.name) : []));
+  const [ownDishes, setOwnDishes] = useState<string[]>(() => (startManual(initial) ? initial!.dishes.map((d) => d.name) : []));
   const [dishInput, setDishInput] = useState("");
 
   type Draft = SupplyFormData & { note: string; manual?: boolean; otherItems?: SupplyItem[]; ownDishes?: string[] };
@@ -100,12 +102,12 @@ export function SupplyForm({
     eventDate: initial?.eventDate ?? today(),
     meal: initial?.meal ?? "lunch",
     guestCount: initial?.guestCount ?? 10,
-    dishes: wasManual(initial) ? [] : (initial?.dishes ?? []),
+    dishes: startManual(initial) ? [] : (initial?.dishes ?? []),
     items: initial?.items ?? [],
     note: "",
-    manual: wasManual(initial),
+    manual: startManual(initial),
     otherItems: [],
-    ownDishes: wasManual(initial) ? initial!.dishes.map((d) => d.name) : [],
+    ownDishes: startManual(initial) ? initial!.dishes.map((d) => d.name) : [],
   }));
   const draft = useDraft<Draft>(
     draftKey,
@@ -237,6 +239,8 @@ export function SupplyForm({
                       const menuOf = new Map((recipes.data ?? []).map((r) => [r.id, r.menu ?? "guests"]));
                       setDishes((cur) => cur.filter((d) => (menuOf.get(d.id) ?? a) === a));
                       setNoRecipe(null);
+                      // Staff meals are written by hand only.
+                      if (a === "staff") chooseManual(true);
                     }}
                     className={cn(
                       "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
@@ -287,11 +291,12 @@ export function SupplyForm({
         <CardHeader className="gap-4">
           <StepTitle
             n={2}
-            title={t("supply.mode")}
+            title={t(audience === "staff" ? "supply.ownDishes" : "supply.mode")}
             extra={!manual && dishes.length > 0 && (
               <span className="text-sm text-muted-foreground">{t("supply.selected", { n: dishes.length })}</span>
             )}
           />
+          {audience !== "staff" && (
           <div role="radiogroup" aria-label={t("supply.mode")} className="grid gap-2 sm:grid-cols-2">
             {([false, true] as const).map((m) => {
               const on = manual === m;
@@ -314,13 +319,14 @@ export function SupplyForm({
               );
             })}
           </div>
+          )}
           {manual ? (
             <>
               <p className="flex gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
                 <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
               </p>
               <div className="grid gap-2">
-                <label htmlFor="own-dish" className="text-xs tracking-wide text-muted-foreground">{t("supply.ownDishes")}</label>
+                <label htmlFor="own-dish" className={cn("text-xs tracking-wide text-muted-foreground", audience === "staff" && "sr-only")}>{t("supply.ownDishes")}</label>
                 <div className="flex gap-2">
                   <Input id="own-dish" placeholder={t("supply.ownDishPh")} value={dishInput}
                     onChange={(e) => setDishInput(e.target.value)}
