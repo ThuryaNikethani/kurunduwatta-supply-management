@@ -1,5 +1,5 @@
 import { DEFAULT_INGREDIENTS } from "../default-recipes";
-import { MENU } from "../menu";
+import { MENU, STAFF_MENU } from "../menu";
 import type {
   OrderHistoryEntry,
   PurchaseOrder,
@@ -40,7 +40,7 @@ interface State {
   orders?: PurchaseOrder[];
 }
 
-const KEY = "kw-demo-v3";
+const KEY = "kw-demo-v4";
 const SESSION = "kw-demo-session";
 export const DEMO_PASSWORD = "123456";
 
@@ -61,9 +61,14 @@ function seed(): State {
     password: DEMO_PASSWORD,
     createdAt: now,
   }));
-  const recipes: Recipe[] = MENU.flatMap(({ category, dishes }) =>
-    dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
-  );
+  const recipes: Recipe[] = [
+    ...MENU.flatMap(({ category, dishes }) =>
+      dishes.map(([id, name]) => ({ id, name, category, menu: "guests" as const, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
+    ),
+    ...STAFF_MENU.flatMap(({ category, dishes }) =>
+      dishes.map(([id, name]) => ({ id, name, category, menu: "staff" as const, ingredients: DEFAULT_INGREDIENTS[id] ?? [], updatedAt: now })),
+    ),
+  ];
   const chef = users[0];
   const sample: SupplyList = {
     id: "demo-1",
