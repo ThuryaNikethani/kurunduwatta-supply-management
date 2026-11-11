@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Calculator, Check, HardHat, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
+import { BookOpen, Calculator, Check, HardHat, PenLine, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -79,8 +79,10 @@ export function SupplyForm({
   /** Dishes picked for calculation that have no recipe yet. */
   const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
   const [addingDish, setAddingDish] = useState(false);
+  /** Write the items by hand instead of working them out from dishes. */
+  const [manual, setManual] = useState(() => !!initial?.items.length && !initial.dishes.length);
 
-  type Draft = SupplyFormData & { note: string };
+  type Draft = SupplyFormData & { note: string; manual?: boolean };
   const [start] = useState<Draft>(() => ({
     audience: initial?.audience ?? "guests",
     title: initial?.title ?? "",
@@ -90,10 +92,11 @@ export function SupplyForm({
     dishes: initial?.dishes ?? [],
     items: initial?.items ?? [],
     note: "",
+    manual: !!initial?.items.length && !initial.dishes.length,
   }));
   const draft = useDraft<Draft>(
     draftKey,
-    { audience, title, eventDate, meal, guestCount, dishes, items, note },
+    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual },
     (d) => {
       setAudience(d.audience ?? "guests");
       setTitle(d.title);
@@ -103,6 +106,7 @@ export function SupplyForm({
       setDishes(d.dishes);
       setItems(d.items);
       setNote(d.note);
+      setManual(!!d.manual);
       setErrors({});
       setNoRecipe(null);
     },
@@ -141,6 +145,14 @@ export function SupplyForm({
     else calculate();
   }
 
+  function chooseManual(on: boolean) {
+    if (on === manual) return;
+    setManual(on);
+    setNoRecipe(null);
+    // Start the hand-written list with an empty row to type into.
+    if (on && !items.length) setItems([{ name: "", qty: 0, unit: "kg", note: "", calculated: null }]);
+  }
+
   const update = (i: number, patch: Partial<SupplyItem>) =>
     setItems((cur) => cur.map((it, j) => (j === i ? { ...it, ...patch } : it)));
 
@@ -152,7 +164,8 @@ export function SupplyForm({
       eventDate,
       meal,
       guestCount,
-      dishes,
+      // A hand-written list isn't tied to any dishes.
+      dishes: manual ? [] : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
     });
     if (!parsed.success) {
@@ -249,16 +262,45 @@ export function SupplyForm({
         <CardHeader className="gap-4">
           <StepTitle
             n={2}
-            title={t("supply.step2")}
-            extra={dishes.length > 0 && (
+            title={t("supply.mode")}
+            extra={!manual && dishes.length > 0 && (
               <span className="text-sm text-muted-foreground">{t("supply.selected", { n: dishes.length })}</span>
             )}
           />
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div role="radiogroup" aria-label={t("supply.mode")} className="grid gap-2 sm:grid-cols-2">
+            {([false, true] as const).map((m) => {
+              const on = manual === m;
+              const Icon = m ? PenLine : Calculator;
+              return (
+                <button key={String(m)} type="button" role="radio" aria-checked={on} onClick={() => chooseManual(m)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
+                    on ? "border-amber bg-amber/10" : "border-border bg-card hover:border-amber/50",
+                  )}>
+                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", on ? "bg-amber text-forest" : "bg-secondary text-moss")}>
+                    <Icon className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{t(m ? "supply.modeManual" : "supply.modeCalc")}</span>
+                    <span className="block text-xs text-muted-foreground">{t(m ? "supply.modeManualHint" : "supply.modeCalcHint")}</span>
+                  </span>
+                  {on && <Check className="size-5 text-amber-deep" />}
+                </button>
+              );
+            })}
           </div>
+          {manual ? (
+            <p className="flex gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
+              <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
+            </p>
+          ) : (
+            <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          )}
         </CardHeader>
+        {!manual && (
         <CardContent className="grid gap-4">
           {dishes.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -335,17 +377,18 @@ export function SupplyForm({
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       {/* 3. items */}
       <Card>
         <CardHeader>
-          <StepTitle n={3} title={t("supply.step3")}
+          <StepTitle n={3} title={t(manual ? "supply.step3Manual" : "supply.step3")}
             extra={items.length > 0 && <span className="text-sm text-muted-foreground">{t("supply.totalItems", { n: items.length })}</span>} />
         </CardHeader>
         <CardContent className="grid gap-3">
           {items.length === 0 ? (
-            <EmptyState text={t("supply.noItems")} icon={Calculator} />
+            <EmptyState text={t(manual ? "supply.noItemsManual" : "supply.noItems")} icon={manual ? PenLine : Calculator} />
           ) : (
             <>
               <div className="hidden grid-cols-12 gap-2 px-2 text-xs tracking-wide text-muted-foreground uppercase sm:grid">
