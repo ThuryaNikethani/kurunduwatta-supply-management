@@ -61,6 +61,8 @@ export interface Recipe {
   ingredients: Ingredient[];
   /** True once the chef has checked the amounts (starting amounts are estimates). */
   reviewed?: boolean;
+  /** Guest menu or villa staff meals. Missing means the guest menu. */
+  menu?: Audience;
   updatedAt?: number;
 }
 
