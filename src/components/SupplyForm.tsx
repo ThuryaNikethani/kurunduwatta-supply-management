@@ -81,8 +81,10 @@ export function SupplyForm({
   const [addingDish, setAddingDish] = useState(false);
   /** Write the items by hand instead of working them out from dishes. */
   const [manual, setManual] = useState(() => !!initial?.items.length && !initial.dishes.length);
+  /** The list for the way not shown right now (calculated vs hand-written). */
+  const [otherItems, setOtherItems] = useState<SupplyItem[]>([]);
 
-  type Draft = SupplyFormData & { note: string; manual?: boolean };
+  type Draft = SupplyFormData & { note: string; manual?: boolean; otherItems?: SupplyItem[] };
   const [start] = useState<Draft>(() => ({
     audience: initial?.audience ?? "guests",
     title: initial?.title ?? "",
@@ -93,10 +95,11 @@ export function SupplyForm({
     items: initial?.items ?? [],
     note: "",
     manual: !!initial?.items.length && !initial.dishes.length,
+    otherItems: [],
   }));
   const draft = useDraft<Draft>(
     draftKey,
-    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual },
+    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual, otherItems },
     (d) => {
       setAudience(d.audience ?? "guests");
       setTitle(d.title);
@@ -107,6 +110,7 @@ export function SupplyForm({
       setItems(d.items);
       setNote(d.note);
       setManual(!!d.manual);
+      setOtherItems(d.otherItems ?? []);
       setErrors({});
       setNoRecipe(null);
     },
@@ -149,8 +153,11 @@ export function SupplyForm({
     if (on === manual) return;
     setManual(on);
     setNoRecipe(null);
-    // Start the hand-written list with an empty row to type into.
-    if (on && !items.length) setItems([{ name: "", qty: 0, unit: "kg", note: "", calculated: null }]);
+    setErrors((e) => ({ ...e, items: "" }));
+    // Each way keeps its own list: the hand-written one starts blank (nothing
+    // calculated carried over), and switching back brings the other list back.
+    setItems(on && !otherItems.length ? [{ name: "", qty: 0, unit: "kg", note: "", calculated: null }] : otherItems);
+    setOtherItems(items);
   }
 
   const update = (i: number, patch: Partial<SupplyItem>) =>
