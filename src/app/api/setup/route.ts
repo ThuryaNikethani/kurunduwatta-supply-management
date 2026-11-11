@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { newUserSchema } from "@/lib/schemas";
 import { adminClient } from "@/lib/supabase-admin";
+import { internalEmail } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -17,12 +18,13 @@ export async function POST(req: NextRequest) {
   const { count } = await admin.from("profiles").select("id", { count: "exact", head: true });
   if (done || (count ?? 0) > 0) return NextResponse.json({ error: "already-set-up" }, { status: 409 });
 
-  const { name, email, password } = parsed.data;
+  const { name, username, password } = parsed.data;
+  const email = internalEmail();
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) return NextResponse.json({ error: error?.message ?? "failed", code: error?.code }, { status: 400 });
 
   const uid = data.user.id;
-  const { error: pErr } = await admin.from("profiles").insert({ id: uid, name, email, role: "hr", active: true });
+  const { error: pErr } = await admin.from("profiles").insert({ id: uid, name, username: username.normalize("NFC"), email, role: "hr", active: true });
   if (pErr) {
     await admin.auth.admin.deleteUser(uid);
     return NextResponse.json({ error: pErr.message }, { status: 500 });
