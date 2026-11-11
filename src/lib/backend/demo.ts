@@ -1,5 +1,6 @@
 import { DEFAULT_INGREDIENTS } from "../default-recipes";
 import { MENU, STAFF_MENU } from "../menu";
+import { usernameKey } from "../username";
 import type {
   OrderHistoryEntry,
   PurchaseOrder,
@@ -44,18 +45,22 @@ const KEY = "kw-demo-v4";
 const SESSION = "kw-demo-session";
 export const DEMO_PASSWORD = "123456";
 
-export const DEMO_ACCOUNTS: { email: string; role: Role; name: string }[] = [
-  { email: "chef@demo.lk", role: "chef", name: "නිමල්" },
-  { email: "supervisor@demo.lk", role: "supervisor", name: "කමලා" },
-  { email: "hr@demo.lk", role: "hr", name: "සුනිල්" },
+export const DEMO_ACCOUNTS: { username: string; role: Role; name: string }[] = [
+  { username: "නිමල්", role: "chef", name: "නිමල්" },
+  { username: "කමලා", role: "supervisor", name: "කමලා" },
+  { username: "sunil", role: "hr", name: "සුනිල්" },
 ];
+
+/** Older demo data has no usernames: fall back to the name. */
+const loginName = (u: DemoUser) => u.username ?? u.name;
 
 function seed(): State {
   const now = Date.now();
   const users: DemoUser[] = DEMO_ACCOUNTS.map((a) => ({
     uid: a.role,
     name: a.name,
-    email: a.email,
+    username: a.username,
+    email: `${a.role}@demo.lk`,
     role: a.role,
     active: true,
     password: DEMO_PASSWORD,
@@ -196,7 +201,7 @@ function setSession(uid: string) {
 function strip(u: DemoUser): UserProfile {
   const { password: _pw, ...rest } = u;
   void _pw;
-  return rest;
+  return { ...rest, username: loginName(u) };
 }
 
 export const demoBackend: Backend = {
@@ -219,9 +224,9 @@ export const demoBackend: Backend = {
     };
   },
 
-  async signIn(email, password) {
+  async signIn(username, password) {
     await delay();
-    const u = load().users.find((x) => x.email.toLowerCase() === email.toLowerCase());
+    const u = load().users.find((x) => usernameKey(loginName(x)) === usernameKey(username));
     if (!u || u.password !== password) throw new Error("auth/invalid-credential");
     setSession(u.uid);
   },
@@ -242,11 +247,11 @@ export const demoBackend: Backend = {
     return watch((s) => s.users.map(strip), cb);
   },
 
-  async createUser({ name, email, password, role }) {
+  async createUser({ name, username, password, role }) {
     await delay();
-    if (load().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-      throw new Error("auth/email-already-in-use");
-    mutate((s) => s.users.push({ uid: newId(), name, email, password, role, active: true, createdAt: Date.now() }));
+    if (load().users.some((u) => usernameKey(loginName(u)) === usernameKey(username))) throw new Error("username-taken");
+    const uid = newId();
+    mutate((s) => s.users.push({ uid, name, username, email: `${uid}@demo.lk`, password, role, active: true, createdAt: Date.now() }));
   },
 
   async resetPassword(uid, password) {
