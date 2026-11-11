@@ -43,7 +43,7 @@ const startManual = (d?: SupplyFormData) => d?.audience === "staff" || wasManual
 
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
 
-export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "dishes" | "items">;
+export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "days" | "dishes" | "items">;
 
 export function UnitSelect({ value, onChange, className }: { value: Unit; onChange: (u: Unit) => void; className?: string }) {
   return (
@@ -79,6 +79,8 @@ export function SupplyForm({
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
   const [meal, setMeal] = useState(initial?.meal ?? "lunch");
   const [guestCount, setGuestCount] = useState<number>(initial?.guestCount ?? 10);
+  /** Staff lists: how many days the order covers. */
+  const [days, setDays] = useState<number>(initial?.days ?? 1);
   const [dishes, setDishes] = useState<DishRef[]>(startManual(initial) ? [] : (initial?.dishes ?? []));
   const [items, setItems] = useState<SupplyItem[]>(initial?.items ?? []);
   const [note, setNote] = useState("");
@@ -104,6 +106,7 @@ export function SupplyForm({
     eventDate: initial?.eventDate ?? today(),
     meal: initial?.meal ?? "lunch",
     guestCount: initial?.guestCount ?? 10,
+    days: initial?.days ?? 1,
     dishes: startManual(initial) ? [] : (initial?.dishes ?? []),
     items: initial?.items ?? [],
     note: "",
@@ -113,7 +116,7 @@ export function SupplyForm({
   }));
   const draft = useDraft<Draft>(
     draftKey,
-    { audience, title, eventDate, meal, guestCount, dishes, items, note, manual, otherItems, ownDishes },
+    { audience, title, eventDate, meal, guestCount, days, dishes, items, note, manual, otherItems, ownDishes },
     (d) => {
       setAudience(d.audience ?? "guests");
       setPicking(false);
@@ -121,6 +124,7 @@ export function SupplyForm({
       setEventDate(d.eventDate);
       setMeal(d.meal);
       setGuestCount(d.guestCount);
+      setDays(d.days ?? 1);
       setDishes(d.dishes);
       setItems(d.items);
       setNote(d.note);
@@ -190,10 +194,11 @@ export function SupplyForm({
     e.preventDefault();
     const parsed = supplySchema.safeParse({
       audience,
-      title,
+      title: audience === "staff" ? t("supply.staffTitle", { n: days }) : title,
       eventDate,
-      meal,
+      meal: audience === "staff" ? "other" : meal,
       guestCount,
+      days: audience === "staff" ? days : null,
       // A hand-written list isn't tied to any dishes.
       dishes: manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
@@ -271,23 +276,33 @@ export function SupplyForm({
               )}
             </div>
           </div>
-          <Field label={t(audience === "staff" ? "supply.titleStaff" : "supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
-            <Input id="title" placeholder={t(audience === "staff" ? "supply.titleStaffPh" : "supply.titlePh")} value={title} aria-invalid={!!errors.title}
-              onChange={(e) => setTitle(e.target.value)} />
-          </Field>
-          <Field label={t("supply.date")} htmlFor="date" error={errors.eventDate}>
+          {audience !== "staff" && (
+            <Field label={t("supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
+              <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title}
+                onChange={(e) => setTitle(e.target.value)} />
+            </Field>
+          )}
+          <Field label={t(audience === "staff" ? "supply.orderDate" : "supply.date")} htmlFor="date" error={errors.eventDate}
+            className={cn(audience === "staff" && "sm:col-span-2")}>
             <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate}
               onChange={(e) => setEventDate(e.target.value)} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("supply.meal")}>
-              <Select value={meal} onValueChange={setMeal}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MEALS.map((m) => <SelectItem key={m} value={m}>{t(`meal.${m}` as TKey)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </Field>
+          <div className={cn("grid grid-cols-2 gap-3", audience === "staff" && "sm:col-span-1 lg:col-span-2")}>
+            {audience === "staff" ? (
+              <Field label={t("supply.days")} htmlFor="days" error={errors.days}>
+                <Input id="days" type="number" inputMode="numeric" min={1} value={days || ""} aria-invalid={!!errors.days}
+                  onChange={(e) => setDays(Math.max(0, parseInt(e.target.value) || 0))} />
+              </Field>
+            ) : (
+              <Field label={t("supply.meal")}>
+                <Select value={meal} onValueChange={setMeal}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MEALS.map((m) => <SelectItem key={m} value={m}>{t(`meal.${m}` as TKey)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             <Field label={t(audience === "staff" ? "supply.staffCount" : "supply.guests")} htmlFor="guests" error={errors.guestCount}>
               <Input id="guests" type="number" inputMode="numeric" min={1} value={guestCount || ""}
                 aria-invalid={!!errors.guestCount}
