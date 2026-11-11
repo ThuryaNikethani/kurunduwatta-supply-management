@@ -54,10 +54,10 @@ const si = {
 
   // ඇතුල් වීම
   "login.title": "ඇතුල් වෙන්න",
-  "login.email": "ඊමේල් ලිපිනය",
+  "login.username": "ලොග් වෙන නම",
   "login.password": "මුරපදය",
   "login.submit": "ඇතුල් වෙන්න",
-  "login.failed": "ඊමේල් එක හරි මුරපදය හරි වැරදියි.",
+  "login.failed": "ලොග් වෙන නම හරි මුරපදය හරි වැරදියි.",
   "login.noProfile": "මේ ගිණුමට තාම තනතුරක් දීලා නෑ. එච්.ආර්. එකෙන් අහන්න.",
   "login.inactive": "මේ ගිණුම නවත්වලා තියෙන්නේ. එච්.ආර්. එකට කතා කරන්න.",
   "setup.title": "මුලින්ම සකස් කරන්න",
@@ -219,6 +219,8 @@ const si = {
   // ගිණුම්
   "users.title": "ගිණුම්",
   "users.add": "අලුත් ගිණුමක්",
+  "users.usernameHint": "සිංහලෙන් හරි ඉංග්‍රීසියෙන් හරි එක වචනයක්. උදා: චන්දන",
+  "users.loginAs": "ලොග් වෙන නම: {name}",
   "users.name": "නම",
   "users.role": "තනතුර",
   "users.active": "වැඩ කරනවා",
@@ -405,7 +407,8 @@ const si = {
 
   // පිරවීම් වැරදි
   "v.required": "මේක පුරවන්න",
-  "v.email": "හරි ඊමේල් එකක් දාන්න",
+  "v.username": "ලොග් වෙන නමට අකුරු 2ත් 30ත් අතර ඕන.",
+  "v.usernameSpace": "ලොග් වෙන නමේ හිස් තැන් තියන්න එපා. එක වචනයක් දාන්න.",
   "v.password": "අකුරු 6කට වඩා දාන්න",
   "v.number": "අංකයක් දාන්න",
   "v.positive": "0ට වඩා වැඩි වෙන්න ඕන",
@@ -416,7 +419,7 @@ const si = {
   "v.fix": "රතු පාටින් පෙන්නන තැන් හදන්න.",
 
   // වැරදි
-  "err.emailUsed": "මේ ඊමේල් එකෙන් දැනටමත් ගිණුමක් තියෙනවා.",
+  "err.usernameUsed": "මේ ලොග් වෙන නම දැනටමත් වෙන කෙනෙක් පාවිච්චි කරනවා. වෙන නමක් දාන්න.",
   "err.network": "අන්තර්ජාලය නෑ. සම්බන්ධ වෙලා ආයෙත් උත්සාහ කරන්න.",
   "err.permission": "මේක කරන්න ඔයාට අවසර නෑ.",
 
@@ -444,9 +447,8 @@ export function translate(key: TKey, vars?: Record<string, string | number>) {
 /** Turn any thrown error into a simple Sinhala message. */
 export function errorText(e: unknown) {
   const m = e instanceof Error ? `${e.message} ${(e as { code?: string }).code ?? ""}` : String(e);
-  if (/email-already-in-use|email_exists|already (in use|registered|been registered)/i.test(m)) return translate("err.emailUsed");
+  if (/username-taken/i.test(m)) return translate("err.usernameUsed");
   if (/weak-password/i.test(m)) return translate("v.password");
-  if (/invalid-email/i.test(m)) return translate("v.email");
   if (/invalid-credential|invalid login credentials|invalid_credentials|wrong-password|user-not-found/i.test(m)) return translate("login.failed");
   if (/already-set-up/i.test(m)) return translate("setup.done");
   if (/stock-exists|stock_items_name_unit_idx/i.test(m)) return translate("stock.exists");
