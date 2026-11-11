@@ -42,6 +42,8 @@ create table if not exists public.supply_lists (
   event_date text not null,
   meal text not null,
   guest_count int not null check (guest_count > 0),
+  -- staff lists: how many days the order is for
+  days int check (days is null or days > 0),
   dishes jsonb not null default '[]'::jsonb,
   items jsonb not null default '[]'::jsonb,
   status text not null,
