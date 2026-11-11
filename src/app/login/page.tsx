@@ -21,7 +21,7 @@ export default function LoginPage() {
   const { t } = useI18n();
   const { status } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -30,13 +30,13 @@ export default function LoginPage() {
     if (status === "ready") router.replace("/dashboard");
   }, [status, router]);
 
-  async function signIn(e: string, p: string) {
-    const parsed = loginSchema.safeParse({ email: e.trim(), password: p });
+  async function signIn(u: string, p: string) {
+    const parsed = loginSchema.safeParse({ username: u, password: p });
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setBusy(true);
     setErrors({});
     try {
-      await backend.signIn(parsed.data.email, parsed.data.password);
+      await backend.signIn(parsed.data.username, parsed.data.password);
       router.replace("/dashboard");
     } catch {
       setErrors({ form: "login.failed" });
@@ -47,10 +47,10 @@ export default function LoginPage() {
 
   return (
     <AuthLayout title={t("login.title")}>
-      <form onSubmit={(e) => { e.preventDefault(); signIn(email, password); }} className="grid gap-4" noValidate>
-        <Field label={t("login.email")} htmlFor="email" error={errors.email}>
-          <Input id="email" type="email" autoComplete="email" value={email} aria-invalid={!!errors.email}
-            onChange={(e) => setEmail(e.target.value)} />
+      <form onSubmit={(e) => { e.preventDefault(); signIn(username, password); }} className="grid gap-4" noValidate>
+        <Field label={t("login.username")} htmlFor="username" error={errors.username}>
+          <Input id="username" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+            value={username} aria-invalid={!!errors.username} onChange={(e) => setUsername(e.target.value)} />
         </Field>
         <Field label={t("login.password")} htmlFor="password" error={errors.password}>
           <Input id="password" type="password" autoComplete="current-password" value={password}
@@ -74,12 +74,12 @@ export default function LoginPage() {
           {DEMO_ACCOUNTS.map((a) => {
             const Icon = ROLE_ICON[a.role];
             return (
-              <Button key={a.email} variant="outline" className="h-auto justify-start py-2.5" disabled={busy}
-                onClick={() => signIn(a.email, DEMO_PASSWORD)}>
+              <Button key={a.username} variant="outline" className="h-auto justify-start py-2.5" disabled={busy}
+                onClick={() => signIn(a.username, DEMO_PASSWORD)}>
                 <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-moss"><Icon /></span>
                 <span className="text-left">
                   <span className="block text-sm">{t(`role.${a.role}`)}</span>
-                  <span className="block text-xs font-normal text-muted-foreground">{a.email}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{a.username}</span>
                 </span>
               </Button>
             );
