@@ -5,6 +5,9 @@ export const ROLES: Role[] = ["chef", "supervisor", "hr"];
 export interface UserProfile {
   uid: string;
   name: string;
+  /** What they type to log in (Sinhala or English). */
+  username: string;
+  /** Internal address Supabase needs; never shown or mailed. */
   email: string;
   role: Role;
   active: boolean;
