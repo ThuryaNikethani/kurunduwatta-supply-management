@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
+import { CalendarDays, CalendarRange, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { AudienceBadge, EmptyState, PageHeader } from "@/components/common";
 import { BackBar, InfoGrid } from "@/components/DetailBits";
@@ -76,8 +76,10 @@ export default function SupplyDetail() {
 
       <InfoGrid
         items={[
-          { Icon: CalendarDays, label: t("supply.date"), value: formatDate(d.eventDate) },
-          { Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) },
+          { Icon: CalendarDays, label: t(d.audience === "staff" ? "supply.orderDate" : "supply.date"), value: formatDate(d.eventDate) },
+          d.audience === "staff"
+            ? { Icon: CalendarRange, label: t("supply.days"), value: t("supply.forDays", { n: d.days ?? 1 }) }
+            : { Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) },
           { Icon: Users, label: t(d.audience === "staff" ? "supply.staffCount" : "supply.guests"), value: d.guestCount },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
         ]}
