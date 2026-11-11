@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeftRight, BookOpen, Calculator, Check, HardHat, PenLine, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +41,8 @@ const wasManual = (d?: SupplyFormData) => !!d?.items.length && d.dishes.every(is
 /** Staff lists are always written by hand (no dish calculation). */
 const startManual = (d?: SupplyFormData) => d?.audience === "staff" || wasManual(d);
 
-export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
+/** "allday" = breakfast, lunch and dinner. Older lists may still say "other". */
+export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "allday"] as const;
 
 export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "days" | "dishes" | "items">;
 
@@ -152,14 +153,33 @@ export function SupplyForm({
   const toggleDish = (id: string, name: string) =>
     setDishes((cur) => (selected.has(id) ? cur.filter((d) => d.id !== id) : [...cur, { id, name }]));
 
+  /** The last calculated list, to tell if the chef has changed it since. */
+  const lastCalc = useRef("");
+
+  /** Amounts for every person for every day: per person × people × days. */
+  function calcFor(people: number, numDays: number) {
+    const ready = (recipes.data ?? []).filter((r) => selected.has(r.id) && r.ingredients?.length);
+    if (!ready.length || people < 1 || numDays < 1) return null;
+    const out = calculateItems(ready, people * numDays);
+    lastCalc.current = JSON.stringify(out);
+    return out;
+  }
+
   function calculate() {
     const chosen = (recipes.data ?? []).filter((r) => selected.has(r.id));
-    const ready = chosen.filter((r) => r.ingredients?.length);
     setNoRecipe(chosen.filter((r) => !r.ingredients?.length).map((r) => r.name));
     // Nothing to calculate: keep whatever the chef already typed.
-    if (!ready.length) return;
-    setItems(calculateItems(ready, guestCount));
+    const out = calcFor(guestCount, days);
+    if (!out) return;
+    setItems(out);
     setErrors((e) => ({ ...e, items: "" }));
+  }
+
+  /** Changing people or days updates a calculated list, unless the chef has edited it. */
+  function recalcIfUntouched(people: number, numDays: number) {
+    if (manual || !items.length || JSON.stringify(items) !== lastCalc.current) return;
+    const out = calcFor(people, numDays);
+    if (out) setItems(out);
   }
 
   /** Recalculating replaces the list, so ask first if it has items. */
@@ -198,7 +218,7 @@ export function SupplyForm({
       eventDate,
       meal: audience === "staff" ? "other" : meal,
       guestCount,
-      days: audience === "staff" ? days : null,
+      days,
       // A hand-written list isn't tied to any dishes.
       dishes: manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
@@ -282,33 +302,38 @@ export function SupplyForm({
                 onChange={(e) => setTitle(e.target.value)} />
             </Field>
           )}
-          <Field label={t(audience === "staff" ? "supply.orderDate" : "supply.date")} htmlFor="date" error={errors.eventDate}
+          <Field label={t("supply.orderDate")} htmlFor="date" error={errors.eventDate}
             className={cn(audience === "staff" && "sm:col-span-2")}>
             <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate}
               onChange={(e) => setEventDate(e.target.value)} />
           </Field>
-          <div className={cn("grid grid-cols-2 gap-3", audience === "staff" && "sm:col-span-1 lg:col-span-2")}>
-            {audience === "staff" ? (
-              <Field label={t("supply.days")} htmlFor="days" error={errors.days}>
-                <Input id="days" type="number" inputMode="numeric" min={1} value={days || ""} aria-invalid={!!errors.days}
-                  onChange={(e) => setDays(Math.max(0, parseInt(e.target.value) || 0))} />
-              </Field>
-            ) : (
-              <Field label={t("supply.meal")}>
-                <Select value={meal} onValueChange={setMeal}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MEALS.map((m) => <SelectItem key={m} value={m}>{t(`meal.${m}` as TKey)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-            <Field label={t(audience === "staff" ? "supply.staffCount" : "supply.guests")} htmlFor="guests" error={errors.guestCount}>
-              <Input id="guests" type="number" inputMode="numeric" min={1} value={guestCount || ""}
-                aria-invalid={!!errors.guestCount}
-                onChange={(e) => setGuestCount(Math.max(0, parseInt(e.target.value) || 0))} />
+          <Field label={t("supply.days")} htmlFor="days" error={errors.days}>
+            <Input id="days" type="number" inputMode="numeric" min={1} value={days || ""} aria-invalid={!!errors.days}
+              onChange={(e) => {
+                const v = Math.max(0, parseInt(e.target.value) || 0);
+                setDays(v);
+                recalcIfUntouched(guestCount, v);
+              }} />
+          </Field>
+          {audience !== "staff" && (
+            <Field label={t("supply.meal")}>
+              <Select value={meal} onValueChange={setMeal}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MEALS.map((m) => <SelectItem key={m} value={m}>{t(`meal.${m}` as TKey)}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </Field>
-          </div>
+          )}
+          <Field label={t(audience === "staff" ? "supply.staffCount" : "supply.guests")} htmlFor="guests" error={errors.guestCount}>
+            <Input id="guests" type="number" inputMode="numeric" min={1} value={guestCount || ""}
+              aria-invalid={!!errors.guestCount}
+              onChange={(e) => {
+                const v = Math.max(0, parseInt(e.target.value) || 0);
+                setGuestCount(v);
+                recalcIfUntouched(v, days);
+              }} />
+          </Field>
         </CardContent>
       </Card>
 
@@ -432,10 +457,10 @@ export function SupplyForm({
             </Button>
           </div>
           <div>
-            <Button type="button" disabled={!dishes.length || guestCount < 1}
+            <Button type="button" disabled={!dishes.length || guestCount < 1 || days < 1}
               onClick={onCalculateClick}>
               <Calculator />
-              {t("supply.calculate")} ({guestCount} × {dishes.length})
+              {t("supply.calculate")} ({t("supply.calcFor", { n: guestCount, d: days })})
             </Button>
           </div>
           {noRecipe && noRecipe.length > 0 && (
