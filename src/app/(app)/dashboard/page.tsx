@@ -251,7 +251,7 @@ function SupplyRow({ d, highlight }: { d: SupplyList; highlight?: boolean }) {
     <Row href={`/requests/${d.id}`} title={d.title} tag="dash.supplyLists" Icon={ClipboardList} status={d.status} highlight={highlight}
       badge={<AudienceBadge audience={d.audience} />}
       meta={[
-        { Icon: CalendarDays, text: `${formatDate(d.eventDate)} · ${d.audience === "staff" ? t("supply.forDays", { n: d.days ?? 1 }) : t(`meal.${d.meal}` as TKey)}` },
+        { Icon: CalendarDays, text: [formatDate(d.eventDate), d.audience !== "staff" && t(`meal.${d.meal}` as TKey), t("supply.forDays", { n: d.days ?? 1 })].filter(Boolean).join(" · ") },
         { Icon: Users, text: String(d.guestCount) },
         { Icon: ClipboardList, text: t("supply.totalItems", { n: d.items.length }) },
       ]} />
