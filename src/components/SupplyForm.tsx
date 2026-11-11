@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Calculator, Check, HardHat, Plus, Search, Send, Trash2, TriangleAlert, Users, X } from "lucide-react";
+import { BookOpen, Calculator, Check, HardHat, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +29,8 @@ import { AUDIENCES, UNITS, type Audience, type DishRef, type Recipe, type Supply
 import { cn } from "@/lib/utils";
 import { EmptyState, Field, StepTitle } from "./common";
 import { DraftNotice } from "./DraftNotice";
+import { RecipeEditor } from "./RecipeEditor";
+import { CATEGORIES, STAFF_CATEGORIES } from "@/lib/menu";
 import { useDraft } from "@/lib/draft";
 
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "other"] as const;
@@ -75,6 +78,7 @@ export function SupplyForm({
   const [confirmRecalc, setConfirmRecalc] = useState(false);
   /** Dishes picked for calculation that have no recipe yet. */
   const [noRecipe, setNoRecipe] = useState<string[] | null>(null);
+  const [addingDish, setAddingDish] = useState(false);
 
   type Draft = SupplyFormData & { note: string };
   const [start] = useState<Draft>(() => ({
@@ -109,11 +113,12 @@ export function SupplyForm({
     const q = search.trim().toLowerCase();
     const map = new Map<string, Recipe[]>();
     for (const r of recipes.data ?? []) {
+      if ((r.menu ?? "guests") !== audience) continue;
       if (q && !r.name.toLowerCase().includes(q)) continue;
       map.set(r.category, [...(map.get(r.category) ?? []), r]);
     }
     return [...map.entries()];
-  }, [recipes.data, search]);
+  }, [recipes.data, search, audience]);
 
   const selected = new Set(dishes.map((d) => d.id));
   const toggleDish = (id: string, name: string) =>
@@ -188,7 +193,13 @@ export function SupplyForm({
                     type="button"
                     role="radio"
                     aria-checked={on}
-                    onClick={() => setAudience(a)}
+                    onClick={() => {
+                      if (a === audience) return;
+                      setAudience(a);
+                      const menuOf = new Map((recipes.data ?? []).map((r) => [r.id, r.menu ?? "guests"]));
+                      setDishes((cur) => cur.filter((d) => (menuOf.get(d.id) ?? a) === a));
+                      setNoRecipe(null);
+                    }}
                     className={cn(
                       "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
                       on ? "border-amber bg-amber/10" : "border-border bg-card hover:border-amber/50",
@@ -259,9 +270,13 @@ export function SupplyForm({
               ))}
             </div>
           )}
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {audience === "staff" ? <HardHat className="size-3.5" /> : <Users className="size-3.5" />}
+            {t("supply.menuFor", { menu: t(audience === "staff" ? "recipes.menuStaff" : "recipes.menuGuests") })}
+          </p>
           {!recipes.data ? (
             <Skeleton className="h-40" />
-          ) : recipes.data.length === 0 ? (
+          ) : grouped.length === 0 && !search ? (
             <EmptyState text={t("recipes.empty")} action={<Button asChild variant="outline"><Link href="/recipes">{t("nav.recipes")}</Link></Button>} />
           ) : (
             <div className="grid max-h-96 gap-5 overflow-y-auto rounded-lg border bg-muted/40 p-3">
@@ -288,6 +303,11 @@ export function SupplyForm({
               ))}
             </div>
           )}
+          <div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setAddingDish(true)}>
+              <UtensilsCrossed /> {t("supply.newDish")}
+            </Button>
+          </div>
           <div>
             <Button type="button" disabled={!dishes.length || guestCount < 1}
               onClick={onCalculateClick}>
@@ -393,6 +413,24 @@ export function SupplyForm({
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={addingDish} onOpenChange={setAddingDish}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          {addingDish && (
+            <RecipeEditor
+              ingredientsOptional
+              recipe={{ id: "", name: search.trim(), menu: audience, category: (audience === "staff" ? STAFF_CATEGORIES : CATEGORIES)[0], ingredients: [] }}
+              onDone={(saved) => {
+                setAddingDish(false);
+                if (saved) {
+                  setSearch("");
+                  setDishes((cur) => (cur.some((d) => d.id === saved.id) ? cur : [...cur, { id: saved.id, name: saved.name }]));
+                }
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmRecalc} onOpenChange={setConfirmRecalc}>
         <AlertDialogContent>
