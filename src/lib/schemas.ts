@@ -40,6 +40,7 @@ export const supplySchema = z.object({
   eventDate: z.string().min(1, "v.required"),
   meal: z.string().min(1, "v.required"),
   guestCount: z.number("v.number").int().min(1, "v.guests"),
+  days: z.number("v.number").int().min(1, "v.days").nullable().optional(),
   dishes: z.array(z.object({ id: z.string(), name: z.string() })),
   items: z.array(supplyItemSchema).min(1, "v.items"),
 });
