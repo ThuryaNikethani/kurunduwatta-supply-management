@@ -17,7 +17,7 @@ export default function SetupPage() {
   const { t } = useI18n();
   const router = useRouter();
   const [done, setDone] = useState<boolean | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", username: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,8 +58,9 @@ export default function SetupPage() {
           <Field label={t("setup.name")} htmlFor="name" error={errors.name}>
             <Input id="name" value={form.name} aria-invalid={!!errors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
-          <Field label={t("login.email")} htmlFor="email" error={errors.email}>
-            <Input id="email" type="email" value={form.email} aria-invalid={!!errors.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Field label={t("login.username")} htmlFor="username" error={errors.username} hint={t("users.usernameHint")}>
+            <Input id="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.username}
+              aria-invalid={!!errors.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
           </Field>
           <Field label={t("login.password")} htmlFor="pw" error={errors.password} hint={t("users.passwordHint")}>
             <Input id="pw" type="password" value={form.password} aria-invalid={!!errors.password}
