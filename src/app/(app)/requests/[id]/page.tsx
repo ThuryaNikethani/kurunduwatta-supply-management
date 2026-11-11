@@ -76,10 +76,9 @@ export default function SupplyDetail() {
 
       <InfoGrid
         items={[
-          { Icon: CalendarDays, label: t(d.audience === "staff" ? "supply.orderDate" : "supply.date"), value: formatDate(d.eventDate) },
-          d.audience === "staff"
-            ? { Icon: CalendarRange, label: t("supply.days"), value: t("supply.forDays", { n: d.days ?? 1 }) }
-            : { Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) },
+          { Icon: CalendarDays, label: t("supply.orderDate"), value: formatDate(d.eventDate) },
+          { Icon: CalendarRange, label: t("supply.days"), value: t("supply.forDays", { n: d.days ?? 1 }) },
+          ...(d.audience === "staff" ? [] : [{ Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) }]),
           { Icon: Users, label: t(d.audience === "staff" ? "supply.staffCount" : "supply.guests"), value: d.guestCount },
           { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
         ]}
