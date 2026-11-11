@@ -2,23 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, Check, ChevronRight, ClipboardCheck, Download, Plus, Search, Trash2 } from "lucide-react";
-import { CardsSkeleton, EmptyState, Field, PageHeader } from "@/components/common";
-import { UnitSelect } from "@/components/SupplyForm";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { BookOpen, Check, ChevronRight, ClipboardCheck, Download, HardHat, Plus, Search, Users } from "lucide-react";
+import { CardsSkeleton, EmptyState, PageHeader } from "@/components/common";
+import { RecipeEditor } from "@/components/RecipeEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { backend } from "@/lib/backend";
@@ -26,9 +16,8 @@ import { useRecipes } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
 import { qty } from "@/lib/format";
 import { DEFAULT_INGREDIENTS } from "@/lib/default-recipes";
-import { CATEGORIES, MENU, newDishId } from "@/lib/menu";
-import { fieldErrors, recipeSchema } from "@/lib/schemas";
-import type { Ingredient, Recipe } from "@/lib/types";
+import { CATEGORIES, MENU, STAFF_CATEGORIES, STAFF_MENU } from "@/lib/menu";
+import type { Audience, Recipe } from "@/lib/types";
 
 export default function RecipesPage() {
   const { profile } = useAuth();
@@ -39,43 +28,46 @@ export default function RecipesPage() {
   const [busy, setBusy] = useState(false);
   const canEdit = profile?.role === "chef" || profile?.role === "hr";
   const [show, setShow] = useState<"all" | "todo" | "done">("all");
+  const [menu, setMenu] = useState<Audience>("guests");
+  const inMenu = useMemo(() => (recipes.data ?? []).filter((r) => (r.menu ?? "guests") === menu), [recipes.data, menu]);
 
   // The dashboard reminder links here with ?filter=todo.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("filter") === "todo") setShow("todo");
   }, []);
 
-  const total = recipes.data?.length ?? 0;
-  const done = (recipes.data ?? []).filter((r) => r.reviewed).length;
+  const total = inMenu.length;
+  const done = inMenu.filter((r) => r.reviewed).length;
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
     const map = new Map<string, Recipe[]>();
-    for (const r of recipes.data ?? []) {
+    for (const r of inMenu) {
       if (q && !r.name.toLowerCase().includes(q)) continue;
       if (show === "todo" && r.reviewed) continue;
       if (show === "done" && !r.reviewed) continue;
       map.set(r.category, [...(map.get(r.category) ?? []), r]);
     }
     return [...map.entries()];
-  }, [recipes.data, search, show]);
+  }, [inMenu, search, show]);
 
   async function loadMenu() {
     setBusy(true);
     try {
       const now = Date.now();
       const existing = new Map((recipes.data ?? []).map((r) => [r.id, r]));
-      const menu = MENU.flatMap(({ category, dishes }) =>
-        dishes.map(([id, name]) => ({ id, name, category, ingredients: DEFAULT_INGREDIENTS[id] ?? [], reviewed: false, updatedAt: now })),
-      );
-      // New dishes come with starting amounts.
-      await backend.addRecipes(menu.filter((r) => !existing.has(r.id)));
+      const all = [
+        ...MENU.flatMap(({ category, dishes }) => dishes.map(([id, name]) => ({ id, name, category, menu: "guests" as const }))),
+        ...STAFF_MENU.flatMap(({ category, dishes }) => dishes.map(([id, name]) => ({ id, name, category, menu: "staff" as const }))),
+      ].map((d) => ({ ...d, ingredients: DEFAULT_INGREDIENTS[d.id] ?? [], reviewed: false, updatedAt: now }));
+      // New dishes (guest menu and staff meals) come with starting amounts.
+      await backend.addRecipes(all.filter((r) => !existing.has(r.id)));
       // Dishes already here but still empty get the starting amounts too.
       // Anything the chef already entered is left alone.
-      for (const r of menu) {
+      for (const r of all) {
         const cur = existing.get(r.id);
         if (cur && !cur.ingredients?.length && r.ingredients.length)
-          await backend.saveRecipe(cur.id, { name: cur.name, category: cur.category, ingredients: r.ingredients, reviewed: false, updatedAt: now });
+          await backend.saveRecipe(cur.id, { name: cur.name, category: cur.category, menu: cur.menu ?? r.menu, ingredients: r.ingredients, reviewed: false, updatedAt: now });
       }
       toast.success(t("recipes.loaded"));
     } catch (e) {
@@ -94,13 +86,26 @@ export default function RecipesPage() {
           canEdit && (
             <>
               <Button variant="outline" onClick={loadMenu} disabled={busy}><Download /> {t("recipes.load")}</Button>
-              <Button variant="accent" onClick={() => setEditing({ id: "", name: "", category: CATEGORIES[0], ingredients: [] })}>
+              <Button variant="accent" onClick={() => setEditing({ id: "", name: "", menu, category: (menu === "staff" ? STAFF_CATEGORIES : CATEGORIES)[0], ingredients: [] })}>
                 <Plus /> {t("recipes.addDish")}
               </Button>
             </>
           )
         }
       />
+
+      <div className="flex gap-1 self-start rounded-full bg-secondary p-1" role="radiogroup" aria-label={t("recipes.title")}>
+        {(["guests", "staff"] as const).map((m) => {
+          const Icon = m === "staff" ? HardHat : Users;
+          return (
+            <button key={m} type="button" role="radio" aria-checked={menu === m} onClick={() => setMenu(m)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm transition ${menu === m ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
+              <Icon className="size-4" /> {t(m === "staff" ? "recipes.menuStaff" : "recipes.menuGuests")}
+              <span className="text-xs text-muted-foreground">{(recipes.data ?? []).filter((r) => (r.menu ?? "guests") === m).length}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {total > 0 && (
         <Card className="gap-3 py-4">
@@ -136,7 +141,7 @@ export default function RecipesPage() {
 
       {!recipes.data ? (
         <CardsSkeleton count={6} />
-      ) : recipes.data.length === 0 ? (
+      ) : inMenu.length === 0 ? (
         <EmptyState icon={BookOpen} text={t("recipes.empty")} />
       ) : (
         grouped.map(([cat, list]) => (
@@ -182,124 +187,5 @@ export default function RecipesPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function RecipeEditor({ recipe, onDone }: { recipe: Recipe; onDone: () => void }) {
-  const { t } = useI18n();
-  const [name, setName] = useState(recipe.name);
-  const [category, setCategory] = useState(recipe.category);
-  const [rows, setRows] = useState<Ingredient[]>(
-    recipe.ingredients.length ? recipe.ingredients : [{ name: "", qtyPerPerson: 0, unit: "g" }],
-  );
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-
-  const update = (i: number, patch: Partial<Ingredient>) =>
-    setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    // Blank rows are ignored; partly filled rows are validated.
-    const filled = rows.filter((r) => r.name.trim() || r.qtyPerPerson);
-    const parsed = recipeSchema.safeParse({ name, category, ingredients: filled });
-    if (!parsed.success) {
-      const errs = fieldErrors(parsed.error);
-      // map filtered indexes back to visible rows
-      const mapped: Record<string, string> = {};
-      for (const [k, v] of Object.entries(errs)) {
-        const m = k.match(/^ingredients\.(\d+)\.(.+)$/);
-        mapped[m ? `ingredients.${rows.indexOf(filled[+m[1]])}.${m[2]}` : k] = v;
-      }
-      return setErrors(mapped);
-    }
-    setErrors({});
-    setBusy(true);
-    try {
-      const id = recipe.id || newDishId(parsed.data.name);
-      // Saving from the editor means the chef has checked it.
-      await backend.saveRecipe(id, { ...parsed.data, reviewed: true, updatedAt: Date.now() });
-      toast.success(t("recipes.saved"));
-      onDone();
-    } catch (err) {
-      toast.error(errorText(err));
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    await backend.deleteRecipe(recipe.id);
-    onDone();
-  }
-
-  return (
-    <form onSubmit={save} className="grid gap-5" noValidate>
-      <DialogHeader>
-        <DialogTitle className="font-display text-2xl">{recipe.id ? recipe.name : t("recipes.addDish")}</DialogTitle>
-        <p className="text-sm text-muted-foreground">{t("recipes.saveMarks")}</p>
-      </DialogHeader>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={t("recipes.dishName")} htmlFor="r-name" error={errors.name}>
-          <Input id="r-name" value={name} aria-invalid={!!errors.name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <Field label={t("recipes.category")} htmlFor="r-cat" error={errors.category}>
-          <Input id="r-cat" list="cats" value={category} onChange={(e) => setCategory(e.target.value)} />
-          <datalist id="cats">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
-        </Field>
-      </div>
-      <div className="grid gap-2">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-          {t("recipes.ingredient")} — {t("recipes.perPerson")}
-        </p>
-        {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-12 items-start gap-2">
-            <Field error={errors[`ingredients.${i}.name`]} className="col-span-12 sm:col-span-6">
-              <Input placeholder={t("recipes.ingredient")} value={r.name} aria-invalid={!!errors[`ingredients.${i}.name`]}
-                onChange={(e) => update(i, { name: e.target.value })} />
-            </Field>
-            <Field error={errors[`ingredients.${i}.qtyPerPerson`]} className="col-span-5 sm:col-span-3">
-              <Input type="number" step="any" min={0} inputMode="decimal" aria-label={t("recipes.perPerson")}
-                value={r.qtyPerPerson || ""} aria-invalid={!!errors[`ingredients.${i}.qtyPerPerson`]}
-                onChange={(e) => update(i, { qtyPerPerson: e.target.value === "" ? 0 : Number(e.target.value) })} />
-            </Field>
-            <div className="col-span-5 sm:col-span-2">
-              <UnitSelect value={r.unit} onChange={(unit) => update(i, { unit })} />
-            </div>
-            <Button type="button" variant="ghost" size="icon" aria-label={t("remove")} className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:col-span-1"
-              onClick={() => setRows((cur) => cur.filter((_, j) => j !== i))}>
-              <Trash2 />
-            </Button>
-          </div>
-        ))}
-        <div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setRows((cur) => [...cur, { name: "", qtyPerPerson: 0, unit: "g" }])}>
-            <Plus /> {t("recipes.addIngredient")}
-          </Button>
-        </div>
-      </div>
-      <DialogFooter className="gap-2 sm:justify-between">
-        {recipe.id ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" className="text-destructive hover:text-destructive"><Trash2 /> {t("recipes.delete")}</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("recipes.deleteConfirm")}</AlertDialogTitle>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                <AlertDialogAction onClick={remove} className="bg-destructive text-white hover:bg-destructive/90">{t("confirm")}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : <span />}
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onDone}>{t("cancel")}</Button>
-          <Button type="submit" variant="accent" disabled={busy}>{busy ? t("saving") : t("save")}</Button>
-        </div>
-      </DialogFooter>
-      {Object.values(errors).some(Boolean) && <p className="text-sm text-destructive">{t("v.fix")}</p>}
-    </form>
   );
 }
