@@ -9,13 +9,16 @@ import { AUDIENCES, UNITS } from "./types";
 const name = z.string().trim().min(1, "v.required");
 
 export const loginSchema = z.object({
-  email: z.email("v.email"),
+  username: z.string().trim().min(1, "v.required"),
   password: z.string().min(1, "v.required"),
 });
 
+/** Login name: Sinhala or English, one word. */
+const username = z.string().trim().min(2, "v.username").max(30, "v.username").regex(/^\S+$/, "v.usernameSpace");
+
 export const newUserSchema = z.object({
   name,
-  email: z.email("v.email"),
+  username,
   password: z.string().min(6, "v.password"),
 });
 
