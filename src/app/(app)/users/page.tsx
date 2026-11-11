@@ -25,7 +25,7 @@ export default function UsersPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
   const users = useUsers();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "chef" as Role });
+  const [form, setForm] = useState({ name: "", username: "", password: "", role: "chef" as Role });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [pwFor, setPwFor] = useState<UserProfile | null>(null);
@@ -40,7 +40,7 @@ export default function UsersPage() {
     setBusy(true);
     try {
       await backend.createUser({ ...parsed.data, role: form.role });
-      setForm({ name: "", email: "", password: "", role: form.role });
+      setForm({ name: "", username: "", password: "", role: form.role });
       toast.success(t("users.created"));
     } catch (err) {
       toast.error(errorText(err));
@@ -71,8 +71,9 @@ export default function UsersPage() {
             <Field label={t("users.name")} htmlFor="u-name" error={errors.name}>
               <Input id="u-name" value={form.name} aria-invalid={!!errors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
-            <Field label={t("login.email")} htmlFor="u-email" error={errors.email}>
-              <Input id="u-email" type="email" value={form.email} aria-invalid={!!errors.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Field label={t("login.username")} htmlFor="u-username" error={errors.username} hint={t("users.usernameHint")}>
+              <Input id="u-username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.username}
+                aria-invalid={!!errors.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
             </Field>
             <Field label={t("login.password")} htmlFor="u-pw" error={errors.password} hint={t("users.passwordHint")}>
               <Input id="u-pw" value={form.password} aria-invalid={!!errors.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
@@ -110,7 +111,7 @@ export default function UsersPage() {
                         </Avatar>
                         <div className="min-w-0">
                           <p className="truncate font-medium">{u.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                          <p className="truncate text-xs text-muted-foreground">{t("users.loginAs", { name: u.username })}</p>
                         </div>
                       </div>
                     </TableCell>
