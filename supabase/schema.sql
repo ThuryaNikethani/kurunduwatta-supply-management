@@ -27,6 +27,8 @@ create table if not exists public.recipes (
   ingredients jsonb not null default '[]'::jsonb,
   -- true once the chef has checked the amounts (starting amounts are estimates)
   reviewed boolean not null default false,
+  -- which menu the dish is on: the guest menu or the villa staff menu
+  menu text not null default 'guests' check (menu in ('guests', 'staff')),
   updated_at bigint
 );
 
