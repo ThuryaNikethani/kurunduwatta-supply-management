@@ -135,7 +135,7 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
           <p className="truncate">{profile.name}</p>
-          <p className="truncate text-xs font-normal text-muted-foreground">{profile.email}</p>
+          <p className="truncate text-xs font-normal text-muted-foreground">{profile.username}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => setPwOpen(true)}>
