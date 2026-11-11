@@ -40,7 +40,7 @@ function NewOrder() {
   // Already issued → what stock couldn't cover; not yet → what it would be short of.
   const items = supply
     ? issue
-      ? shortagesAfterIssue(supply.items, issue)
+      ? shortagesAfterIssue(supply.items, issue, stock)
       : shortagesToOrder(previewIssue(supply.items, stock))
     : wantLow
       ? lowStockOrder(stock)
