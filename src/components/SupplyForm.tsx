@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Calculator, Check, HardHat, PenLine, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Calculator, Check, HardHat, PenLine, Plus, Search, Send, Trash2, TriangleAlert, Users, UtensilsCrossed, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -73,6 +73,8 @@ export function SupplyForm({
   const { t } = useI18n();
   const recipes = useRecipes();
   const [audience, setAudience] = useState<Audience>(initial?.audience ?? "guests");
+  /** Showing both guests/staff choices; a saved list starts with its choice made. */
+  const [picking, setPicking] = useState(!initial);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
   const [meal, setMeal] = useState(initial?.meal ?? "lunch");
@@ -114,6 +116,7 @@ export function SupplyForm({
     { audience, title, eventDate, meal, guestCount, dishes, items, note, manual, otherItems, ownDishes },
     (d) => {
       setAudience(d.audience ?? "guests");
+      setPicking(false);
       setTitle(d.title);
       setEventDate(d.eventDate);
       setMeal(d.meal);
@@ -223,8 +226,10 @@ export function SupplyForm({
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid gap-2 sm:col-span-2 lg:col-span-4">
             <p className="text-xs tracking-wide text-muted-foreground">{t("audience.question")}</p>
-            <div role="radiogroup" aria-label={t("audience.question")} className="grid gap-2 sm:grid-cols-2">
-              {AUDIENCES.map((a) => {
+            <div role="radiogroup" aria-label={t("audience.question")}
+              className={cn("grid gap-2", picking ? "sm:grid-cols-2" : "sm:grid-cols-[1fr_auto] sm:items-center")}>
+              {/* Once chosen, only the choice stays; "change" brings both back. */}
+              {(picking ? AUDIENCES : [audience]).map((a) => {
                 const on = audience === a;
                 const Icon = a === "staff" ? HardHat : Users;
                 return (
@@ -234,6 +239,7 @@ export function SupplyForm({
                     role="radio"
                     aria-checked={on}
                     onClick={() => {
+                      setPicking(!picking);
                       if (a === audience) return;
                       setAudience(a);
                       const menuOf = new Map((recipes.data ?? []).map((r) => [r.id, r.menu ?? "guests"]));
@@ -258,6 +264,11 @@ export function SupplyForm({
                   </button>
                 );
               })}
+              {!picking && (
+                <Button type="button" variant="outline" onClick={() => setPicking(true)}>
+                  <ArrowLeftRight /> {t("audience.change")}
+                </Button>
+              )}
             </div>
           </div>
           <Field label={t(audience === "staff" ? "supply.titleStaff" : "supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
