@@ -66,7 +66,7 @@ export default function OrderDetail() {
         ]}
       />
       <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <Card className="lg:col-span-2">
+        <Card className="print-flow lg:col-span-2">
           <CardHeader>
             <CardTitle className="font-display text-2xl">{t("orders.items")}</CardTitle>
           </CardHeader>
