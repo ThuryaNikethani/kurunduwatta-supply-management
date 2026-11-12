@@ -42,7 +42,7 @@ export function InfoGrid({ items }: { items: { Icon: LucideIcon; label: string; 
 export function ReturnNote({ history }: { history: { action: string; note: string; name: string }[] }) {
   const { t } = useI18n();
   const last = history[history.length - 1];
-  if (!last || !/return|reject/.test(last.action) || !last.note.trim()) return null;
+  if (!last || !/return|reject/.test(last.action ?? "") || !(last.note ?? "").trim()) return null;
   return (
     <div role="alert" className="flex gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
       <Undo2 className="mt-0.5 size-5 shrink-0 text-destructive" />
