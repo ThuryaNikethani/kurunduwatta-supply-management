@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Undo2, type LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { PrintButton } from "./PrintHeader";
@@ -35,5 +35,21 @@ export function InfoGrid({ items }: { items: { Icon: LucideIcon; label: string; 
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+/** Why a list was sent back, shown in red at the top so it isn't missed. */
+export function ReturnNote({ status, history }: { status: string; history: { action: string; note: string; name: string }[] }) {
+  const { t } = useI18n();
+  const last = history[history.length - 1];
+  if (!status.startsWith("returned") || !last || !/return|reject/.test(last.action ?? "") || !(last.note ?? "").trim()) return null;
+  return (
+    <div role="alert" className="flex gap-3 rounded-xl border-2 border-destructive/40 bg-destructive/5 p-4">
+      <Undo2 className="mt-0.5 size-6 shrink-0 text-destructive" />
+      <div className="min-w-0">
+        <p className="font-semibold text-destructive">{t("detail.whyBack", { name: last.name })}</p>
+        <p className="mt-1 text-lg whitespace-pre-wrap">{last.note}</p>
+      </div>
+    </div>
   );
 }
