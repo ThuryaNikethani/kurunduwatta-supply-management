@@ -99,7 +99,7 @@ export default function RecipesPage() {
           const Icon = m === "staff" ? HardHat : Users;
           return (
             <button key={m} type="button" role="radio" aria-checked={menu === m} onClick={() => setMenu(m)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm transition ${menu === m ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-base transition ${menu === m ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
               <Icon className="size-4" /> {t(m === "staff" ? "recipes.menuStaff" : "recipes.menuGuests")}
               <span className="text-xs text-muted-foreground">{(recipes.data ?? []).filter((r) => (r.menu ?? "guests") === m).length}</span>
             </button>
@@ -132,7 +132,7 @@ export default function RecipesPage() {
         <div className="flex gap-1 rounded-full bg-secondary p-1" role="radiogroup" aria-label={t("recipes.filter")}>
           {(["all", "todo", "done"] as const).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={show === k} onClick={() => setShow(k)}
-              className={`rounded-full px-3 py-1 text-sm transition ${show === k ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
+              className={`rounded-full px-4 py-2 text-base transition ${show === k ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`}>
               {t(k === "all" ? "dash.all" : k === "todo" ? "recipes.todo" : "recipes.done")}
             </button>
           ))}
@@ -153,11 +153,11 @@ export default function RecipesPage() {
                   <Card className="h-full gap-2 py-4 transition group-enabled:group-hover:shadow-md">
                     <CardContent className="grid gap-2 px-4">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium">{r.name}</p>
+                        <p className="text-lg font-semibold">{r.name}</p>
                         {canEdit && <ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
                       </div>
                       {r.ingredients.length > 0 ? (
-                        <p className="line-clamp-2 text-xs text-muted-foreground">
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
                           {r.ingredients.map((i) => `${i.name} ${qty(i.qtyPerPerson, i.unit)}`).join(" · ")}
                         </p>
                       ) : null}
