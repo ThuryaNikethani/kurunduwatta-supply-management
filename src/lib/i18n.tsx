@@ -427,7 +427,13 @@ const si = {
 
   // ප්‍රින්ට්
   "print.button": "ප්‍රින්ට් කරන්න",
-  "print.printed": "ප්‍රින්ට් කළේ",
+  "print.printed": "ප්‍රින්ට් කළ වෙලාව",
+  "print.by": "ප්‍රින්ට් කළේ",
+  // The company name stays in English on printouts, as on its letterhead.
+  "print.company": "ATHUKORALA GROUP (PVT) LTD",
+  "print.signature": "අත්සන",
+  "print.nameDate": "නම සහ දිනය",
+  "print.seal": "නිල මුද්‍රාව",
 
   // පුහුණු මාදිලිය
   "demo.banner": "පුහුණු මාදිලිය — දත්ත සේව් වෙන්නේ මේ බ්‍රවුසරයේ විතරයි. තව ටැබ් එකක් ඇරලා වෙන තනතුරකින් ඇතුල් වුණොත් පණිවිඩ එන හැටි බලන්න පුළුවන්.",
