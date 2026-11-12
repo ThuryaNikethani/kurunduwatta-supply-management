@@ -27,9 +27,14 @@ const ICON: Record<Action, typeof Send> = {
  * the chef can resend with a note explaining their quantities.
  */
 export function ActionPanel({
-  kind, id, title, status, children,
+  kind, id, title, status, children, forward,
 }: {
   kind: DocKind; id: string; title: string; status: Status; children?: React.ReactNode;
+  /**
+   * Supervisor's own changes to send along with "forward to HR". A reason is
+   * then required, and `summary` (what changed) is added under the reason.
+   */
+  forward?: { changes: Record<string, unknown>; summary: string; problem?: string } | null;
 }) {
   const { profile } = useAuth();
   const { t } = useI18n();
@@ -43,14 +48,20 @@ export function ActionPanel({
 
   async function run(action: Action) {
     if (!profile) return;
-    if (noteRequired(action) && !note.trim()) {
-      setError("detail.reasonRequired");
+    const withChanges = action === "forward_to_hr" && forward ? forward : null;
+    if (withChanges?.problem) {
+      setError(withChanges.problem);
+      return;
+    }
+    if ((noteRequired(action) || withChanges) && !note.trim()) {
+      setError(withChanges ? "adjust.reasonNeeded" : "detail.reasonRequired");
       return;
     }
     setBusy(action);
     setError("");
     try {
-      await performAction(kind, id, title, profile, action, note);
+      const fullNote = withChanges ? `${note.trim()}\n\n${withChanges.summary}` : note;
+      await performAction(kind, id, title, profile, action, fullNote, withChanges?.changes);
       setNote("");
       toast.success(t(`did.${action}`));
     } catch (e) {
