@@ -236,7 +236,7 @@ export function SupplyForm({
       guestCount,
       days,
       // A hand-written list isn't tied to any dishes.
-      dishes: manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
+      dishes: audience === "staff" ? [] : manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
     });
     if (!parsed.success) {
@@ -314,7 +314,8 @@ export function SupplyForm({
             )}
           </div>
 
-          {/* food */}
+          {/* food (staff lists have no dishes, only items) */}
+          {!isStaff && (
           <div className="grid gap-3 border-t pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-lg font-semibold">{t(manual ? "supply.ownDishes" : "simple.food")}</p>
@@ -383,6 +384,7 @@ export function SupplyForm({
               </>
             )}
           </div>
+          )}
 
           {/* items */}
           <div className="grid gap-2 border-t pt-5">
