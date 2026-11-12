@@ -84,7 +84,7 @@ export default function Dashboard() {
         subtitle={formatDate(Date.now())}
         actions={
           profile.role === "chef" && (
-            <Button asChild variant="accent" size="lg">
+            <Button asChild variant="accent" size="lg" className="h-14 px-6 text-lg">
               <Link href="/requests/new"><Plus /> {t("supply.new")}</Link>
             </Button>
           )
