@@ -50,6 +50,7 @@ const si = {
   "nav.reports": "වාර්තා",
   "nav.notifications": "පණිවිඩ",
   "nav.menu": "මෙනුව",
+  "nav.more": "තව",
   logout: "පිටවෙන්න",
 
   // ඇතුල් වීම
@@ -77,7 +78,8 @@ const si = {
   "dash.all": "ඔක්කොම",
   "dash.everyone": "අමුත්තෝ සහ සේවකයෝ",
   "dash.empty": "තාම මුකුත් නෑ.",
-  "dash.recent": "ඔක්කොම වාර්තා",
+  "dash.recent": "ඔක්කොම ලැයිස්තු",
+  "dash.recipesTodo": "වට්ටෝරු {n}ක් තාම බලලා නෑ. ඔබලා බලන්න.",
   "dash.search": "හොයන්න…",
   "stat.waiting": "ඔයා බලන්න ඕන",
   "stat.inReview": "තාම බලනවා",
@@ -129,12 +131,11 @@ const si = {
   "wiz.count": "කී දෙනෙක්ද? දින කීයක්ද?",
   "wiz.food": "මොන කෑමද?",
   "wiz.items": "බඩු ලැයිස්තුව",
-  "wiz.next": "ඊළඟට",
-  "wiz.back": "ආපහු",
+  "wiz.daysShort": "දින ගණන",
+  "wiz.pickFirst": "උඩින් කෑම තෝරන්න. ඕන බඩු මෙතන ඉබේම එනවා.",
   "wiz.less": "අඩු කරන්න",
   "wiz.more": "වැඩි කරන්න",
   "wiz.optional": "(ඕන නම් විතරක්)",
-  "wiz.pickDish": "අඩුම තරමේ එක කෑමක්වත් තෝරන්න.",
   "wiz.recalc": "ප්‍රමාණ ආයෙ හදන්න",
   "wiz.addNote": "සුපවයිසර්ට සටහනක් දාන්න",
   "wiz.dateIs": "දිනය: {date}",
@@ -210,6 +211,10 @@ const si = {
   "detail.notePh": "සටහනක් ලියන්න…",
   "detail.notFound": "හොයාගන්න බැරි වුණා.",
   "detail.yourTurn": "ඔයාගේ වාරය",
+  "detail.whyBack": "{name} ආපහු එව්වේ මේ නිසා:",
+  "act.whyBack": "ආපහු යවන්නේ ඇයි?",
+  "act.note": "සටහන (ඕන නම් විතරක්)",
+  "act.addNote": "සටහනක් දාන්න (ඕන නම්)",
 
   // වට්ටෝරු
   "recipes.title": "කෑම වට්ටෝරු",
