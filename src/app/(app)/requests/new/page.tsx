@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { EmptyState, PageHeader } from "@/components/common";
+import { EmptyState } from "@/components/common";
 import { SupplyForm } from "@/components/SupplyForm";
 import { createWorkflowDoc } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +18,6 @@ export default function NewSupplyList() {
 
   return (
     <div className="grid gap-6">
-      <PageHeader eyebrow={t("dash.supplyLists")} title={t("supply.new")} />
       <SupplyForm
         draftKey="supply-new"
         submitLabel={t("supply.send")}
