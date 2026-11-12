@@ -44,6 +44,19 @@ const startManual = (d?: SupplyFormData) => d?.audience === "staff" || wasManual
 /** "allday" = breakfast, lunch and dinner. Older lists may still say "other". */
 export const MEALS = ["breakfast", "lunch", "dinner", "hightea", "bbq", "allday"] as const;
 
+/** Last people count and meal the chef used, to start the next new list with. */
+const LAST_KEY = "kw-last-supply";
+function lastUsed(): { guestCount?: number; meal?: string } {
+  try {
+    return JSON.parse(localStorage.getItem(LAST_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+/** Tapping a number box selects it, so a new number replaces the old one. */
+const selectAll = (e: React.FocusEvent<HTMLInputElement>) => e.target.select();
+
 export type SupplyFormData = Pick<SupplyList, "audience" | "title" | "eventDate" | "meal" | "guestCount" | "days" | "dishes" | "items">;
 
 export function UnitSelect({ value, onChange, className }: { value: Unit; onChange: (u: Unit) => void; className?: string }) {
@@ -73,13 +86,14 @@ export function SupplyForm({
 }) {
   const { t } = useI18n();
   const recipes = useRecipes();
+  const [last] = useState(() => (initial ? {} : lastUsed()));
   const [audience, setAudience] = useState<Audience>(initial?.audience ?? "guests");
   /** Showing both guests/staff choices; a saved list starts with its choice made. */
   const [picking, setPicking] = useState(!initial);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [eventDate, setEventDate] = useState(initial?.eventDate ?? today());
-  const [meal, setMeal] = useState(initial?.meal ?? "lunch");
-  const [guestCount, setGuestCount] = useState<number>(initial?.guestCount ?? 10);
+  const [meal, setMeal] = useState(initial?.meal ?? last.meal ?? "lunch");
+  const [guestCount, setGuestCount] = useState<number>(initial?.guestCount ?? last.guestCount ?? 10);
   /** Staff lists: how many days the order covers. */
   const [days, setDays] = useState<number>(initial?.days ?? 1);
   const [dishes, setDishes] = useState<DishRef[]>(startManual(initial) ? [] : (initial?.dishes ?? []));
@@ -105,8 +119,8 @@ export function SupplyForm({
     audience: initial?.audience ?? "guests",
     title: initial?.title ?? "",
     eventDate: initial?.eventDate ?? today(),
-    meal: initial?.meal ?? "lunch",
-    guestCount: initial?.guestCount ?? 10,
+    meal: initial?.meal ?? last.meal ?? "lunch",
+    guestCount: initial?.guestCount ?? last.guestCount ?? 10,
     days: initial?.days ?? 1,
     dishes: startManual(initial) ? [] : (initial?.dishes ?? []),
     items: initial?.items ?? [],
@@ -150,15 +164,28 @@ export function SupplyForm({
   }, [recipes.data, search, audience]);
 
   const selected = new Set(dishes.map((d) => d.id));
-  const toggleDish = (id: string, name: string) =>
-    setDishes((cur) => (selected.has(id) ? cur.filter((d) => d.id !== id) : [...cur, { id, name }]));
 
   /** The last calculated list, to tell if the chef has changed it since. */
   const lastCalc = useRef("");
 
+  /** Picking or dropping a dish redoes the list straight away, unless the chef has edited it. */
+  function setDishList(next: DishRef[]) {
+    setDishes(next);
+    if (manual) return;
+    const ids = new Set(next.map((d) => d.id));
+    setNoRecipe((recipes.data ?? []).filter((r) => ids.has(r.id) && !r.ingredients?.length).map((r) => r.name));
+    if (items.length && JSON.stringify(items) !== lastCalc.current) return;
+    const out = calcFor(guestCount, days, ids);
+    lastCalc.current = JSON.stringify(out ?? []);
+    setItems(out ?? []);
+    if (out) setErrors((e) => ({ ...e, items: "" }));
+  }
+  const toggleDish = (id: string, name: string) =>
+    setDishList(selected.has(id) ? dishes.filter((d) => d.id !== id) : [...dishes, { id, name }]);
+
   /** Amounts for every person for every day: per person × people × days. */
-  function calcFor(people: number, numDays: number) {
-    const ready = (recipes.data ?? []).filter((r) => selected.has(r.id) && r.ingredients?.length);
+  function calcFor(people: number, numDays: number, ids: Set<string> = selected) {
+    const ready = (recipes.data ?? []).filter((r) => ids.has(r.id) && r.ingredients?.length);
     if (!ready.length || people < 1 || numDays < 1) return null;
     const out = calculateItems(ready, people * numDays);
     lastCalc.current = JSON.stringify(out);
@@ -214,7 +241,7 @@ export function SupplyForm({
     e.preventDefault();
     const parsed = supplySchema.safeParse({
       audience,
-      title: audience === "staff" ? t("supply.staffTitle", { n: days }) : title,
+      title: audience === "staff" ? t("supply.staffTitle", { n: days }) : title.trim() || t("supply.autoTitle", { n: guestCount }),
       eventDate,
       meal: audience === "staff" ? "other" : meal,
       guestCount,
@@ -232,6 +259,9 @@ export function SupplyForm({
     try {
       await onSubmit(parsed.data as SupplyFormData, note);
       draft.clear();
+      if (!initial && audience === "guests") {
+        try { localStorage.setItem(LAST_KEY, JSON.stringify({ guestCount, meal })); } catch {}
+      }
     } catch (err) {
       setErrors({ form: errorText(err) });
       setBusy(false);
@@ -250,7 +280,7 @@ export function SupplyForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="grid gap-2 sm:col-span-2 lg:col-span-4">
-            <p className="text-xs tracking-wide text-muted-foreground">{t("audience.question")}</p>
+            <p className="text-sm font-medium">{t("audience.question")}</p>
             <div role="radiogroup" aria-label={t("audience.question")}
               className={cn("grid gap-2", picking ? "sm:grid-cols-2" : "sm:grid-cols-[1fr_auto] sm:items-center")}>
               {/* Once chosen, only the choice stays; "change" brings both back. */}
@@ -274,7 +304,7 @@ export function SupplyForm({
                       if (a === "staff") chooseManual(true);
                     }}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
+                      "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition",
                       on ? "border-amber bg-amber/10" : "border-border bg-card hover:border-amber/50",
                     )}
                   >
@@ -282,15 +312,15 @@ export function SupplyForm({
                       <Icon className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium">{t(a === "staff" ? "audience.staff" : "audience.guests")}</span>
-                      <span className="block text-xs text-muted-foreground">{t(a === "staff" ? "audience.staffHint" : "audience.guestsHint")}</span>
+                      <span className="block text-lg font-semibold">{t(a === "staff" ? "audience.staff" : "audience.guests")}</span>
+                      <span className="block text-sm text-muted-foreground">{t(a === "staff" ? "audience.staffHint" : "audience.guestsHint")}</span>
                     </span>
                     {on && <Check className="size-5 text-amber-deep" />}
                   </button>
                 );
               })}
               {!picking && (
-                <Button type="button" variant="outline" onClick={() => setPicking(true)}>
+                <Button type="button" variant="outline" className="h-12 text-base" onClick={() => setPicking(true)}>
                   <ArrowLeftRight /> {t("audience.change")}
                 </Button>
               )}
@@ -298,17 +328,18 @@ export function SupplyForm({
           </div>
           {audience !== "staff" && (
             <Field label={t("supply.title")} htmlFor="title" error={errors.title} className="sm:col-span-2">
-              <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title}
+              <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title} className="h-12 text-base"
                 onChange={(e) => setTitle(e.target.value)} />
             </Field>
           )}
           <Field label={t("supply.orderDate")} htmlFor="date" error={errors.eventDate}
             className={cn(audience === "staff" && "sm:col-span-2")}>
-            <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate}
+            <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate} className="h-12 text-base"
               onChange={(e) => setEventDate(e.target.value)} />
           </Field>
           <Field label={t("supply.days")} htmlFor="days" error={errors.days}>
             <Input id="days" type="number" inputMode="numeric" min={1} value={days || ""} aria-invalid={!!errors.days}
+              className="h-12 text-lg" onFocus={selectAll}
               onChange={(e) => {
                 const v = Math.max(0, parseInt(e.target.value) || 0);
                 setDays(v);
@@ -318,7 +349,7 @@ export function SupplyForm({
           {audience !== "staff" && (
             <Field label={t("supply.meal")}>
               <Select value={meal} onValueChange={setMeal}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-12! w-full text-base"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MEALS.map((m) => <SelectItem key={m} value={m}>{t(`meal.${m}` as TKey)}</SelectItem>)}
                 </SelectContent>
@@ -327,7 +358,7 @@ export function SupplyForm({
           )}
           <Field label={t(audience === "staff" ? "supply.staffCount" : "supply.guests")} htmlFor="guests" error={errors.guestCount}>
             <Input id="guests" type="number" inputMode="numeric" min={1} value={guestCount || ""}
-              aria-invalid={!!errors.guestCount}
+              aria-invalid={!!errors.guestCount} className="h-12 text-lg" onFocus={selectAll}
               onChange={(e) => {
                 const v = Math.max(0, parseInt(e.target.value) || 0);
                 setGuestCount(v);
@@ -355,15 +386,15 @@ export function SupplyForm({
               return (
                 <button key={String(m)} type="button" role="radio" aria-checked={on} onClick={() => chooseManual(m)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition",
+                    "flex items-center gap-3 rounded-xl border-2 p-4 text-left transition",
                     on ? "border-amber bg-amber/10" : "border-border bg-card hover:border-amber/50",
                   )}>
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", on ? "bg-amber text-forest" : "bg-secondary text-moss")}>
                     <Icon className="size-5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-medium">{t(m ? "supply.modeManual" : "supply.modeCalc")}</span>
-                    <span className="block text-xs text-muted-foreground">{t(m ? "supply.modeManualHint" : "supply.modeCalcHint")}</span>
+                    <span className="block text-lg font-semibold">{t(m ? "supply.modeManual" : "supply.modeCalc")}</span>
+                    <span className="block text-sm text-muted-foreground">{t(m ? "supply.modeManualHint" : "supply.modeCalcHint")}</span>
                   </span>
                   {on && <Check className="size-5 text-amber-deep" />}
                 </button>
@@ -377,12 +408,12 @@ export function SupplyForm({
                 <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
               </p>
               <div className="grid gap-2">
-                <label htmlFor="own-dish" className={cn("text-xs tracking-wide text-muted-foreground", audience === "staff" && "sr-only")}>{t("supply.ownDishes")}</label>
+                <label htmlFor="own-dish" className={cn("text-sm font-medium", audience === "staff" && "sr-only")}>{t("supply.ownDishes")}</label>
                 <div className="flex gap-2">
-                  <Input id="own-dish" placeholder={t("supply.ownDishPh")} value={dishInput}
+                  <Input id="own-dish" placeholder={t("supply.ownDishPh")} value={dishInput} className="h-12 text-base"
                     onChange={(e) => setDishInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOwnDish(); } }} />
-                  <Button type="button" variant="outline" disabled={!dishInput.trim()} onClick={addOwnDish}>
+                  <Button type="button" variant="outline" className="h-12" disabled={!dishInput.trim()} onClick={addOwnDish}>
                     <Plus /> {t("supply.ownDishAdd")}
                   </Button>
                 </div>
@@ -391,8 +422,8 @@ export function SupplyForm({
                     {ownDishes.map((n) => (
                       <button type="button" key={n} aria-label={`${t("remove")}: ${n}`}
                         onClick={() => setOwnDishes((cur) => cur.filter((x) => x !== n))}
-                        className="inline-flex items-center gap-1 rounded-full bg-forest py-1 pr-2 pl-3 text-xs text-cream">
-                        {n} <X className="size-3.5" />
+                        className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
+                        {n} <X className="size-4" />
                       </button>
                     ))}
                   </div>
@@ -401,8 +432,8 @@ export function SupplyForm({
             </>
           ) : (
             <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
+              <Input className="h-12 pl-10 text-base" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
           )}
         </CardHeader>
@@ -412,16 +443,12 @@ export function SupplyForm({
             <div className="flex flex-wrap gap-2">
               {dishes.map((d) => (
                 <button type="button" key={d.id} onClick={() => toggleDish(d.id, d.name)}
-                  className="inline-flex items-center gap-1 rounded-full bg-forest py-1 pr-2 pl-3 text-xs text-cream">
-                  {d.name} <X className="size-3.5" />
+                  className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
+                  {d.name} <X className="size-4" />
                 </button>
               ))}
             </div>
           )}
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {audience === "staff" ? <HardHat className="size-3.5" /> : <Users className="size-3.5" />}
-            {t("supply.menuFor", { menu: t(audience === "staff" ? "recipes.menuStaff" : "recipes.menuGuests") })}
-          </p>
           {!recipes.data ? (
             <Skeleton className="h-40" />
           ) : grouped.length === 0 && !search ? (
@@ -430,19 +457,19 @@ export function SupplyForm({
             <div className="grid max-h-96 gap-5 overflow-y-auto rounded-lg border bg-muted/40 p-3">
               {grouped.map(([cat, list]) => (
                 <div key={cat}>
-                  <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">{cat}</p>
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">{cat}</p>
                   <div className="flex flex-wrap gap-2">
                     {list.map((r) => {
                       const on = selected.has(r.id);
                       return (
                         <button type="button" key={r.id} onClick={() => toggleDish(r.id, r.name)}
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-left text-sm transition",
-                            on ? "border-amber bg-amber/20 font-medium" : "border-border bg-card hover:border-amber/60",
+                            "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-left text-base transition",
+                            on ? "border-amber bg-amber font-semibold text-forest" : "border-border bg-card hover:border-amber/60",
                           )}>
-                          {on && <Check className="size-3.5 text-amber-deep" />}
+                          {on && <Check className="size-4" />}
                           {r.name}
-                          {!r.ingredients?.length && <span className="text-[10px] text-muted-foreground">({t("supply.noRecipe")})</span>}
+                          {!r.ingredients?.length && <span className="text-xs opacity-70">({t("supply.noRecipe")})</span>}
                         </button>
                       );
                     })}
@@ -457,10 +484,10 @@ export function SupplyForm({
             </Button>
           </div>
           <div>
-            <Button type="button" disabled={!dishes.length || guestCount < 1 || days < 1}
+            <Button type="button" variant="outline" className="h-11" disabled={!dishes.length || guestCount < 1 || days < 1}
               onClick={onCalculateClick}>
               <Calculator />
-              {t("supply.calculate")} ({t("supply.calcFor", { n: guestCount, d: days })})
+              {t("supply.recalc")} ({t("supply.calcFor", { n: guestCount, d: days })})
             </Button>
           </div>
           {noRecipe && noRecipe.length > 0 && (
@@ -497,7 +524,7 @@ export function SupplyForm({
             <EmptyState text={t(manual ? "supply.noItemsManual" : "supply.noItems")} icon={manual ? PenLine : Calculator} />
           ) : (
             <>
-              <div className="hidden grid-cols-12 gap-2 px-2 text-xs tracking-wide text-muted-foreground uppercase sm:grid">
+              <div className="hidden grid-cols-12 gap-2 px-2 text-sm text-muted-foreground sm:grid">
                 <span className="col-span-4">{t("supply.item")}</span>
                 <span className="col-span-2">{t("supply.qty")}</span>
                 <span className="col-span-2">{t("supply.unit")}</span>
@@ -509,24 +536,24 @@ export function SupplyForm({
                   <div key={i} className={cn("grid grid-cols-12 items-start gap-2 rounded-lg border p-2", changed ? "border-amber/50 bg-amber/10" : "bg-muted/30")}>
                     <Field error={errors[`items.${i}.name`]} className="col-span-12 sm:col-span-4">
                       <Input placeholder={t("supply.item")} value={it.name} aria-invalid={!!errors[`items.${i}.name`]}
-                        className="bg-card" onChange={(e) => update(i, { name: e.target.value })} />
+                        className="h-11 bg-card text-base" onChange={(e) => update(i, { name: e.target.value })} />
                     </Field>
                     <Field error={errors[`items.${i}.qty`]} className="col-span-5 sm:col-span-2">
-                      <Input type="number" step="any" min={0} inputMode="decimal" placeholder={t("supply.qty")} className="bg-card"
+                      <Input type="number" step="any" min={0} inputMode="decimal" placeholder={t("supply.qty")} className="h-11 bg-card text-base" onFocus={selectAll}
                         value={it.qty || ""} aria-invalid={!!errors[`items.${i}.qty`]}
                         onChange={(e) => update(i, { qty: e.target.value === "" ? 0 : Number(e.target.value) })} />
                     </Field>
                     <div className="col-span-5 sm:col-span-2">
-                      <UnitSelect value={it.unit} onChange={(unit) => update(i, { unit })} />
+                      <UnitSelect value={it.unit} onChange={(unit) => update(i, { unit })} className="h-11! text-base" />
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:order-last sm:col-span-1"
+                    <Button type="button" variant="ghost" size="icon-lg" className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:order-last sm:col-span-1"
                       aria-label={t("remove")} onClick={() => setItems((cur) => cur.filter((_, j) => j !== i))}>
                       <Trash2 />
                     </Button>
-                    <Input className="col-span-12 bg-card sm:col-span-3" placeholder={t("supply.note")} value={it.note}
+                    <Input className="col-span-12 h-11 bg-card text-base sm:col-span-3" placeholder={t("supply.note")} value={it.note}
                       onChange={(e) => update(i, { note: e.target.value })} />
                     {it.calculated != null && (
-                      <p className="order-last col-span-12 px-1 text-[11px] text-muted-foreground">
+                      <p className="order-last col-span-12 px-1 text-xs text-muted-foreground">
                         {t("supply.calc")}: {qty(it.calculated, it.unit)}
                         {changed && <span className="ml-2 font-medium text-amber-deep">• {t("supply.changed")}</span>}
                       </p>
@@ -538,7 +565,7 @@ export function SupplyForm({
           )}
           {errors.items && <p className="text-sm text-destructive">{t(errors.items as TKey)}</p>}
           <div>
-            <Button type="button" variant="outline"
+            <Button type="button" variant="outline" className="h-11"
               onClick={() => setItems((cur) => [...cur, { name: "", qty: 0, unit: "kg", note: "", calculated: null }])}>
               <Plus /> {t("supply.addItem")}
             </Button>
@@ -549,16 +576,16 @@ export function SupplyForm({
       <Card>
         <CardContent className="grid gap-4">
           <Field label={t("supply.chefNote")} htmlFor="chef-note">
-            <Textarea id="chef-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+            <Textarea id="chef-note" rows={3} value={note} className="text-base" onChange={(e) => setNote(e.target.value)} />
           </Field>
           {hasErrors && (
-            <p className="text-sm text-destructive">{errors.form || t("v.fix")}</p>
+            <p role="alert" className="rounded-lg bg-destructive/10 p-3 font-medium text-destructive">{errors.form || t("v.fix")}</p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="accent" size="lg" disabled={busy}>
-              <Send /> {busy ? t("saving") : submitLabel}
+            <Button type="submit" variant="accent" className="h-14 flex-1 text-lg sm:flex-none sm:px-10" disabled={busy}>
+              <Send className="size-5" /> {busy ? t("saving") : submitLabel}
             </Button>
-            {onCancel && <Button type="button" variant="outline" size="lg" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
+            {onCancel && <Button type="button" variant="outline" className="h-14 text-base" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
           </div>
         </CardContent>
       </Card>
@@ -573,7 +600,7 @@ export function SupplyForm({
                 setAddingDish(false);
                 if (saved) {
                   setSearch("");
-                  setDishes((cur) => (cur.some((d) => d.id === saved.id) ? cur : [...cur, { id: saved.id, name: saved.name }]));
+                  if (!selected.has(saved.id)) setDishList([...dishes, { id: saved.id, name: saved.name }]);
                 }
               }}
             />
