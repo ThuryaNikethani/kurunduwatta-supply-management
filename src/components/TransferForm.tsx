@@ -3,14 +3,14 @@
 import { Plus, Send, Trash2, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { today } from "@/lib/format";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import { fieldErrors, transferSchema } from "@/lib/schemas";
 import type { LeftoverItem, TransferOut } from "@/lib/types";
-import { Field, StepTitle } from "./common";
+import { Field } from "./common";
 import { DraftNotice } from "./DraftNotice";
 import { useDraft } from "@/lib/draft";
 
@@ -100,96 +100,85 @@ export function TransferForm({
   const hasErrors = Object.values(errors).some(Boolean);
 
   return (
-    <form onSubmit={submit} className="grid gap-6" noValidate>
+    <form onSubmit={submit} className="grid gap-4" noValidate>
       <DraftNotice restoredAt={draft.restoredAt} onDiscard={draft.discard} />
       <datalist id="dish-options">
         {dishOptions.map((d) => <option key={d} value={d} />)}
       </datalist>
 
       <Card>
-        <CardHeader>
-          <StepTitle n={1} title={t("transfer.items")}
-            extra={<span className="rounded-full bg-secondary px-3 py-1 text-sm">{t("transfer.summary", { guests: guestCount, portions: totalPortions })}</span>} />
-        </CardHeader>
-        <CardContent className="grid gap-3">
+        <CardContent className="grid gap-6">
+          {/* date */}
           <Field label={t("transfer.date")} htmlFor="date" error={errors.date} className="sm:max-w-xs">
             <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <div className="hidden grid-cols-12 gap-2 px-2 pt-2 text-sm text-muted-foreground sm:grid">
-            <span className="col-span-5">{t("transfer.dish")}</span>
-            <span className="col-span-2">{t("transfer.portions")}</span>
-            <span className="col-span-4">{t("supply.note")}</span>
-          </div>
-          {items.map((it, i) => (
-            <div key={i} className="grid grid-cols-12 items-start gap-2 rounded-lg border bg-muted/30 p-2">
-              <Field error={errors[`items.${i}.dish`]} className="col-span-12 sm:col-span-5">
-                <Input list="dish-options" placeholder={t("transfer.dish")} className="bg-card" value={it.dish}
-                  aria-invalid={!!errors[`items.${i}.dish`]} onChange={(e) => update(i, { dish: e.target.value })} />
-              </Field>
-              <Field error={errors[`items.${i}.portions`]} className="col-span-10 sm:col-span-2">
-                <div className="relative">
-                  <Users className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input type="number" min={0} inputMode="numeric" className="bg-card pl-9" aria-label={t("transfer.portions")}
-                    value={it.portions || ""} aria-invalid={!!errors[`items.${i}.portions`]}
-                    onChange={(e) => update(i, { portions: Math.max(0, parseInt(e.target.value) || 0) })} />
-                </div>
-              </Field>
-              <Button type="button" variant="ghost" size="icon" aria-label={t("remove")}
-                className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:order-last sm:col-span-1"
-                onClick={() => setItems((cur) => cur.filter((_, j) => j !== i))}>
-                <Trash2 />
+
+          {/* food left over */}
+          <div className="grid gap-2 border-t pt-5">
+            <p className="text-lg font-semibold">{t("transfer.items")}</p>
+            <p className="text-sm text-muted-foreground">{t("transfer.summary", { guests: guestCount, portions: totalPortions })}</p>
+            {items.map((it, i) => (
+              <div key={i} className="grid grid-cols-[1fr_auto] items-start gap-2 border-b pb-3 sm:grid-cols-[1fr_7rem_auto] sm:border-0 sm:pb-0">
+                <Field error={errors[`items.${i}.dish`]} className="col-span-2 sm:col-span-1">
+                  <Input list="dish-options" aria-label={t("transfer.dish")} placeholder={t("transfer.dish")} value={it.dish}
+                    aria-invalid={!!errors[`items.${i}.dish`]} onChange={(e) => update(i, { dish: e.target.value })} />
+                </Field>
+                <Field error={errors[`items.${i}.portions`]}>
+                  <div className="relative">
+                    <Users className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input type="number" min={0} inputMode="numeric" className="pl-9" aria-label={t("transfer.portions")}
+                      value={it.portions || ""} aria-invalid={!!errors[`items.${i}.portions`]}
+                      onChange={(e) => update(i, { portions: Math.max(0, parseInt(e.target.value) || 0) })} />
+                  </div>
+                </Field>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("remove")} className="text-destructive hover:text-destructive"
+                  onClick={() => setItems((cur) => cur.filter((_, j) => j !== i))}>
+                  <Trash2 />
+                </Button>
+              </div>
+            ))}
+            {errors.items && <p className="text-sm text-destructive">{t(errors.items as TKey)}</p>}
+            <div>
+              <Button type="button" variant="outline" onClick={() => setItems((cur) => [...cur, { dish: "", portions: 1, note: "" }])}>
+                <Plus /> {t("transfer.addRow")}
               </Button>
-              <Input className="col-span-12 bg-card sm:col-span-4" placeholder={t("supply.note")} value={it.note}
-                onChange={(e) => update(i, { note: e.target.value })} />
             </div>
-          ))}
-          {errors.items && <p className="text-sm text-destructive">{t(errors.items as TKey)}</p>}
-          <div>
-            <Button type="button" variant="outline" onClick={() => setItems((cur) => [...cur, { dish: "", portions: 1, note: "" }])}>
-              <Plus /> {t("transfer.addRow")}
-            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <StepTitle n={2} title={t("transfer.recipients")} />
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <div className="flex gap-2">
-            <Input placeholder={t("transfer.recipientPh")} value={name} aria-invalid={!!errors.recipients}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } }} />
-            <Button type="button" onClick={addRecipient}><UserPlus /> {t("transfer.add")}</Button>
-          </div>
-          {errors.recipients && <p className="text-sm text-destructive">{t(errors.recipients as TKey)}</p>}
-          {recipients.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {recipients.map((r) => (
-                <button type="button" key={r} onClick={() => setRecipients(recipients.filter((x) => x !== r))}
-                  className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
-                  {r} <X className="size-4" />
-                </button>
-              ))}
+          {/* who took it */}
+          <div className="grid gap-2 border-t pt-5">
+            <p className="text-lg font-semibold">{t("transfer.recipients")}</p>
+            <div className="flex gap-2">
+              <Input placeholder={t("transfer.recipientPh")} value={name} aria-invalid={!!errors.recipients}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addRecipient(); } }} />
+              <Button type="button" variant="outline" className="h-11" onClick={addRecipient}><UserPlus /> {t("transfer.add")}</Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            {errors.recipients && <p className="text-sm text-destructive">{t(errors.recipients as TKey)}</p>}
+            {recipients.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {recipients.map((r) => (
+                  <button type="button" key={r} aria-label={`${t("remove")}: ${r}`} onClick={() => setRecipients(recipients.filter((x) => x !== r))}
+                    className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
+                    {r} <X className="size-4" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-      <Card>
-        <CardContent className="grid gap-4">
-          <Field label={t("supply.chefNote")} htmlFor="t-note">
-            <Textarea id="t-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
-          </Field>
-          {hasErrors && (
-            <p role="alert" className="rounded-lg bg-destructive/10 p-3 font-medium text-destructive">{errors.form || t("v.fix")}</p>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="accent" size="lg" className="h-14 flex-1 text-lg sm:flex-none sm:px-10" disabled={busy}>
-              <Send /> {busy ? t("saving") : submitLabel}
-            </Button>
-            {onCancel && <Button type="button" variant="outline" size="lg" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
+          {/* note + send */}
+          <div className="grid gap-3 border-t pt-5">
+            <Field label={t("supply.chefNote")} htmlFor="t-note">
+              <Textarea id="t-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            </Field>
+            {hasErrors && <p role="alert" className="rounded-lg bg-destructive/10 p-3 font-medium text-destructive">{errors.form || t("v.fix")}</p>}
+            <div className="flex gap-2">
+              {onCancel && <Button type="button" variant="outline" className="h-14 text-base" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
+              <Button type="submit" variant="accent" className="h-14 flex-1 text-lg" disabled={busy}>
+                <Send className="size-5" /> {busy ? t("saving") : submitLabel}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
