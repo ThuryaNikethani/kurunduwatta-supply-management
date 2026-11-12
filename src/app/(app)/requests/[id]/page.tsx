@@ -4,20 +4,18 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, CalendarRange, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
+import { ChevronRight, Pencil, Plus } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
-import { AudienceBadge, EmptyState, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
+import { EmptyState } from "@/components/common";
+import { BackBar, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StockIssuePanel } from "@/components/StockIssuePanel";
 import { SupplyForm } from "@/components/SupplyForm";
 import { Timeline } from "@/components/Timeline";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { hasDraft } from "@/lib/draft";
@@ -44,12 +42,11 @@ export default function SupplyDetail() {
   if (d === null || !profile) return <EmptyState text={t("detail.notFound")} />;
 
   const canEdit = profile.role === "chef" && d.status === "returned_to_chef";
-  const changedCount = d.items.filter((it) => it.calculated != null && it.qty !== it.calculated).length;
 
   if (editing && canEdit)
     return (
-      <div className="grid gap-6 [&>*]:min-w-0">
-        <PageHeader eyebrow={d.title} title={t("supply.edit")} />
+      <div className="mx-auto grid w-full max-w-3xl gap-4 [&>*]:min-w-0">
+        <h1 className="font-display text-3xl font-semibold">{t("supply.edit")}</h1>
         <SupplyForm
           draftKey={draftKey}
           initial={d}
@@ -64,130 +61,94 @@ export default function SupplyDetail() {
       </div>
     );
 
+  /** Who, how many, when — on one line. */
+  const facts = [
+    t(d.audience === "staff" ? "audience.staff" : "audience.guests"),
+    t("supply.calcFor", { n: d.guestCount, d: d.days ?? 1 }),
+    d.audience !== "staff" && t(`meal.${d.meal}` as TKey),
+    formatDate(d.eventDate),
+    d.createdByName,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <div className="grid gap-6 [&>*]:min-w-0">
+    <div className="mx-auto grid w-full max-w-3xl gap-4 [&>*]:min-w-0">
       <PrintHeader heading={t("dash.supplyLists")} />
       <BackBar />
-      <PageHeader
-        eyebrow={t("dash.supplyLists")}
-        title={d.title}
-        subtitle={<span className="mt-1 flex flex-wrap gap-2"><StatusBadge status={d.status} /><AudienceBadge audience={d.audience} /></span>}
-      />
+
+      <div className="grid gap-2">
+        <h1 className="font-display text-3xl font-semibold">{d.title}</h1>
+        <div><StatusBadge status={d.status} className="text-sm" /></div>
+        <p className="text-muted-foreground">{facts}</p>
+      </div>
 
       <ReturnNote status={d.status} history={d.history} />
 
-      <InfoGrid
-        items={[
-          { Icon: CalendarDays, label: t("supply.orderDate"), value: formatDate(d.eventDate) },
-          { Icon: CalendarRange, label: t("supply.days"), value: t("supply.forDays", { n: d.days ?? 1 }) },
-          ...(d.audience === "staff" ? [] : [{ Icon: UtensilsCrossed, label: t("supply.meal"), value: t(`meal.${d.meal}` as TKey) }]),
-          { Icon: Users, label: t(d.audience === "staff" ? "supply.staffCount" : "supply.guests"), value: d.guestCount },
-          { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
-        ]}
-      />
+      <ActionPanel kind="supply" id={d.id} title={d.title} status={d.status}>
+        {canEdit && (
+          <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
+            <Pencil /> {t("supply.edit")}
+          </Button>
+        )}
+      </ActionPanel>
 
-      <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <div className="grid min-w-0 content-start gap-6 lg:col-span-2 [&>*]:min-w-0">
+      <Card>
+        <CardContent className="grid gap-3">
           {d.dishes.length > 0 && (
-            <Card className="gap-3 py-4">
-              <CardContent className="flex flex-wrap gap-2 px-4">
-                {d.dishes.map((x) => (
-                  <Badge key={x.id} variant="secondary" className="rounded-full px-3 py-1">{x.name}</Badge>
-                ))}
-              </CardContent>
-            </Card>
+            <p className="text-muted-foreground">{d.dishes.map((x) => x.name).join(" · ")}</p>
           )}
+          <p className="text-lg font-semibold">{t("simple.items")} ({d.items.length})</p>
+          <ul className="divide-y">
+            {d.items.map((it, i) => {
+              const changed = it.calculated != null && it.qty !== it.calculated;
+              return (
+                <li key={i} className={cn("flex items-start gap-3 py-2.5", changed && "-mx-2 rounded-lg bg-amber/10 px-2")}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-medium">{it.name}</p>
+                    {it.note && <p className="text-sm text-muted-foreground">{it.note}</p>}
+                    {changed && <p className="text-sm text-amber-deep">{t("simple.wasCalc", { q: qty(it.calculated!, it.unit) })}</p>}
+                  </div>
+                  <p className={cn("shrink-0 text-base font-semibold tabular-nums", changed && "text-amber-deep")}>{qty(it.qty, it.unit)}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display text-2xl">{t("supply.items")}</CardTitle>
-              <CardAction className="text-sm text-muted-foreground">
-                {t("supply.totalItems", { n: d.items.length })}
-                {changedCount > 0 && <span className="ml-2 text-amber-deep">· {changedCount} {t("supply.changed")}</span>}
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("supply.item")}</TableHead>
-                    <TableHead className="text-right">{t("supply.qty")}</TableHead>
-                    <TableHead className="text-right">{t("supply.calc")}</TableHead>
-                    <TableHead>{t("supply.note")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {d.items.map((it, i) => {
-                    const changed = it.calculated != null && it.qty !== it.calculated;
-                    return (
-                      <TableRow key={i} className={cn(changed && "bg-amber/10 hover:bg-amber/15")}>
-                        <TableCell className="font-medium">{it.name}</TableCell>
-                        <TableCell className={cn("text-right tabular-nums", changed && "font-semibold text-amber-deep")}>
-                          {qty(it.qty, it.unit)}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground tabular-nums">
-                          {it.calculated != null ? qty(it.calculated, it.unit) : "—"}
-                        </TableCell>
-                        <TableCell className="max-w-56 whitespace-normal text-muted-foreground">{it.note}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+      {d.status === "approved" && <StockIssuePanel supply={d} />}
 
-          {d.status === "approved" && <StockIssuePanel supply={d} />}
-
-          {d.status === "approved" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-display text-2xl">
-                  <Soup className="size-5 text-muted-foreground" /> {t("transfer.linked")}
-                </CardTitle>
-                {profile.role === "chef" && (
-                  <CardAction className="no-print">
-                    <Button asChild variant="accent">
-                      <Link href={`/leftovers/new?supply=${d.id}`}><Plus /> {t("supply.recordLeftovers")}</Link>
-                    </Button>
-                  </CardAction>
-                )}
-              </CardHeader>
-              <CardContent>
-                {!transfers?.length ? (
-                  <p className="text-sm text-muted-foreground">{t("dash.empty")}</p>
-                ) : (
-                  <ul className="divide-y">
-                    {transfers.map((x) => (
-                      <li key={x.id}>
-                        <Link href={`/leftovers/${x.id}`} className="flex items-center gap-3 py-3 text-sm hover:text-moss">
-                          <span className="flex-1">
-                            {formatDate(x.date)} ·{" "}
-                            {t("transfer.summary", { guests: x.guestCount, portions: x.items.reduce((s, i) => s + (Number(i.portions) || 0), 0) })}
-                          </span>
-                          <StatusBadge status={x.status} />
-                          <ChevronRight className="size-4 text-muted-foreground" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        <div className="grid content-start gap-6">
-          <ActionPanel kind="supply" id={d.id} title={d.title} status={d.status}>
-            {canEdit && (
-              <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
-                <Pencil /> {t("supply.edit")}
+      {d.status === "approved" && (
+        <Card>
+          <CardContent className="grid gap-3">
+            <p className="text-lg font-semibold">{t("transfer.linked")}</p>
+            {profile.role === "chef" && (
+              <Button asChild variant="accent" size="lg" className="no-print w-full">
+                <Link href={`/leftovers/new?supply=${d.id}`}><Plus /> {t("supply.recordLeftovers")}</Link>
               </Button>
             )}
-          </ActionPanel>
-          <Timeline history={d.history} />
-        </div>
-      </div>
+            {!transfers?.length ? (
+              <p className="text-muted-foreground">{t("dash.empty")}</p>
+            ) : (
+              <ul className="divide-y">
+                {transfers.map((x) => (
+                  <li key={x.id}>
+                    <Link href={`/leftovers/${x.id}`} className="flex items-center gap-3 py-3 hover:text-moss">
+                      <span className="flex-1">
+                        {formatDate(x.date)} ·{" "}
+                        {t("transfer.summary", { guests: x.guestCount, portions: x.items.reduce((s, i) => s + (Number(i.portions) || 0), 0) })}
+                      </span>
+                      <StatusBadge status={x.status} />
+                      <ChevronRight className="size-5 text-muted-foreground" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Timeline history={d.history} />
     </div>
   );
 }
