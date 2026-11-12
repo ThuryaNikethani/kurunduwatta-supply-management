@@ -135,6 +135,7 @@ const si = {
   "simple.noItems": "කෑම තෝරපු ගමන් බඩු මෙතන එනවා.",
   "simple.addItem": "බඩුවක් එකතු කරන්න",
   "simple.noRecipe": "මේ කෑම වලට තාම ප්‍රමාණ නෑ: {names}. ඒවට බඩු පහළින් ලියන්න.",
+  "simple.wasCalc": "ගණනෙන් ආවේ {q}",
   "supply.noRecipeAll": "මේ කෑම වලට තාම ප්‍රමාණ දාලා නෑ:",
   "supply.noRecipeSome": "මේ කෑම වලට තාම ප්‍රමාණ නෑ. ඒවා ගණනට ගත්තේ නෑ:",
   "supply.noRecipeHelp": "ඒවට ඕන බඩු පහළින් ඔයාම ලියන්න.",
