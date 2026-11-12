@@ -19,10 +19,8 @@ export function AuthLayout({ title, children }: { title: string; children: React
         <div className="absolute -top-24 -right-24 size-96 rounded-full bg-moss/60" aria-hidden />
         <div className="absolute -bottom-32 -left-16 size-80 rounded-full bg-moss/40" aria-hidden />
         <div className="relative flex items-center gap-4">
-          <span className="flex items-center gap-3 rounded-xl bg-white px-3 py-2">
-            <Image src="/logos/ag.png" alt={t("auth.group")} width={64} height={64} priority className="h-14 w-auto" />
-            <Image src="/logos/villa.png" alt={t("villa")} width={107} height={56} priority className="h-14 w-auto" />
-          </span>
+          <Image src="/logos/ag-light.png" alt={t("auth.group")} width={58} height={64} priority className="h-16 w-auto" />
+          <Image src="/logos/villa-light.png" alt={t("villa")} width={122} height={64} priority className="h-16 w-auto" />
           <span className="font-display text-2xl font-semibold">{t("auth.group")}</span>
         </div>
         <div className="relative">
@@ -55,7 +53,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
       <div className="flex flex-col bg-background">
         <div className="flex items-center justify-between p-4">
           <span className="flex items-center gap-3 lg:invisible">
-            <Image src="/logos/ag.png" alt={t("auth.group")} width={40} height={40} priority className="h-10 w-auto" />
+            <Image src="/logos/ag-clear.png" alt={t("auth.group")} width={36} height={40} priority className="h-10 w-auto" />
             <Image src="/logos/villa.png" alt={t("villa")} width={76} height={40} priority className="h-10 w-auto" />
             <span className="font-display text-lg font-semibold">{t("auth.group")}</span>
           </span>
