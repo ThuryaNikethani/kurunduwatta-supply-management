@@ -109,12 +109,10 @@ export default function Dashboard() {
             <TabsTrigger value="supply"><ClipboardList /> {t("dash.supplyLists")}</TabsTrigger>
             <TabsTrigger value="transfer"><Soup /> {t("dash.transfers")}</TabsTrigger>
           </TabsList>
-          {s.length + tr.length > 8 && (
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="h-11 bg-card pl-9" placeholder={t("dash.search")} value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-          )}
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="h-11 bg-card pl-9" placeholder={t("dash.search")} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <TabsContent value="supply">
             <List loading={!supply.data} count={s.filter(match).length}>
               {s.filter(match).map((d) => <SupplyRow key={d.id} d={d} />)}
