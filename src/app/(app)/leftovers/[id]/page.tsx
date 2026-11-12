@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, ChefHat, ClipboardList, Pencil, Soup, Users } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { EmptyState, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid } from "@/components/DetailBits";
+import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Timeline } from "@/components/Timeline";
@@ -65,7 +65,7 @@ export default function TransferDetail() {
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-5">
       <PrintHeader heading={t("transfer.new")} />
       <BackBar />
       <PageHeader
@@ -79,6 +79,16 @@ export default function TransferDetail() {
         }
       />
 
+      <ReturnNote history={d.history} />
+
+      <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
+        {canEdit && (
+          <Button variant="accent" className="h-14 w-full text-lg" onClick={() => setEditing(true)}>
+            <Pencil className="size-5" /> {t("supply.edit")}
+          </Button>
+        )}
+      </ActionPanel>
+
       <InfoGrid
         items={[
           { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date) },
@@ -88,8 +98,8 @@ export default function TransferDetail() {
         ]}
       />
 
-      <div className="print-full grid gap-6 lg:grid-cols-3">
-        <div className="grid content-start gap-6 lg:col-span-2">
+      <div className="grid gap-5">
+        <div className="grid content-start gap-5">
           <Card>
             <CardHeader>
               <CardTitle className="font-display text-2xl">{t("transfer.items")}</CardTitle>
@@ -133,16 +143,7 @@ export default function TransferDetail() {
           </Card>
         </div>
 
-        <div className="grid content-start gap-6">
-          <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
-            {canEdit && (
-              <Button variant="outline" className="w-full" onClick={() => setEditing(true)}>
-                <Pencil /> {t("supply.edit")}
-              </Button>
-            )}
-          </ActionPanel>
-          <Timeline history={d.history} />
-        </div>
+        <Timeline history={d.history} />
       </div>
     </div>
   );
