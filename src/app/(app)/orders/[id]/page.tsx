@@ -115,8 +115,6 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [receiving, setReceiving] = useState(false);
-  /** Writing the reason for sending it back. */
-  const [returning, setReturning] = useState(false);
   if (!profile) return null;
   const actions = orderActions(profile.role, order.status);
   if (!actions.length) return null;
@@ -130,7 +128,6 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
     try {
       await performOrderAction(order, profile, a as "po_approve" | "po_return", note);
       setNote("");
-      setReturning(false);
       toast.success(t(`did.${a}` as TKey));
     } catch (e) {
       toast.error(errorText(e));
@@ -145,34 +142,26 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
     <Card className="no-print border-amber/60 ring-2 ring-amber/30">
       <CardContent className="grid gap-3">
         <p className="font-display text-2xl font-semibold">{t("detail.yourTurn")}</p>
-        {returning ? (
-          <>
-            <Field label={t("act.whyBack")} htmlFor="o-action-note" error={error}>
-              <Textarea id="o-action-note" rows={3} autoFocus placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
-                onChange={(e) => { setNote(e.target.value); setError(""); }} />
-            </Field>
-            <Button disabled={busy} onClick={() => run("po_return")} variant="destructive" className="h-14 w-full text-lg">
-              <Undo2 className="size-5" /> {busy ? t("saving") : t("action.po_return")}
-            </Button>
-            <Button variant="ghost" className="h-11" onClick={() => { setReturning(false); setError(""); }}>{t("cancel")}</Button>
-          </>
-        ) : (
-          actions.map((a) => {
+        {actions.some((a) => a !== "po_resubmit") && (
+          <Field label={t("act.noteLabel")} htmlFor="o-action-note" error={error}>
+            <Textarea id="o-action-note" rows={2} placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
+              onChange={(e) => { setNote(e.target.value); setError(""); }} />
+          </Field>
+        )}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {actions.map((a) => {
             const Icon = a === "po_resubmit" ? Pencil : ICON[a];
-            if (a === "po_return")
-              return (
-                <Button key={a} disabled={busy} variant="outline" onClick={() => setReturning(true)}
-                  className="h-12 w-full border-destructive/40 text-base text-destructive hover:bg-destructive/5 hover:text-destructive">
-                  <Undo2 /> {t("action.po_return")}
-                </Button>
-              );
+            const back = a === "po_return";
             return (
-              <Button key={a} disabled={busy} onClick={() => run(a)} variant="accent" className="h-14 w-full text-lg">
+              <Button key={a} disabled={busy} onClick={() => run(a)} variant={back ? "outline" : "accent"}
+                className={back
+                  ? "h-14 w-full border-2 border-destructive/50 text-lg text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  : "h-14 w-full text-lg"}>
                 <Icon className="size-5" /> {a === "po_resubmit" ? t("orders.edit") : t(`action.${a}` as TKey)}
               </Button>
             );
-          })
-        )}
+          })}
+        </div>
       </CardContent>
 
       <Dialog open={receiving} onOpenChange={setReceiving}>
