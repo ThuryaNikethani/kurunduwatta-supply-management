@@ -14,7 +14,7 @@ export function PrintHeader({ heading }: { heading: string }) {
     <div className="print-only mb-6 border-b-2 border-forest pb-3">
       <div className="grid grid-cols-[8rem_1fr_8rem] items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logos/ag-clear.png" alt="Athukorala Group" className="h-20 w-auto justify-self-start" />
+        <img src="/logos/print-ag.png" alt="Athukorala Group" width={73} height={80} loading="eager" decoding="sync" className="h-20 w-auto justify-self-start" />
         <div className="text-center">
           <p className="text-2xl font-bold tracking-wide text-[#1f6b2e]">{t("print.company")}</p>
           <p className="mt-1 text-lg font-semibold">{heading}</p>
@@ -24,7 +24,7 @@ export function PrintHeader({ heading }: { heading: string }) {
           </p>
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logos/villa.png" alt="Kurunduwatta Villa" className="h-14 w-auto justify-self-end" />
+        <img src="/logos/print-villa.png" alt="Kurunduwatta Villa" width={107} height={56} loading="eager" decoding="sync" className="h-14 w-auto justify-self-end" />
       </div>
     </div>
   );
@@ -58,10 +58,18 @@ export function PrintSignature() {
   );
 }
 
+/** Wait until every picture (the logos) has fully loaded, then print. */
+async function printWhenReady() {
+  await Promise.all(
+    [...document.images].map((img) => (img.complete ? img.decode() : new Promise((r) => { img.onload = img.onerror = r; })).catch(() => {})),
+  );
+  window.print();
+}
+
 export function PrintButton() {
   const { t } = useI18n();
   return (
-    <Button variant="outline" className="no-print" onClick={() => window.print()}>
+    <Button variant="outline" className="no-print" onClick={printWhenReady}>
       <Printer />
       {t("print.button")}
     </Button>
