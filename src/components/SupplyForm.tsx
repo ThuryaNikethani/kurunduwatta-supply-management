@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowLeft, ArrowRight, BookOpen, Calculator, Check, Clock3, Coffee, Flame, HardHat, MessageSquare, Minus, Moon, PenLine,
+  ArrowLeft, ArrowRight, BookOpen, CalendarDays, Calculator, Check, Clock3, Coffee, Flame, HardHat, MessageSquare, Minus, Moon, PenLine,
   Plus, RefreshCw, Search, Send, Sun, Sunrise, Trash2, TriangleAlert, Users, UtensilsCrossed, X,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
@@ -145,6 +145,10 @@ export function SupplyForm({
   const [items, setItems] = useState<SupplyItem[]>(initial?.items ?? []);
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
+  /** Date and guest name are folded away unless the chef asks for them. */
+  const [more, setMore] = useState(!!initial?.title && initial.audience !== "staff");
+  /** The item row open for changes; the rest show as one short line. */
+  const [openRow, setOpenRow] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -190,6 +194,8 @@ export function SupplyForm({
       setItems(d.items);
       setNote(d.note);
       setShowNote(!!d.note);
+      setMore(!!d.title);
+      setOpenRow(null);
       setManual(!!d.manual);
       setOtherItems(d.otherItems ?? []);
       setOwnDishes(d.ownDishes ?? []);
@@ -210,6 +216,7 @@ export function SupplyForm({
     return [...map.entries()];
   }, [recipes.data, search, audience]);
 
+  const menuSize = (recipes.data ?? []).filter((r) => (r.menu ?? "guests") === audience).length;
   const selected = new Set(dishes.map((d) => d.id));
   const toggleDish = (id: string, name: string) =>
     setDishes((cur) => (selected.has(id) ? cur.filter((d) => d.id !== id) : [...cur, { id, name }]));
@@ -370,7 +377,6 @@ export function SupplyForm({
             <span key={k} className={cn("h-2 flex-1 rounded-full", i <= step ? "bg-amber" : "bg-secondary")} />
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">{t("wiz.step", { n: step + 1, total: STEPS.length })}</p>
         <h2 className="font-display text-3xl font-semibold">{t(STEPS[step])}</h2>
       </div>
 
@@ -417,39 +423,36 @@ export function SupplyForm({
                   </div>
                 </div>
               )}
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label={t("supply.orderDate")} htmlFor="date" error={errors.eventDate}>
-                  <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate} className="h-12"
-                    onChange={(e) => setEventDate(e.target.value)} />
-                </Field>
-                {!isStaff && (
-                  <Field label={`${t("supply.title")} ${t("wiz.optional")}`} htmlFor="title" error={errors.title}>
-                    <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title} className="h-12"
-                      onChange={(e) => setTitle(e.target.value)} />
+              {/* Date is today and the name is optional, so both stay folded away. */}
+              {more || errors.eventDate || errors.title ? (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label={t("supply.orderDate")} htmlFor="date" error={errors.eventDate}>
+                    <Input id="date" type="date" value={eventDate} aria-invalid={!!errors.eventDate} className="h-12"
+                      onChange={(e) => setEventDate(e.target.value)} />
                   </Field>
-                )}
-              </div>
+                  {!isStaff && (
+                    <Field label={`${t("supply.title")} ${t("wiz.optional")}`} htmlFor="title" error={errors.title}>
+                      <Input id="title" placeholder={t("supply.titlePh")} value={title} aria-invalid={!!errors.title} className="h-12"
+                        onChange={(e) => setTitle(e.target.value)} />
+                    </Field>
+                  )}
+                </div>
+              ) : (
+                <button type="button" onClick={() => setMore(true)}
+                  className="flex items-center gap-2 text-left text-sm text-muted-foreground hover:text-foreground">
+                  <CalendarDays className="size-4 shrink-0" />
+                  {t("wiz.dateIs", { date: eventDate === today() ? t("wiz.today") : formatDate(eventDate) })}
+                  <span className="font-medium text-amber-deep underline underline-offset-4">{t(isStaff ? "wiz.changeDate" : "wiz.changeMore")}</span>
+                </button>
+              )}
             </>
           )}
 
           {/* 3. food */}
           {step === 2 && (
             <>
-              {!isStaff && (
-                <div role="radiogroup" aria-label={t("supply.mode")} className="grid gap-3 sm:grid-cols-2">
-                  {([false, true] as const).map((m) => (
-                    <BigChoice key={String(m)} on={manual === m} Icon={m ? PenLine : Calculator}
-                      title={t(m ? "supply.modeManual" : "supply.modeCalc")}
-                      hint={t(m ? "supply.modeManualHint" : "supply.modeCalcHint")}
-                      onClick={() => chooseManual(m)} />
-                  ))}
-                </div>
-              )}
               {manual ? (
                 <div className="grid gap-3">
-                  <p className="flex gap-2 rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-                    <PenLine className="mt-0.5 size-4 shrink-0" /> {t("supply.manualHelp")}
-                  </p>
                   <label htmlFor="own-dish" className="text-xs tracking-wide text-muted-foreground uppercase">{t("supply.ownDishes")}</label>
                   <div className="flex gap-2">
                     <Input id="own-dish" placeholder={t("supply.ownDishPh")} value={dishInput} className="h-12"
@@ -470,6 +473,12 @@ export function SupplyForm({
                       ))}
                     </div>
                   )}
+                  {!isStaff && (
+                    <button type="button" onClick={() => chooseManual(false)}
+                      className="mt-2 flex items-center gap-2 text-left text-sm font-medium text-amber-deep underline underline-offset-4">
+                      <ArrowLeft className="size-4" /> {t("wiz.backToMenu")}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -484,10 +493,13 @@ export function SupplyForm({
                       ))}
                     </div>
                   )}
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
-                    <Input className="h-12 pl-10" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
-                  </div>
+                  {/* Search only helps when the menu is long. */}
+                  {(menuSize > 15 || search) && (
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
+                      <Input className="h-12 pl-10" placeholder={t("supply.searchDish")} value={search} onChange={(e) => setSearch(e.target.value)} />
+                    </div>
+                  )}
                   {!recipes.data ? (
                     <Skeleton className="h-40" />
                   ) : grouped.length === 0 && !search ? (
@@ -518,10 +530,16 @@ export function SupplyForm({
                     </div>
                   )}
                   {errors.dishes && <p role="alert" className="text-sm text-destructive">{t(errors.dishes as TKey)}</p>}
-                  <div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setAddingDish(true)}>
-                      <UtensilsCrossed /> {t("supply.newDish")}
-                    </Button>
+                  <div className="grid gap-2 border-t pt-3 text-sm">
+                    <p className="text-muted-foreground">{t("wiz.notOnMenu")}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" onClick={() => chooseManual(true)}>
+                        <PenLine /> {t("supply.modeManual")}
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setAddingDish(true)}>
+                        <UtensilsCrossed /> {t("supply.newDish")}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -567,8 +585,21 @@ export function SupplyForm({
                   <p className="text-sm text-muted-foreground">{t("supply.totalItems", { n: items.length })}</p>
                   {items.map((it, i) => {
                     const changed = it.calculated != null && Number(it.qty) !== it.calculated;
+                    const rowError = Object.keys(errors).some((k) => k.startsWith(`items.${i}.`) && errors[k]);
+                    // A short line until the chef taps it; empty or wrong rows open by themselves.
+                    if (openRow !== i && it.name.trim() && Number(it.qty) > 0 && !rowError)
+                      return (
+                        <button key={i} type="button" onClick={() => setOpenRow(i)} aria-label={`${t("wiz.editItem")}: ${it.name}`}
+                          className={cn("flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition hover:border-amber/60",
+                            changed ? "border-amber/50 bg-amber/10" : "bg-card")}>
+                          <span className="min-w-0 flex-1 truncate text-base font-medium">{it.name}</span>
+                          <span className="shrink-0 text-base font-semibold">{qty(it.qty, it.unit)}</span>
+                          <PenLine className="size-4 shrink-0 text-muted-foreground" />
+                        </button>
+                      );
                     return (
-                      <div key={i} className={cn("grid grid-cols-12 items-start gap-2 rounded-xl border p-2", changed ? "border-amber/50 bg-amber/10" : "bg-muted/30")}>
+                      <div key={i} onFocusCapture={() => setOpenRow(i)}
+                        className={cn("grid grid-cols-12 items-start gap-2 rounded-xl border-2 border-amber/60 p-2", changed ? "bg-amber/10" : "bg-muted/30")}>
                         <Field error={errors[`items.${i}.name`]} className="col-span-12 sm:col-span-4">
                           <Input placeholder={t("supply.item")} value={it.name} aria-invalid={!!errors[`items.${i}.name`]}
                             className="h-11 bg-card" onChange={(e) => update(i, { name: e.target.value })} />
@@ -582,17 +613,20 @@ export function SupplyForm({
                           <UnitSelect value={it.unit} onChange={(unit) => update(i, { unit })} className="h-11" />
                         </div>
                         <Button type="button" variant="ghost" size="icon-lg" className="col-span-2 justify-self-end text-destructive hover:text-destructive sm:order-last sm:col-span-1"
-                          aria-label={t("remove")} onClick={() => setItems((cur) => cur.filter((_, j) => j !== i))}>
+                          aria-label={t("remove")} onClick={() => { setItems((cur) => cur.filter((_, j) => j !== i)); setOpenRow(null); }}>
                           <Trash2 />
                         </Button>
                         <Input className="col-span-12 h-11 bg-card sm:col-span-3" placeholder={t("supply.note")} value={it.note}
                           onChange={(e) => update(i, { note: e.target.value })} />
-                        {it.calculated != null && (
-                          <p className="order-last col-span-12 px-1 text-xs text-muted-foreground">
-                            {t("supply.calc")}: {qty(it.calculated, it.unit)}
+                        <div className="order-last col-span-12 flex flex-wrap items-center justify-between gap-2 px-1">
+                          <p className="text-xs text-muted-foreground">
+                            {it.calculated != null && <>{t("supply.calc")}: {qty(it.calculated, it.unit)}</>}
                             {changed && <span className="ml-2 font-medium text-amber-deep">• {t("supply.changed")}</span>}
                           </p>
-                        )}
+                          <Button type="button" size="sm" variant="secondary" onClick={() => setOpenRow(null)}>
+                            <Check /> {t("wiz.done")}
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
@@ -601,10 +635,10 @@ export function SupplyForm({
               {errors.items && <p className="text-sm text-destructive">{t(errors.items as TKey)}</p>}
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="lg"
-                  onClick={() => setItems((cur) => [...cur, { name: "", qty: 0, unit: "kg", note: "", calculated: null }])}>
+                  onClick={() => { setOpenRow(items.length); setItems((cur) => [...cur, { name: "", qty: 0, unit: "kg", note: "", calculated: null }]); }}>
                   <Plus /> {t("supply.addItem")}
                 </Button>
-                {!manual && dishes.length > 0 && (
+                {!manual && dishes.length > 0 && JSON.stringify(items) !== lastCalc.current && (
                   <Button type="button" variant="ghost" size="lg" onClick={onCalculateClick}>
                     <RefreshCw /> {t("wiz.recalc")}
                   </Button>
