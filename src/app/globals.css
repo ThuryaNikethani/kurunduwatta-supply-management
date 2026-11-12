@@ -137,7 +137,20 @@
     break-inside: avoid;
   }
   [data-slot="card"].print-flow {
+    display: block;
     break-inside: auto;
+  }
+  [data-slot="card"].print-flow > * + * {
+    margin-top: 1rem;
+  }
+  /* Grid pages push long cards to the next sheet; lay pages out as plain blocks. */
+  .print-main > div:not(.no-print),
+  .print-main > div > .print-full {
+    display: block !important;
+  }
+  .print-main > div > * + *,
+  .print-main > div > .print-full > * + * {
+    margin-top: 1rem;
   }
   li,
   tr {
