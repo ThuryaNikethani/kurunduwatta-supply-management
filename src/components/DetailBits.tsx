@@ -53,3 +53,16 @@ export function ReturnNote({ status, history }: { status: string; history: { act
     </div>
   );
 }
+
+/** The supervisor's note (and any amounts they changed), shown to HR at the top. */
+export function ForwardNote({ status, history }: { status: string; history: { action: string; note: string; name: string }[] }) {
+  const { t } = useI18n();
+  const last = history[history.length - 1];
+  if (status !== "pending_hr" || !last || last.action !== "forward_to_hr" || !(last.note ?? "").trim()) return null;
+  return (
+    <div className="rounded-xl border-2 border-amber/60 bg-amber/10 p-4">
+      <p className="font-semibold text-amber-deep">{t("detail.noteFrom", { name: last.name })}</p>
+      <p className="mt-1 text-lg whitespace-pre-wrap">{last.note}</p>
+    </div>
+  );
+}
