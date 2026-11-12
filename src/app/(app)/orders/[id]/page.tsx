@@ -5,14 +5,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, PackageCheck, Pencil, Send, Store, Undo2, UserRound } from "lucide-react";
 import { EmptyState, Field, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid } from "@/components/DetailBits";
+import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
 import { OrderBadge } from "@/components/OrderBadge";
 import { OrderForm } from "@/components/OrderForm";
 import { PrintHeader } from "@/components/PrintHeader";
 import { Timeline } from "@/components/Timeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,10 +53,12 @@ export default function OrderDetail() {
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-5">
       <PrintHeader heading={t("orders.title")} />
       <BackBar href="/orders" />
-      <PageHeader eyebrow={t("orders.title")} title={o.supplier} subtitle={<OrderBadge status={o.status} className="mt-1" />} />
+      <PageHeader title={o.supplier} subtitle={<OrderBadge status={o.status} className="mt-1" />} />
+      <ReturnNote history={o.history} />
+      <OrderActions order={o} onEdit={() => setEditing(true)} />
       <InfoGrid
         items={[
           { Icon: Store, label: t("orders.supplier"), value: o.supplier },
@@ -65,8 +67,8 @@ export default function OrderDetail() {
           { Icon: UserRound, label: t("detail.createdBy"), value: o.createdByName },
         ]}
       />
-      <div className="print-full grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-5">
+        <Card>
           <CardHeader>
             <CardTitle className="font-display text-2xl">{t("orders.items")}</CardTitle>
           </CardHeader>
@@ -91,10 +93,7 @@ export default function OrderDetail() {
             </Table>
           </CardContent>
         </Card>
-        <div className="grid content-start gap-6">
-          <OrderActions order={o} onEdit={() => setEditing(true)} />
-          <Timeline history={o.history} />
-        </div>
+        <Timeline history={o.history} />
       </div>
     </div>
   );
@@ -116,6 +115,8 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [receiving, setReceiving] = useState(false);
+  /** Writing the reason for sending it back. */
+  const [returning, setReturning] = useState(false);
   if (!profile) return null;
   const actions = orderActions(profile.role, order.status);
   if (!actions.length) return null;
@@ -129,6 +130,7 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
     try {
       await performOrderAction(order, profile, a as "po_approve" | "po_return", note);
       setNote("");
+      setReturning(false);
       toast.success(t(`did.${a}` as TKey));
     } catch (e) {
       toast.error(errorText(e));
@@ -141,29 +143,36 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
 
   return (
     <Card className="no-print border-amber/60 ring-2 ring-amber/30">
-      <CardHeader>
-        <CardTitle className="font-display text-2xl">{t("detail.yourTurn")}</CardTitle>
-        <CardDescription>{t(`order.status.${order.status}` as TKey)}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {actions.some((a) => a !== "po_resubmit") && (
-          <Field label={t("detail.reason")} htmlFor="o-action-note" error={error}>
-            <Textarea id="o-action-note" rows={3} placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
-              onChange={(e) => { setNote(e.target.value); setError(""); }} />
-          </Field>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {actions.map((a) => {
+      <CardContent className="grid gap-3">
+        <p className="font-display text-2xl font-semibold">{t("detail.yourTurn")}</p>
+        {returning ? (
+          <>
+            <Field label={t("act.whyBack")} htmlFor="o-action-note" error={error}>
+              <Textarea id="o-action-note" rows={3} autoFocus placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
+                onChange={(e) => { setNote(e.target.value); setError(""); }} />
+            </Field>
+            <Button disabled={busy} onClick={() => run("po_return")} variant="destructive" className="h-14 w-full text-lg">
+              <Undo2 className="size-5" /> {busy ? t("saving") : t("action.po_return")}
+            </Button>
+            <Button variant="ghost" className="h-11" onClick={() => { setReturning(false); setError(""); }}>{t("cancel")}</Button>
+          </>
+        ) : (
+          actions.map((a) => {
             const Icon = a === "po_resubmit" ? Pencil : ICON[a];
+            if (a === "po_return")
+              return (
+                <Button key={a} disabled={busy} variant="outline" onClick={() => setReturning(true)}
+                  className="h-12 w-full border-destructive/40 text-base text-destructive hover:bg-destructive/5 hover:text-destructive">
+                  <Undo2 /> {t("action.po_return")}
+                </Button>
+              );
             return (
-              <Button key={a} disabled={busy} onClick={() => run(a)}
-                variant={a === "po_return" ? "outline" : a === "po_approve" ? "default" : "accent"}
-                className={a === "po_return" ? "border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive" : ""}>
-                <Icon /> {a === "po_resubmit" ? t("orders.edit") : t(`action.${a}` as TKey)}
+              <Button key={a} disabled={busy} onClick={() => run(a)} variant="accent" className="h-14 w-full text-lg">
+                <Icon className="size-5" /> {a === "po_resubmit" ? t("orders.edit") : t(`action.${a}` as TKey)}
               </Button>
             );
-          })}
-        </div>
+          })
+        )}
       </CardContent>
 
       <Dialog open={receiving} onOpenChange={setReceiving}>
