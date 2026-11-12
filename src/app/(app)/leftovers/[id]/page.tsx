@@ -4,19 +4,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, ChefHat, ClipboardList, Pencil, Soup, Users } from "lucide-react";
+import { ClipboardList, Pencil } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
-import { EmptyState, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
+import { EmptyState } from "@/components/common";
+import { BackBar, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Timeline } from "@/components/Timeline";
 import { TransferForm } from "@/components/TransferForm";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
 import { hasDraft } from "@/lib/draft";
@@ -46,8 +44,8 @@ export default function TransferDetail() {
 
   if (editing && canEdit)
     return (
-      <div className="grid gap-6 [&>*]:min-w-0">
-        <PageHeader eyebrow={d.supplyTitle} title={t("transfer.new")} />
+      <div className="mx-auto grid w-full max-w-3xl gap-4 [&>*]:min-w-0">
+        <h1 className="font-display text-3xl font-semibold">{t("transfer.new")}</h1>
         <TransferForm
           draftKey={draftKey}
           dishOptions={supply?.dishes.map((x) => x.name) ?? []}
@@ -65,87 +63,50 @@ export default function TransferDetail() {
     );
 
   return (
-    <div className="grid gap-6 [&>*]:min-w-0">
+    <div className="mx-auto grid w-full max-w-3xl gap-4 [&>*]:min-w-0">
       <PrintHeader heading={t("transfer.new")} />
       <BackBar />
-      <PageHeader
-        eyebrow={t("transfer.new")}
-        title={d.supplyTitle}
-        subtitle={<StatusBadge status={d.status} className="mt-1" />}
-        actions={
-          <Button asChild variant="outline">
-            <Link href={`/requests/${d.supplyId}`}><ClipboardList /> {t("dash.supplyLists")}</Link>
-          </Button>
-        }
-      />
+
+      <div className="grid gap-2">
+        <p className="text-sm text-muted-foreground">{t("transfer.new")}</p>
+        <h1 className="font-display text-3xl font-semibold">{d.supplyTitle}</h1>
+        <div><StatusBadge status={d.status} className="text-sm" /></div>
+        <p className="text-muted-foreground">{formatDate(d.date)} · {t("transfer.summary", { guests: d.guestCount, portions })} · {d.createdByName}</p>
+      </div>
 
       <ReturnNote status={d.status} history={d.history} />
 
-      <InfoGrid
-        items={[
-          { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date) },
-          { Icon: Users, label: t("transfer.madeFor"), value: t("people", { n: d.guestCount }) },
-          { Icon: Soup, label: t("transfer.portions"), value: portions },
-          { Icon: ChefHat, label: t("detail.createdBy"), value: d.createdByName },
-        ]}
-      />
+      <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
+        {canEdit && (
+          <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
+            <Pencil /> {t("supply.edit")}
+          </Button>
+        )}
+      </ActionPanel>
 
-      <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
-        <div className="grid min-w-0 content-start gap-6 lg:col-span-2 [&>*]:min-w-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-display text-2xl">{t("transfer.items")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("transfer.dish")}</TableHead>
-                    <TableHead className="text-right">{t("transfer.portions")}</TableHead>
-                    <TableHead>{t("supply.note")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {d.items.map((it, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{it.dish}</TableCell>
-                      <TableCell className="text-right tabular-nums">{it.portions}</TableCell>
-                      <TableCell className="max-w-56 whitespace-normal text-muted-foreground">{it.note}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <p className="mt-4 rounded-lg bg-secondary/60 px-3 py-2 text-sm">
-                {t("transfer.summary", { guests: d.guestCount, portions })}
-              </p>
-            </CardContent>
-          </Card>
+      <Card>
+        <CardContent className="grid gap-3">
+          <p className="text-lg font-semibold">{t("transfer.items")}</p>
+          <ul className="divide-y">
+            {d.items.map((it, i) => (
+              <li key={i} className="flex items-start gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-medium">{it.dish}</p>
+                  {it.note && <p className="text-sm text-muted-foreground">{it.note}</p>}
+                </div>
+                <p className="shrink-0 text-base font-semibold">{t("people", { n: it.portions })}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="text-lg font-semibold">{t("transfer.recipients")}</p>
+          <p className="text-base">{d.recipients.join(", ")}</p>
+          <Button asChild variant="outline" className="no-print w-full">
+            <Link href={`/requests/${d.supplyId}`}><ClipboardList /> {t("dash.supplyLists")}</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-display text-2xl">
-                <Users className="size-5 text-muted-foreground" /> {t("transfer.recipients")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              {d.recipients.map((r) => (
-                <Badge key={r} variant="secondary" className="rounded-full px-3 py-1 text-sm">{r}</Badge>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid content-start gap-6">
-          <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
-            {canEdit && (
-              <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
-                <Pencil /> {t("supply.edit")}
-              </Button>
-            )}
-          </ActionPanel>
-          <Timeline history={d.history} />
-        </div>
-      </div>
+      <Timeline history={d.history} />
     </div>
   );
 }
