@@ -44,6 +44,7 @@ import { initials } from "./common";
 import { IosInstallHint } from "./IosInstallHint";
 import { PasswordDialog } from "./PasswordDialog";
 import { PushBanner } from "./PushBanner";
+import { PrintSignature } from "./PrintHeader";
 
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
@@ -259,6 +260,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <IosInstallHint />
           <PushBanner />
           {children}
+          <PrintSignature />
         </main>
       </div>
     </div>
