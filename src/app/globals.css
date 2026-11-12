@@ -129,11 +129,14 @@
     padding: 0 !important;
     max-width: none !important;
   }
-  /* Long cards (like the item list) may run onto the next page;
-     only single rows are kept whole. */
+  /* Cards stay whole on one page. Long ones marked .print-flow (item lists,
+     history) may run onto the next page; their rows are kept whole. */
   [data-slot="card"] {
     box-shadow: none !important;
     border-color: #ccc !important;
+    break-inside: avoid;
+  }
+  [data-slot="card"].print-flow {
     break-inside: auto;
   }
   li,
