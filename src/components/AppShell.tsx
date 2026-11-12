@@ -206,7 +206,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const unread = useLiveNotifications();
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   if (!profile) return null;
+  /** Setup hints only on the home page, so forms stay clear. */
+  const onHome = pathname === "/dashboard";
 
   return (
     <div className="min-h-screen lg:flex">
@@ -256,8 +259,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <main className="print-main mx-auto w-full max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
-          <IosInstallHint />
-          <PushBanner />
+          {onHome && <IosInstallHint />}
+          {onHome && <PushBanner />}
           {children}
         </main>
       </div>
