@@ -4,7 +4,7 @@ import { CheckCircle2, Forward, Send, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { performAction } from "@/lib/actions";
 import { useAuth } from "@/lib/auth";
@@ -23,8 +23,8 @@ const ICON: Record<Action, typeof Send> = {
 };
 
 /**
- * Review buttons for the current user's role, all in plain sight: a note box,
- * a big "yes" button and a "send back" button (which needs a reason).
+ * Review buttons for the current user's role. Sending back requires a reason;
+ * the chef can resend with a note explaining their quantities.
  */
 export function ActionPanel({
   kind, id, title, status, children,
@@ -62,23 +62,38 @@ export function ActionPanel({
 
   return (
     <Card className="no-print border-amber/60 ring-2 ring-amber/30">
-      <CardContent className="grid gap-3">
-        <p className="font-display text-2xl font-semibold">{t("detail.yourTurn")}</p>
+      <CardHeader>
+        <CardTitle className="font-display text-2xl">{t("detail.yourTurn")}</CardTitle>
+        <CardDescription>{t(`status.${status}`)}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
         {children}
-        <Field label={t("act.noteLabel")} htmlFor="note" error={error}>
-          <Textarea id="note" rows={2} placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
-            onChange={(e) => { setNote(e.target.value); if (error) setError(""); }} />
+        <Field label={t("detail.reason")} htmlFor="note" error={error}>
+          <Textarea
+            id="note"
+            rows={3}
+            placeholder={t("detail.notePh")}
+            value={note}
+            aria-invalid={!!error}
+            onChange={(e) => {
+              setNote(e.target.value);
+              if (error) setError("");
+            }}
+          />
         </Field>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-2">
           {actions.map((a) => {
             const Icon = ICON[a];
-            const back = noteRequired(a);
             return (
-              <Button key={a} disabled={!!busy} onClick={() => run(a)} variant={back ? "outline" : "accent"}
-                className={back
-                  ? "h-14 w-full border-2 border-destructive/50 text-lg text-destructive hover:bg-destructive/5 hover:text-destructive"
-                  : "h-14 w-full text-lg"}>
-                <Icon className="size-5" /> {busy === a ? t("saving") : t(`action.${a}`)}
+              <Button
+                key={a}
+                disabled={!!busy}
+                onClick={() => run(a)}
+                variant={noteRequired(a) ? "outline" : a === "approve" ? "default" : "accent"}
+                className={noteRequired(a) ? "border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive" : ""}
+              >
+                <Icon />
+                {busy === a ? t("saving") : t(`action.${a}`)}
               </Button>
             );
           })}
