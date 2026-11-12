@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, ChefHat, ClipboardList, Pencil, Soup, Users } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { EmptyState, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid } from "@/components/DetailBits";
+import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Timeline } from "@/components/Timeline";
@@ -46,7 +46,7 @@ export default function TransferDetail() {
 
   if (editing && canEdit)
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader eyebrow={d.supplyTitle} title={t("transfer.new")} />
         <TransferForm
           draftKey={draftKey}
@@ -65,7 +65,7 @@ export default function TransferDetail() {
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <PrintHeader heading={t("transfer.new")} />
       <BackBar />
       <PageHeader
@@ -79,6 +79,8 @@ export default function TransferDetail() {
         }
       />
 
+      <ReturnNote status={d.status} history={d.history} />
+
       <InfoGrid
         items={[
           { Icon: CalendarDays, label: t("transfer.date"), value: formatDate(d.date) },
@@ -88,8 +90,8 @@ export default function TransferDetail() {
         ]}
       />
 
-      <div className="print-full grid gap-6 lg:grid-cols-3">
-        <div className="grid content-start gap-6 lg:col-span-2">
+      <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+        <div className="grid min-w-0 content-start gap-6 lg:col-span-2 [&>*]:min-w-0">
           <Card>
             <CardHeader>
               <CardTitle className="font-display text-2xl">{t("transfer.items")}</CardTitle>
@@ -136,7 +138,7 @@ export default function TransferDetail() {
         <div className="grid content-start gap-6">
           <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
             {canEdit && (
-              <Button variant="outline" className="w-full" onClick={() => setEditing(true)}>
+              <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
                 <Pencil /> {t("supply.edit")}
               </Button>
             )}
