@@ -255,7 +255,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="print-main mx-auto w-full max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
+        <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
           <IosInstallHint />
           <PushBanner />
           {children}
