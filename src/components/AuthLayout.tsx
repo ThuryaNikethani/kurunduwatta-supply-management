@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChefHat, ClipboardCheck, ShieldCheck, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
@@ -17,14 +18,12 @@ export function AuthLayout({ title, children }: { title: string; children: React
       <div className="relative hidden flex-col justify-between overflow-hidden bg-forest p-10 text-cream lg:flex">
         <div className="absolute -top-24 -right-24 size-96 rounded-full bg-moss/60" aria-hidden />
         <div className="absolute -bottom-32 -left-16 size-80 rounded-full bg-moss/40" aria-hidden />
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-amber text-forest">
-            <ChefHat className="size-6" />
-          </span>
-          <span className="font-display text-2xl font-semibold">{t("villa")}</span>
+        <div className="relative flex items-center gap-4">
+          <Image src="/logos/villa-light.png" alt={t("villa")} width={160} height={84} priority className="h-16 w-auto" />
+          <span className="font-display text-2xl font-semibold">{t("auth.group")}</span>
         </div>
         <div className="relative">
-          <p className="font-display text-5xl leading-tight font-semibold">{t("appName")}</p>
+          <p className="font-display text-4xl leading-tight font-semibold">{t("auth.heading")}</p>
           <p className="mt-3 max-w-md text-cream/70">{t("appTagline")}</p>
           <div className="mt-10 flex items-center gap-3">
             {steps.map(({ Icon, label }, i) => (
@@ -47,13 +46,14 @@ export function AuthLayout({ title, children }: { title: string; children: React
             </div>
           </div>
         </div>
-        <p className="relative text-xs text-cream/50">© {t("villa")}</p>
+        <p className="relative text-xs text-cream/50">© {t("auth.group")}</p>
       </div>
 
       <div className="flex flex-col bg-background">
         <div className="flex items-center justify-between p-4">
-          <span className="flex items-center gap-2 font-display text-xl font-semibold lg:invisible">
-            <ChefHat className="size-5 text-amber-deep" /> {t("appName")}
+          <span className="flex items-center gap-3 lg:invisible">
+            <Image src="/logos/villa.png" alt={t("villa")} width={96} height={50} priority className="h-10 w-auto" />
+            <span className="font-display text-lg font-semibold">{t("auth.group")}</span>
           </span>
         </div>
         <div className="flex flex-1 items-center justify-center px-4 pb-16">
