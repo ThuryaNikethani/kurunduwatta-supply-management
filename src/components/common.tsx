@@ -35,7 +35,7 @@ export function Field({
   return (
     <div className={cn("grid gap-1.5", className)}>
       {label && (
-        <Label htmlFor={htmlFor} className="text-xs tracking-wide text-muted-foreground uppercase">
+        <Label htmlFor={htmlFor} className="text-sm font-medium">
           {label}
         </Label>
       )}
