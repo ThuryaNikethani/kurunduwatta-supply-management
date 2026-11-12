@@ -5,14 +5,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, PackageCheck, Pencil, Send, Store, Undo2, UserRound } from "lucide-react";
 import { EmptyState, Field, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
+import { BackBar, InfoGrid } from "@/components/DetailBits";
 import { OrderBadge } from "@/components/OrderBadge";
 import { OrderForm } from "@/components/OrderForm";
 import { PrintHeader } from "@/components/PrintHeader";
 import { Timeline } from "@/components/Timeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,12 +53,10 @@ export default function OrderDetail() {
     );
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-5">
+    <div className="grid gap-6">
       <PrintHeader heading={t("orders.title")} />
       <BackBar href="/orders" />
-      <PageHeader title={o.supplier} subtitle={<OrderBadge status={o.status} className="mt-1" />} />
-      <ReturnNote history={o.history} />
-      <OrderActions order={o} onEdit={() => setEditing(true)} />
+      <PageHeader eyebrow={t("orders.title")} title={o.supplier} subtitle={<OrderBadge status={o.status} className="mt-1" />} />
       <InfoGrid
         items={[
           { Icon: Store, label: t("orders.supplier"), value: o.supplier },
@@ -67,8 +65,8 @@ export default function OrderDetail() {
           { Icon: UserRound, label: t("detail.createdBy"), value: o.createdByName },
         ]}
       />
-      <div className="grid gap-5">
-        <Card>
+      <div className="print-full grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="font-display text-2xl">{t("orders.items")}</CardTitle>
           </CardHeader>
@@ -93,7 +91,10 @@ export default function OrderDetail() {
             </Table>
           </CardContent>
         </Card>
-        <Timeline history={o.history} />
+        <div className="grid content-start gap-6">
+          <OrderActions order={o} onEdit={() => setEditing(true)} />
+          <Timeline history={o.history} />
+        </div>
       </div>
     </div>
   );
@@ -140,24 +141,25 @@ function OrderActions({ order, onEdit }: { order: PurchaseOrder; onEdit: () => v
 
   return (
     <Card className="no-print border-amber/60 ring-2 ring-amber/30">
-      <CardContent className="grid gap-3">
-        <p className="font-display text-2xl font-semibold">{t("detail.yourTurn")}</p>
+      <CardHeader>
+        <CardTitle className="font-display text-2xl">{t("detail.yourTurn")}</CardTitle>
+        <CardDescription>{t(`order.status.${order.status}` as TKey)}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
         {actions.some((a) => a !== "po_resubmit") && (
-          <Field label={t("act.noteLabel")} htmlFor="o-action-note" error={error}>
-            <Textarea id="o-action-note" rows={2} placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
+          <Field label={t("detail.reason")} htmlFor="o-action-note" error={error}>
+            <Textarea id="o-action-note" rows={3} placeholder={t("detail.notePh")} value={note} aria-invalid={!!error}
               onChange={(e) => { setNote(e.target.value); setError(""); }} />
           </Field>
         )}
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-2">
           {actions.map((a) => {
             const Icon = a === "po_resubmit" ? Pencil : ICON[a];
-            const back = a === "po_return";
             return (
-              <Button key={a} disabled={busy} onClick={() => run(a)} variant={back ? "outline" : "accent"}
-                className={back
-                  ? "h-14 w-full border-2 border-destructive/50 text-lg text-destructive hover:bg-destructive/5 hover:text-destructive"
-                  : "h-14 w-full text-lg"}>
-                <Icon className="size-5" /> {a === "po_resubmit" ? t("orders.edit") : t(`action.${a}` as TKey)}
+              <Button key={a} disabled={busy} onClick={() => run(a)}
+                variant={a === "po_return" ? "outline" : a === "po_approve" ? "default" : "accent"}
+                className={a === "po_return" ? "border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive" : ""}>
+                <Icon /> {a === "po_resubmit" ? t("orders.edit") : t(`action.${a}` as TKey)}
               </Button>
             );
           })}
