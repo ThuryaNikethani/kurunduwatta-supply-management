@@ -136,6 +136,14 @@ const si = {
   "simple.addItem": "බඩුවක් එකතු කරන්න",
   "simple.noRecipe": "මේ කෑම වලට තාම ප්‍රමාණ නෑ: {names}. ඒවට බඩු පහළින් ලියන්න.",
   "simple.wasCalc": "ගණනෙන් ආවේ {q}",
+  "adjust.button": "ප්‍රමාණ වෙනස් කරන්න",
+  "adjust.reset": "වෙනස්කම් අයින් කරන්න",
+  "adjust.help": "ඕන ප්‍රමාණ වෙනස් කරන්න. ඊට පස්සේ පහළින් හේතුව ලියලා එච්.ආර්. එකට යවන්න.",
+  "adjust.was": "චෙෆ් දැම්මේ {q}",
+  "adjust.count": "ප්‍රමාණ {n}ක් වෙනස් කළා. හේතුව ලියලා එච්.ආර්. එකට යවන්න.",
+  "adjust.reasonNeeded": "ප්‍රමාණ වෙනස් කළා නම් හේතුව ලියන්න.",
+  "adjust.bad": "ප්‍රමාණ 0 ට වඩා වැඩි වෙන්න ඕන.",
+  "adjust.summary": "සුපවයිසර් වෙනස් කළ ප්‍රමාණ:",
   "supply.noRecipeAll": "මේ කෑම වලට තාම ප්‍රමාණ දාලා නෑ:",
   "supply.noRecipeSome": "මේ කෑම වලට තාම ප්‍රමාණ නෑ. ඒවා ගණනට ගත්තේ නෑ:",
   "supply.noRecipeHelp": "ඒවට ඕන බඩු පහළින් ඔයාම ලියන්න.",
@@ -202,6 +210,7 @@ const si = {
   "detail.notFound": "හොයාගන්න බැරි වුණා.",
   "detail.yourTurn": "ඔයාගේ වාරය",
   "detail.whyBack": "{name} ආපහු එව්වේ මේ නිසා:",
+  "detail.noteFrom": "{name}ගේ සටහන:",
 
   // වට්ටෝරු
   "recipes.title": "කෑම වට්ටෝරු",
