@@ -432,7 +432,8 @@ const si = {
   // The company name stays in English on printouts, as on its letterhead.
   "print.company": "ATHUKORALA GROUP (PVT) LTD",
   "print.signature": "අත්සන",
-  "print.nameDate": "නම සහ දිනය",
+  "print.name": "නම",
+  "print.date": "දිනය",
   "print.seal": "නිල මුද්‍රාව",
 
   // පුහුණු මාදිලිය
