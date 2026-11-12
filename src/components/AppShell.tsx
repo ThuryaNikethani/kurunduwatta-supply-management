@@ -48,11 +48,11 @@ import { PushBanner } from "./PushBanner";
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
-  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], Icon: ShoppingCart },
-  { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/recipes", key: "nav.recipes", roles: ["chef", "supervisor", "hr"], Icon: BookOpen },
   { href: "/stock", key: "nav.stock", roles: ["chef", "supervisor", "hr"], Icon: Package },
+  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], Icon: ShoppingCart },
   { href: "/reports", key: "nav.reports", roles: ["chef", "supervisor", "hr"], Icon: BarChart3 },
+  { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
 
@@ -75,33 +75,31 @@ function NavLinks({ unread, onNavigate }: { unread: number; onNavigate?: () => v
   const { profile } = useAuth();
   const { t } = useI18n();
   const pathname = usePathname();
-  const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-  const mine = NAV.filter((n) => profile && n.roles.includes(profile.role));
   if (!profile) return null;
-
-  const link = ({ href, key, Icon }: (typeof NAV)[number]) => (
-    <Link
-      key={href}
-      href={href}
-      onClick={onNavigate}
-      className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-3 text-base transition",
-        isActive(href)
-          ? "bg-sidebar-accent font-medium text-sidebar-primary"
-          : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-      )}
-    >
-      <Icon className="size-5" />
-      <span className="flex-1">{t(key)}</span>
-      {href === "/notifications" && unread > 0 && (
-        <span className="rounded-full bg-amber px-1.5 text-xs font-semibold text-forest">{unread}</span>
-      )}
-    </Link>
-  );
-
   return (
     <nav className="grid gap-1">
-      {mine.map(link)}
+      {NAV.filter((n) => n.roles.includes(profile.role)).map(({ href, key, Icon }) => {
+        const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition",
+              active
+                ? "bg-sidebar-accent font-medium text-sidebar-primary"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+            )}
+          >
+            <Icon className="size-4" />
+            <span className="flex-1">{t(key)}</span>
+            {href === "/notifications" && unread > 0 && (
+              <span className="rounded-full bg-amber px-1.5 text-[11px] font-semibold text-forest">{unread}</span>
+            )}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -208,10 +206,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const unread = useLiveNotifications();
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
   if (!profile) return null;
-  /** Setup hints only on the home page, so forms stay clear. */
-  const onHome = pathname === "/dashboard";
 
   return (
     <div className="min-h-screen lg:flex">
@@ -261,8 +256,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <main className="print-main mx-auto w-full max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
-          {onHome && <IosInstallHint />}
-          {onHome && <PushBanner />}
+          <IosInstallHint />
+          <PushBanner />
           {children}
         </main>
       </div>
