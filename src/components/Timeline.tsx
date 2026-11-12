@@ -25,7 +25,7 @@ export function Timeline({ history }: { history: (HistoryEntry | OrderHistoryEnt
   const { t } = useI18n();
   const items = [...history].sort((a, b) => a.at - b.at);
   return (
-    <Card>
+    <Card className="print-flow">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-display text-2xl">
           <History className="size-5 text-muted-foreground" />
