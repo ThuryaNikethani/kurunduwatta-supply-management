@@ -84,7 +84,7 @@ export default function TransferDetail() {
         )}
       </ActionPanel>
 
-      <Card>
+      <Card className="print-flow">
         <CardContent className="grid gap-3">
           <p className="text-lg font-semibold">{t("transfer.items")}</p>
           <ul className="divide-y">
