@@ -129,9 +129,15 @@
     padding: 0 !important;
     max-width: none !important;
   }
+  /* Long cards (like the item list) may run onto the next page;
+     only single rows are kept whole. */
   [data-slot="card"] {
     box-shadow: none !important;
     border-color: #ccc !important;
+    break-inside: auto;
+  }
+  li,
+  tr {
     break-inside: avoid;
   }
   .print-full {
