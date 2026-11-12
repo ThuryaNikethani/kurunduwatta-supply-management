@@ -41,15 +41,13 @@ export function PrintSignature() {
           {t("print.by")}: <strong>{profile.name}</strong> ({t(`role.${profile.role}`)}) · {formatDateTime(Date.now())}
         </p>
       )}
-      <div className="mt-8 grid grid-cols-[1fr_1fr_10rem] items-end gap-8 text-sm">
-        <div>
-          <div className="h-12 border-b border-dotted border-black" />
-          <p className="mt-1">{t("print.signature")}</p>
-        </div>
-        <div>
-          <div className="h-12 border-b border-dotted border-black" />
-          <p className="mt-1">{t("print.nameDate")}</p>
-        </div>
+      <div className="mt-8 grid grid-cols-[1fr_1fr_1fr_9rem] items-end gap-6 text-sm">
+        {(["print.signature", "print.name", "print.date"] as const).map((k) => (
+          <div key={k}>
+            <div className="h-12 border-b border-dotted border-black" />
+            <p className="mt-1">{t(k)}</p>
+          </div>
+        ))}
         <div className="flex h-28 items-center justify-center rounded-lg border-2 border-dashed border-black/50 text-center text-muted-foreground">
           {t("print.seal")}
         </div>
