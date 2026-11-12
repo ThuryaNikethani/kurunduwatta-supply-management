@@ -89,7 +89,6 @@ export function RecipeEditor({
     <form onSubmit={save} className="grid gap-5" noValidate>
       <DialogHeader>
         <DialogTitle className="font-display text-2xl">{recipe.id ? recipe.name : t("recipes.addDish")}</DialogTitle>
-        <p className="text-sm text-muted-foreground">{t(ingredientsOptional ? "supply.newDishHint" : "recipes.saveMarks")}</p>
       </DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("recipes.dishName")} htmlFor="r-name" error={errors.name}>
@@ -101,12 +100,12 @@ export function RecipeEditor({
         </Field>
       </div>
       <div className="grid gap-2">
-        <p className="text-xs tracking-wide text-muted-foreground uppercase">
+        <p className="text-base font-semibold">
           {t("recipes.ingredient")} — {t("recipes.perPerson")}
           {ingredientsOptional && <span className="ml-1 normal-case">({t("recipes.optional")})</span>}
         </p>
         {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-12 items-start gap-2">
+          <div key={i} className="grid grid-cols-12 items-start gap-2 border-b pb-3 sm:border-0 sm:pb-0">
             <Field error={errors[`ingredients.${i}.name`]} className="col-span-12 sm:col-span-6">
               <Input placeholder={t("recipes.ingredient")} value={r.name} aria-invalid={!!errors[`ingredients.${i}.name`]}
                 onChange={(e) => update(i, { name: e.target.value })} />
@@ -126,7 +125,7 @@ export function RecipeEditor({
           </div>
         ))}
         <div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setRows((cur) => [...cur, { name: "", qtyPerPerson: 0, unit: "g" }])}>
+          <Button type="button" variant="outline" onClick={() => setRows((cur) => [...cur, { name: "", qtyPerPerson: 0, unit: "g" }])}>
             <Plus /> {t("recipes.addIngredient")}
           </Button>
         </div>
