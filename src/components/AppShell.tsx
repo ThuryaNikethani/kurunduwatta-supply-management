@@ -9,12 +9,10 @@ import {
   Bell,
   BookOpen,
   ChefHat,
-  ChevronDown,
   FlaskConical,
   LayoutDashboard,
   LogOut,
   Menu,
-  MoreHorizontal,
   Package,
   PlusCircle,
   KeyRound,
@@ -47,16 +45,15 @@ import { IosInstallHint } from "./IosInstallHint";
 import { PasswordDialog } from "./PasswordDialog";
 import { PushBanner } from "./PushBanner";
 
-/** `main` roles see the link straight away; everyone else finds it under "more". */
-const NAV: { href: string; key: TKey; roles: Role[]; main: Role[]; Icon: LucideIcon }[] = [
-  { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], main: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
-  { href: "/requests/new", key: "nav.newList", roles: ["chef"], main: ["chef"], Icon: PlusCircle },
-  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], main: ["supervisor", "hr"], Icon: ShoppingCart },
-  { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], main: ["chef", "supervisor", "hr"], Icon: Bell },
-  { href: "/recipes", key: "nav.recipes", roles: ["chef", "supervisor", "hr"], main: [], Icon: BookOpen },
-  { href: "/stock", key: "nav.stock", roles: ["chef", "supervisor", "hr"], main: [], Icon: Package },
-  { href: "/reports", key: "nav.reports", roles: ["chef", "supervisor", "hr"], main: [], Icon: BarChart3 },
-  { href: "/users", key: "nav.users", roles: ["hr"], main: [], Icon: Users },
+const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
+  { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
+  { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
+  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], Icon: ShoppingCart },
+  { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
+  { href: "/recipes", key: "nav.recipes", roles: ["chef", "supervisor", "hr"], Icon: BookOpen },
+  { href: "/stock", key: "nav.stock", roles: ["chef", "supervisor", "hr"], Icon: Package },
+  { href: "/reports", key: "nav.reports", roles: ["chef", "supervisor", "hr"], Icon: BarChart3 },
+  { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
 
 function Brand() {
@@ -80,9 +77,6 @@ function NavLinks({ unread, onNavigate }: { unread: number; onNavigate?: () => v
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
   const mine = NAV.filter((n) => profile && n.roles.includes(profile.role));
-  const main = mine.filter((n) => profile && n.main.includes(profile.role));
-  const rest = mine.filter((n) => !main.includes(n));
-  const [moreOpen, setMoreOpen] = useState(() => rest.some((n) => isActive(n.href)));
   if (!profile) return null;
 
   const link = ({ href, key, Icon }: (typeof NAV)[number]) => (
@@ -107,18 +101,7 @@ function NavLinks({ unread, onNavigate }: { unread: number; onNavigate?: () => v
 
   return (
     <nav className="grid gap-1">
-      {main.map(link)}
-      {rest.length > 0 && (
-        <>
-          <button type="button" onClick={() => setMoreOpen(!moreOpen)} aria-expanded={moreOpen}
-            className="mt-2 flex items-center gap-3 rounded-lg px-3 py-3 text-base text-sidebar-foreground/70 hover:bg-sidebar-accent/60">
-            <MoreHorizontal className="size-5" />
-            <span className="flex-1 text-left">{t("nav.more")}</span>
-            <ChevronDown className={cn("size-4 transition", moreOpen && "rotate-180")} />
-          </button>
-          {moreOpen && <div className="grid gap-1 border-l border-sidebar-border pl-2 ml-5">{rest.map(link)}</div>}
-        </>
-      )}
+      {mine.map(link)}
     </nav>
   );
 }
