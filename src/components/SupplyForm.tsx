@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, RefreshCw, Search, Send, Trash2, TriangleAlert, X } from "lucide-react";
+import { Check, Plus, RefreshCw, Search, Send, Trash2, TriangleAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -102,7 +102,6 @@ export function SupplyForm({
   const [otherItems, setOtherItems] = useState<SupplyItem[]>([]);
   /** Dish names typed by the chef for a hand-written list. */
   const [ownDishes, setOwnDishes] = useState<string[]>(() => (startManual(initial) ? initial!.dishes.map((d) => d.name) : []));
-  const [dishInput, setDishInput] = useState("");
 
   type Draft = SupplyFormData & { note: string; manual?: boolean; otherItems?: SupplyItem[]; ownDishes?: string[] };
   const [start] = useState<Draft>(() => ({
@@ -216,12 +215,6 @@ export function SupplyForm({
     setOtherItems(items);
   }
 
-  function addOwnDish() {
-    const name = dishInput.trim();
-    if (!name) return;
-    setOwnDishes((cur) => (cur.includes(name) ? cur : [...cur, name]));
-    setDishInput("");
-  }
 
   const update = (i: number, patch: Partial<SupplyItem>) =>
     setItems((cur) => cur.map((it, j) => (j === i ? { ...it, ...patch } : it)));
@@ -236,7 +229,8 @@ export function SupplyForm({
       guestCount,
       days,
       // A hand-written list isn't tied to any dishes.
-      dishes: audience === "staff" ? [] : manual ? ownDishes.map((name) => ({ id: OWN + name, name })) : dishes,
+      // Staff and hand-written lists name no dishes, only items.
+      dishes: manual ? [] : dishes,
       items: items.map((it) => ({ ...it, qty: round(Number(it.qty)), calculated: it.calculated ?? null })),
     });
     if (!parsed.success) {
@@ -318,37 +312,14 @@ export function SupplyForm({
           {!isStaff && (
           <div className="grid gap-3 border-t pt-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-lg font-semibold">{t(manual ? "supply.ownDishes" : "simple.food")}</p>
-              {!isStaff && (
-                <label className="flex cursor-pointer items-center gap-2 text-base">
-                  <input type="checkbox" className="size-5 accent-amber-600" checked={manual} onChange={(e) => chooseManual(e.target.checked)} />
-                  {t("simple.handWrite")}
-                </label>
-              )}
+              <p className="text-lg font-semibold">{t("simple.food")}</p>
+              <label className="flex cursor-pointer items-center gap-2 text-base">
+                <input type="checkbox" className="size-5 accent-amber-600" checked={manual} onChange={(e) => chooseManual(e.target.checked)} />
+                {t("simple.handWrite")}
+              </label>
             </div>
-            {manual ? (
-              <>
-                <div className="flex gap-2">
-                  <Input id="own-dish" aria-label={t("supply.ownDishes")} placeholder={t("supply.ownDishPh")} value={dishInput}
-                    onChange={(e) => setDishInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOwnDish(); } }} />
-                  <Button type="button" variant="outline" className="h-11" disabled={!dishInput.trim()} onClick={addOwnDish}>
-                    <Plus /> {t("supply.ownDishAdd")}
-                  </Button>
-                </div>
-                {ownDishes.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {ownDishes.map((n) => (
-                      <button type="button" key={n} aria-label={`${t("remove")}: ${n}`}
-                        onClick={() => setOwnDishes((cur) => cur.filter((x) => x !== n))}
-                        className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
-                        {n} <X className="size-4" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
+            {/* Writing by hand: no dishes at all, only the items below. */}
+            {!manual && (
               <>
                 <div className="relative">
                   <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
