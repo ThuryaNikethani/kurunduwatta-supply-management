@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, CalendarRange, ChefHat, ChevronRight, Pencil, Plus, Soup, Users, UtensilsCrossed } from "lucide-react";
 import { ActionPanel } from "@/components/ActionPanel";
 import { AudienceBadge, EmptyState, PageHeader } from "@/components/common";
-import { BackBar, InfoGrid } from "@/components/DetailBits";
+import { BackBar, InfoGrid, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StockIssuePanel } from "@/components/StockIssuePanel";
@@ -48,7 +48,7 @@ export default function SupplyDetail() {
 
   if (editing && canEdit)
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader eyebrow={d.title} title={t("supply.edit")} />
         <SupplyForm
           draftKey={draftKey}
@@ -65,7 +65,7 @@ export default function SupplyDetail() {
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <PrintHeader heading={t("dash.supplyLists")} />
       <BackBar />
       <PageHeader
@@ -73,6 +73,8 @@ export default function SupplyDetail() {
         title={d.title}
         subtitle={<span className="mt-1 flex flex-wrap gap-2"><StatusBadge status={d.status} /><AudienceBadge audience={d.audience} /></span>}
       />
+
+      <ReturnNote status={d.status} history={d.history} />
 
       <InfoGrid
         items={[
@@ -84,8 +86,8 @@ export default function SupplyDetail() {
         ]}
       />
 
-      <div className="print-full grid gap-6 lg:grid-cols-3">
-        <div className="grid content-start gap-6 lg:col-span-2">
+      <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
+        <div className="grid min-w-0 content-start gap-6 lg:col-span-2 [&>*]:min-w-0">
           {d.dishes.length > 0 && (
             <Card className="gap-3 py-4">
               <CardContent className="flex flex-wrap gap-2 px-4">
@@ -178,7 +180,7 @@ export default function SupplyDetail() {
         <div className="grid content-start gap-6">
           <ActionPanel kind="supply" id={d.id} title={d.title} status={d.status}>
             {canEdit && (
-              <Button variant="outline" className="w-full" onClick={() => setEditing(true)}>
+              <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
                 <Pencil /> {t("supply.edit")}
               </Button>
             )}
