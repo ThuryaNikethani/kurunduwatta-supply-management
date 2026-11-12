@@ -3,8 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { toast } from "sonner";
-import { CalendarDays, Users } from "lucide-react";
-import { EmptyState, PageHeader } from "@/components/common";
+import { EmptyState } from "@/components/common";
 import { BackBar } from "@/components/DetailBits";
 import { TransferForm } from "@/components/TransferForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,18 +33,12 @@ function NewTransfer() {
   if (supply.status !== "approved") return <EmptyState text={t("transfer.onlyApproved")} />;
 
   return (
-    <div className="grid gap-6">
+    <div className="mx-auto grid w-full max-w-3xl gap-4 [&>*]:min-w-0">
       <BackBar href={`/requests/${supply.id}`} />
-      <PageHeader
-        eyebrow={t("transfer.new")}
-        title={supply.title}
-        subtitle={
-          <span className="flex flex-wrap gap-4">
-            <span className="inline-flex items-center gap-1"><CalendarDays className="size-4" /> {formatDate(supply.eventDate)}</span>
-            <span className="inline-flex items-center gap-1"><Users className="size-4" /> {t("people", { n: supply.guestCount })}</span>
-          </span>
-        }
-      />
+      <div className="grid gap-1">
+        <h1 className="font-display text-3xl font-semibold">{t("transfer.new")}</h1>
+        <p className="text-muted-foreground">{supply.title} · {formatDate(supply.eventDate)} · {t("people", { n: supply.guestCount })}</p>
+      </div>
       <TransferForm
         draftKey={`transfer-new-${supply.id}`}
         dishOptions={supply.dishes.map((d) => d.name)}
