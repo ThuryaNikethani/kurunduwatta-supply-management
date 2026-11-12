@@ -37,7 +37,7 @@ export default function OrderDetail() {
 
   if (editing && profile.role === "supervisor" && o.status === "returned")
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader eyebrow={o.supplier} title={t("orders.edit")} />
         <OrderForm
           initial={o}
@@ -53,7 +53,7 @@ export default function OrderDetail() {
     );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <PrintHeader heading={t("orders.title")} />
       <BackBar href="/orders" />
       <PageHeader eyebrow={t("orders.title")} title={o.supplier} subtitle={<OrderBadge status={o.status} className="mt-1" />} />
@@ -65,7 +65,7 @@ export default function OrderDetail() {
           { Icon: UserRound, label: t("detail.createdBy"), value: o.createdByName },
         ]}
       />
-      <div className="print-full grid gap-6 lg:grid-cols-3">
+      <div className="print-full grid gap-6 lg:grid-cols-3 [&>*]:min-w-0">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="font-display text-2xl">{t("orders.items")}</CardTitle>
