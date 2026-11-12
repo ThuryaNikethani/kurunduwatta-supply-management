@@ -114,7 +114,7 @@ export default function SupplyDetail() {
 
       {!adjusting && panel}
 
-      <Card>
+      <Card className="print-flow">
         <CardContent className="grid gap-3">
           {d.dishes.length > 0 && (
             <p className="text-muted-foreground">{d.dishes.map((x) => x.name).join(" · ")}</p>
