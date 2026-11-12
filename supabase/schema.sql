@@ -106,10 +106,12 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Enforces the approval steps: chef → supervisor → HR.
+-- The supervisor may change amounts on the way to HR, with a reason.
 create or replace function public.guard_workflow() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
   r text := my_role();
+  locked text[] := array['status', 'history', 'updated_at'];
 begin
   -- Server (secret key) requests have no signed-in user.
   if auth.uid() is null then
@@ -128,10 +130,19 @@ begin
     raise exception 'this step is not allowed for %', r;
   end if;
 
-  -- Only the chef may change what is on the list.
-  if r <> 'chef' and
-     (to_jsonb(new) - 'status' - 'history' - 'updated_at') <> (to_jsonb(old) - 'status' - 'history' - 'updated_at') then
-    raise exception 'only the chef can change the list';
+  if r <> 'chef' then
+    -- Supervisor sending a supply list to HR may also change the items.
+    if r = 'supervisor' and tg_table_name = 'supply_lists' and new.status = 'pending_hr' then
+      if (to_jsonb(new) - locked - 'items') <> (to_jsonb(old) - locked - 'items') then
+        raise exception 'only the chef can change the list';
+      end if;
+      if new.items is distinct from old.items
+         and coalesce(btrim(new.history -> -1 ->> 'note'), '') = '' then
+        raise exception 'a reason is needed when changing amounts';
+      end if;
+    elsif (to_jsonb(new) - locked) <> (to_jsonb(old) - locked) then
+      raise exception 'only the chef can change the list';
+    end if;
   end if;
 
   -- History can only grow by one entry per step.
