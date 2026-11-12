@@ -154,7 +154,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="print-flow">
             <CardHeader>
               <CardTitle className="font-display text-2xl">{t("reports.ingredients")}</CardTitle>
               <p className="text-sm text-muted-foreground">{t("reports.ingredientsHint")}</p>
