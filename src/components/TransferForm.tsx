@@ -16,6 +16,17 @@ import { useDraft } from "@/lib/draft";
 
 export type TransferFormData = Pick<TransferOut, "date" | "items" | "recipients">;
 
+/** The people who took leftovers last time, to start the next form with. */
+const LAST_KEY = "kw-last-recipients";
+function lastRecipients(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(LAST_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export function TransferForm({
   dishOptions, guestCount, initial, submitLabel, onSubmit, onCancel, draftKey,
 }: {
@@ -31,7 +42,7 @@ export function TransferForm({
   const { t } = useI18n();
   const [date, setDate] = useState(initial?.date ?? today());
   const [items, setItems] = useState<LeftoverItem[]>(initial?.items ?? [{ dish: dishOptions[0] ?? "", portions: 1, note: "" }]);
-  const [recipients, setRecipients] = useState<string[]>(initial?.recipients ?? []);
+  const [recipients, setRecipients] = useState<string[]>(() => initial?.recipients ?? lastRecipients());
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -79,6 +90,7 @@ export function TransferForm({
     try {
       await onSubmit(parsed.data, note);
       draft.clear();
+      try { localStorage.setItem(LAST_KEY, JSON.stringify(parsed.data.recipients)); } catch {}
     } catch (err) {
       setErrors({ form: errorText(err) });
       setBusy(false);
@@ -97,13 +109,13 @@ export function TransferForm({
       <Card>
         <CardHeader>
           <StepTitle n={1} title={t("transfer.items")}
-            extra={<span className="rounded-full bg-secondary px-3 py-1 text-xs">{t("transfer.summary", { guests: guestCount, portions: totalPortions })}</span>} />
+            extra={<span className="rounded-full bg-secondary px-3 py-1 text-sm">{t("transfer.summary", { guests: guestCount, portions: totalPortions })}</span>} />
         </CardHeader>
         <CardContent className="grid gap-3">
           <Field label={t("transfer.date")} htmlFor="date" error={errors.date} className="sm:max-w-xs">
             <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <div className="hidden grid-cols-12 gap-2 px-2 pt-2 text-xs tracking-wide text-muted-foreground uppercase sm:grid">
+          <div className="hidden grid-cols-12 gap-2 px-2 pt-2 text-sm text-muted-foreground sm:grid">
             <span className="col-span-5">{t("transfer.dish")}</span>
             <span className="col-span-2">{t("transfer.portions")}</span>
             <span className="col-span-4">{t("supply.note")}</span>
@@ -156,8 +168,8 @@ export function TransferForm({
             <div className="flex flex-wrap gap-2">
               {recipients.map((r) => (
                 <button type="button" key={r} onClick={() => setRecipients(recipients.filter((x) => x !== r))}
-                  className="inline-flex items-center gap-1 rounded-full bg-forest py-1 pr-2 pl-3 text-xs text-cream">
-                  {r} <X className="size-3.5" />
+                  className="inline-flex items-center gap-1 rounded-full bg-forest py-1.5 pr-2 pl-3 text-sm text-cream">
+                  {r} <X className="size-4" />
                 </button>
               ))}
             </div>
@@ -171,10 +183,10 @@ export function TransferForm({
             <Textarea id="t-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
           {hasErrors && (
-            <p className="text-sm text-destructive">{errors.form || t("v.fix")}</p>
+            <p role="alert" className="rounded-lg bg-destructive/10 p-3 font-medium text-destructive">{errors.form || t("v.fix")}</p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" variant="accent" size="lg" disabled={busy}>
+            <Button type="submit" variant="accent" size="lg" className="h-14 flex-1 text-lg sm:flex-none sm:px-10" disabled={busy}>
               <Send /> {busy ? t("saving") : submitLabel}
             </Button>
             {onCancel && <Button type="button" variant="outline" size="lg" onClick={() => { draft.clear(); onCancel(); }}>{t("cancel")}</Button>}
