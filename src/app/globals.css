@@ -173,20 +173,20 @@
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
 }
-@keyframes auth-leaf {
-  0% { transform: translate3d(0, -5vh, 0) rotate(0deg); opacity: 0; }
-  10% { opacity: 1; }
-  50% { transform: translate3d(40px, 50vh, 0) rotate(180deg); }
-  90% { opacity: 1; }
-  100% { transform: translate3d(-10px, 110vh, 0) rotate(340deg); opacity: 0; }
+/* three photos, 7 s each, cross-fading */
+@keyframes auth-slide {
+  0% { opacity: 0; }
+  5%, 33% { opacity: 1; }
+  38%, 100% { opacity: 0; }
 }
-@keyframes auth-sway {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-2.5%); }
+@keyframes auth-kenburns {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.14); }
 }
-@keyframes auth-glow {
-  0%, 100% { opacity: 0.75; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
+@keyframes auth-dot {
+  0% { transform: scaleX(0); opacity: 1; }
+  33% { transform: scaleX(1); opacity: 1; }
+  36%, 100% { transform: scaleX(1); opacity: 0; }
 }
 @keyframes auth-float {
   0%, 100% { translate: 0 0; }
@@ -194,19 +194,17 @@
 }
 @keyframes auth-step {
   0%, 30%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 169, 26, 0); }
-  8% { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(255, 169, 26, 0.22); }
+  8% { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(255, 169, 26, 0.25); }
   18% { transform: scale(1); box-shadow: 0 0 0 16px rgba(255, 169, 26, 0); }
 }
 @keyframes auth-travel {
   0% { left: -50%; }
   30%, 100% { left: 110%; }
 }
-.auth-fade-up { animation: auth-fade-up 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.auth-leaf { animation: auth-leaf linear infinite both; }
-.auth-sway { animation: auth-sway 14s ease-in-out infinite; }
-.auth-sway-slow { animation: auth-sway 22s ease-in-out infinite reverse; }
-.auth-glow { animation: auth-glow 7s ease-in-out infinite; }
-.auth-glow-slow { animation: auth-glow 11s ease-in-out infinite; }
+.auth-fade-up { animation: auth-fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.auth-slide { animation: auth-slide 21s linear infinite both; }
+.auth-kenburns { animation: auth-kenburns 21s ease-out infinite alternate; }
+.auth-dot { animation: auth-dot 21s linear infinite both; }
 .auth-float { animation: auth-float 6s ease-in-out infinite; }
 .auth-float-slow { animation: auth-float 9s ease-in-out infinite; }
 .auth-step { animation: auth-step 3.6s ease-in-out infinite; }
