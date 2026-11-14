@@ -94,7 +94,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
           className="auth-float pointer-events-none absolute top-1/2 right-4 hidden w-10 rotate-[60deg] opacity-60 drop-shadow-lg xl:block" style={{ animationDelay: "2s" }} />
 
         {/* phones: a photo header with both logos */}
-        <div className="relative h-44 overflow-hidden md:h-60 lg:hidden">
+        <div className="relative h-44 overflow-hidden md:h-60 lg:hidden [@media(max-height:500px)]:h-24">
           <Image src={PHOTOS[0]} alt="" fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-forest/90 to-forest/30" aria-hidden />
           <div className="relative flex h-full items-end gap-3 p-4 text-cream">
@@ -104,7 +104,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
           </div>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center px-4 py-10">
+        <div className="relative flex flex-1 items-center justify-center px-4 py-10 [@media(max-height:500px)]:py-4">
           <Card className="auth-fade-up w-full max-w-sm overflow-hidden shadow-2xl shadow-forest/15 2xl:max-w-md" style={{ animationDelay: "0.2s" }}>
             <span className="-mt-6 block h-1.5 bg-gradient-to-r from-amber via-leaf to-moss" aria-hidden />
             <CardHeader>
