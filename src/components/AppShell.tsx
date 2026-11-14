@@ -260,7 +260,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-8">
           {/* The iPhone "add to home screen" steps only on the home page. */}
           {pathname === "/dashboard" && <IosInstallHint />}
-          <PushBanner />
+          {/* The "turn on notifications" card only on the home page too. */}
+          {pathname === "/dashboard" && <PushBanner />}
           {children}
           <PrintSignature />
         </main>
