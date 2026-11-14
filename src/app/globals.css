@@ -215,8 +215,15 @@
 .auth-float-slow { animation: auth-float 9s ease-in-out infinite; }
 .auth-step { animation: auth-step 3.6s ease-in-out infinite; }
 .auth-travel { animation: auth-travel 3.6s ease-in-out infinite; }
+/* "Reduce motion" (iPhone/Mac setting): photos still fade from one to the next,
+   but nothing zooms, floats or slides. */
 @media (prefers-reduced-motion: reduce) {
-  .auth-anim *, .auth-anim *::before, .auth-anim *::after {
+  .auth-kenburns, .auth-float, .auth-float-slow, .auth-travel, .auth-fade-up {
     animation: none !important;
   }
+  .auth-step { animation-name: auth-step-soft !important; }
+}
+@keyframes auth-step-soft {
+  0%, 30%, 100% { box-shadow: 0 0 0 0 rgba(255, 169, 26, 0); }
+  10% { box-shadow: 0 0 0 6px rgba(255, 169, 26, 0.35); }
 }
