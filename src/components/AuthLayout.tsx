@@ -23,7 +23,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
       {/* left: photo side */}
       <div className="relative hidden overflow-hidden bg-forest text-cream lg:block">
         {PHOTOS.map((src, i) => (
-          <div key={src} className="auth-slide absolute inset-0" style={{ animationDelay: `${i * 7}s`, opacity: i === 0 ? 1 : 0 }}>
+          <div key={src} className="auth-slide absolute inset-0" style={{ animationDelay: `${i * 4}s`, opacity: i === 0 ? 1 : 0 }}>
             <Image src={src} alt="" fill priority={i === 0} sizes="60vw" className="auth-kenburns object-cover" />
           </div>
         ))}
@@ -75,7 +75,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
               <div className="flex gap-1.5" aria-hidden>
                 {PHOTOS.map((src, i) => (
                   <span key={src} className="h-1 w-8 overflow-hidden rounded-full bg-white/25">
-                    <span className="auth-dot block h-full w-full origin-left rounded-full bg-amber" style={{ animationDelay: `${i * 7}s` }} />
+                    <span className="auth-dot block h-full w-full origin-left rounded-full bg-amber" style={{ animationDelay: `${i * 4}s` }} />
                   </span>
                 ))}
               </div>
@@ -96,7 +96,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
         {/* phones and upright tablets: the same photo slideshow, as a header with both logos */}
         <div className="relative h-52 overflow-hidden md:h-64 lg:hidden [@media(max-height:500px)]:h-24">
           {PHOTOS.map((src, i) => (
-            <div key={src} className="auth-slide absolute inset-0" style={{ animationDelay: `${i * 7}s`, opacity: i === 0 ? 1 : 0 }}>
+            <div key={src} className="auth-slide absolute inset-0" style={{ animationDelay: `${i * 4}s`, opacity: i === 0 ? 1 : 0 }}>
               <Image src={src} alt="" fill priority={i === 0} sizes="100vw" className="auth-kenburns object-cover" />
             </div>
           ))}
@@ -110,7 +110,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
             <div className="flex gap-1.5 [@media(max-height:500px)]:hidden" aria-hidden>
               {PHOTOS.map((src, i) => (
                 <span key={src} className="h-1 w-7 overflow-hidden rounded-full bg-white/30">
-                  <span className="auth-dot block h-full w-full origin-left rounded-full bg-amber" style={{ animationDelay: `${i * 7}s` }} />
+                  <span className="auth-dot block h-full w-full origin-left rounded-full bg-amber" style={{ animationDelay: `${i * 4}s` }} />
                 </span>
               ))}
             </div>
