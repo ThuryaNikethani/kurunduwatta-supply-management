@@ -190,7 +190,7 @@ function useLiveNotifications() {
       });
       if (document.hidden && "Notification" in window && Notification.permission === "granted") {
         try {
-          new Notification(text, { body: n.note, icon: "/icons/192", tag: n.id }).onclick = () => {
+          new Notification(text, { body: n.note, icon: "/app-icons/icon-192.png", tag: n.id }).onclick = () => {
             window.focus();
             router.push(href);
           };
