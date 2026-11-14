@@ -59,7 +59,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <PageHeader title={t("users.title")} />
 
       <Card>
@@ -93,6 +93,36 @@ export default function UsersPage() {
           {!users ? (
             <Skeleton className="m-2 h-40" />
           ) : (
+            <>
+            {/* phones: one block per person */}
+            <ul className="divide-y sm:hidden">
+              {users.map((u) => (
+                <li key={u.uid} className="grid gap-3 px-2 py-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="size-9">
+                      <AvatarFallback className="bg-secondary text-xs font-semibold text-moss">{initials(u.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{u.name}</p>
+                      <p className="truncate text-sm text-muted-foreground">{t("users.loginAs", { name: u.username })}</p>
+                    </div>
+                  </div>
+                  <RoleSelect value={u.role} disabled={u.uid === profile.uid}
+                    onChange={(role) => backend.updateUser(u.uid, { role })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={() => setPwFor(u)}>
+                      <KeyRound /> {t("pw.button")}
+                    </Button>
+                    <Button variant="secondary" disabled={u.uid === profile.uid}
+                      onClick={() => backend.updateUser(u.uid, { active: !u.active })}
+                      className={cn("rounded-full", u.active ? "bg-leaf/30 text-leaf-deep hover:bg-leaf/40" : "bg-destructive/10 text-destructive hover:bg-destructive/15")}>
+                      {u.active ? t("users.active") : t("users.disabled")}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -133,6 +163,8 @@ export default function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
