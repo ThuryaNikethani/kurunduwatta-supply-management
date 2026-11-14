@@ -93,16 +93,34 @@ export function AuthLayout({ title, children }: { title: string; children: React
         <Image src="/auth/tea-leaf-5.webp" alt="" width={71} height={180} aria-hidden
           className="auth-float pointer-events-none absolute top-1/2 right-4 hidden w-10 rotate-[60deg] opacity-60 drop-shadow-lg xl:block" style={{ animationDelay: "2s" }} />
 
-        {/* phones: a photo header with both logos */}
-        <div className="relative h-44 overflow-hidden md:h-60 lg:hidden [@media(max-height:500px)]:h-24">
-          <Image src={PHOTOS[0]} alt="" fill priority sizes="100vw" className="object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-forest/90 to-forest/30" aria-hidden />
-          <div className="relative flex h-full items-end gap-3 p-4 text-cream">
-            <Image src="/logos/ag-light.png" alt={t("auth.group")} width={40} height={44} priority className="h-11 w-auto" />
-            <Image src="/logos/villa-light.png" alt={t("villa")} width={84} height={44} priority className="h-11 w-auto" />
-            <span className="font-display text-lg leading-tight font-semibold">{t("auth.group")}</span>
+        {/* phones and upright tablets: the same photo slideshow, as a header with both logos */}
+        <div className="relative h-52 overflow-hidden md:h-64 lg:hidden [@media(max-height:500px)]:h-24">
+          {PHOTOS.map((src, i) => (
+            <div key={src} className="auth-slide absolute inset-0" style={{ animationDelay: `${i * 7}s`, opacity: i === 0 ? 1 : 0 }}>
+              <Image src={src} alt="" fill priority={i === 0} sizes="100vw" className="auth-kenburns object-cover" />
+            </div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-forest/90 via-forest/40 to-forest/20" aria-hidden />
+          <div className="relative flex h-full flex-col justify-end gap-3 p-4 text-cream">
+            <div className="auth-fade-up flex items-end gap-3">
+              <Image src="/logos/ag-light.png" alt={t("auth.group")} width={40} height={44} priority className="h-11 w-auto drop-shadow-lg" />
+              <Image src="/logos/villa-light.png" alt={t("villa")} width={84} height={44} priority className="h-11 w-auto drop-shadow-lg" />
+              <span className="font-display text-lg leading-tight font-semibold drop-shadow-lg">{t("auth.group")}</span>
+            </div>
+            <div className="flex gap-1.5 [@media(max-height:500px)]:hidden" aria-hidden>
+              {PHOTOS.map((src, i) => (
+                <span key={src} className="h-1 w-7 overflow-hidden rounded-full bg-white/30">
+                  <span className="auth-dot block h-full w-full origin-left rounded-full bg-amber" style={{ animationDelay: `${i * 7}s` }} />
+                </span>
+              ))}
+            </div>
           </div>
         </div>
+        {/* phones: two tea leaves drifting in the background */}
+        <Image src="/auth/tea-leaf-1.webp" alt="" width={106} height={180} aria-hidden
+          className="auth-float pointer-events-none absolute right-1 bottom-24 w-12 rotate-[30deg] opacity-50 lg:hidden" />
+        <Image src="/auth/tea-leaf-3.webp" alt="" width={109} height={180} aria-hidden
+          className="auth-float-slow pointer-events-none absolute bottom-6 left-1 w-10 -rotate-[35deg] opacity-50 lg:hidden" />
 
         <div className="relative flex flex-1 items-center justify-center px-4 py-10 [@media(max-height:500px)]:py-4">
           <Card className="auth-fade-up w-full max-w-sm overflow-hidden shadow-2xl shadow-forest/15 2xl:max-w-md" style={{ animationDelay: "0.2s" }}>
