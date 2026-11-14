@@ -21,7 +21,10 @@ export const metadata: Metadata = {
   title: "කුරුඳුවත්ත බඩු ලැයිස්තු",
   description: "කුරුඳුවත්ත විලා කුස්සියට ඕන බඩු අනුමත කරගන්න",
   appleWebApp: { capable: true, title: "බඩු ලැයිස්තු", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icons/192", apple: "/icons/192" },
+  icons: {
+    icon: [{ url: "/app-icons/favicon-32.png", sizes: "32x32" }, { url: "/app-icons/icon-192.png", sizes: "192x192" }],
+    apple: [{ url: "/app-icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
