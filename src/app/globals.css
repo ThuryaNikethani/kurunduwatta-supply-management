@@ -179,11 +179,11 @@
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
 }
-/* three photos, 7 s each, cross-fading */
+/* three photos, 4 s each, cross-fading */
 @keyframes auth-slide {
   0% { opacity: 0; }
-  5%, 33% { opacity: 1; }
-  38%, 100% { opacity: 0; }
+  8%, 33% { opacity: 1; }
+  41%, 100% { opacity: 0; }
 }
 @keyframes auth-kenburns {
   from { transform: scale(1.02); }
@@ -208,9 +208,9 @@
   30%, 100% { left: 110%; }
 }
 .auth-fade-up { animation: auth-fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.auth-slide { animation: auth-slide 21s linear infinite both; }
-.auth-kenburns { animation: auth-kenburns 21s ease-out infinite alternate; }
-.auth-dot { animation: auth-dot 21s linear infinite both; }
+.auth-slide { animation: auth-slide 12s linear infinite both; }
+.auth-kenburns { animation: auth-kenburns 12s ease-out infinite alternate; }
+.auth-dot { animation: auth-dot 12s linear infinite both; }
 .auth-float { animation: auth-float 6s ease-in-out infinite; }
 .auth-float-slow { animation: auth-float 9s ease-in-out infinite; }
 .auth-step { animation: auth-step 3.6s ease-in-out infinite; }
