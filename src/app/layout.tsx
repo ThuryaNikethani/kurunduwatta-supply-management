@@ -28,6 +28,8 @@ export const viewport: Viewport = {
   themeColor: "#13281b",
   width: "device-width",
   initialScale: 1,
+  // Use the whole iPhone screen; the top bar keeps clear of the notch itself.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
