@@ -207,6 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const unread = useLiveNotifications();
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   if (!profile) return null;
 
   return (
@@ -257,7 +258,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-8">
-          <IosInstallHint />
+          {/* The iPhone "add to home screen" steps only on the home page. */}
+          {pathname === "/dashboard" && <IosInstallHint />}
           <PushBanner />
           {children}
           <PrintSignature />
