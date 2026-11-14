@@ -168,6 +168,12 @@
   }
 }
 
+/* iPhone Safari counts its toolbar in 100vh; use the visible height where supported. */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* ---------------------------------------------------------------- sign-in page motion */
 @keyframes auth-fade-up {
   from { opacity: 0; transform: translateY(18px); }
