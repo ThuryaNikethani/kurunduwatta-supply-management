@@ -222,14 +222,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="min-w-0 flex-1">
         {/* mobile top bar */}
-        <header className="no-print sticky top-0 z-40 flex items-center gap-2 bg-sidebar px-3 py-2.5 text-sidebar-foreground shadow lg:hidden">
+        <header className="no-print sticky top-0 z-40 flex items-center gap-2 bg-sidebar pt-[calc(0.625rem+env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-2.5 pl-[max(0.75rem,env(safe-area-inset-left))] text-sidebar-foreground shadow lg:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label={t("nav.menu")}>
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 border-none bg-sidebar p-4 text-sidebar-foreground">
+            <SheetContent side="left" className="w-72 border-none bg-sidebar p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] text-sidebar-foreground">
               <SheetHeader className="p-0">
                 <SheetTitle className="sr-only">{t("appName")}</SheetTitle>
                 <Brand />
@@ -256,7 +256,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-24 sm:px-6 lg:py-8">
+        <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-8">
           <IosInstallHint />
           <PushBanner />
           {children}
