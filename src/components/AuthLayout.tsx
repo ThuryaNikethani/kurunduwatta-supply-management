@@ -40,7 +40,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
 
           <div>
             <span className="auth-fade-up mb-5 block h-1 w-16 rounded-full bg-gradient-to-r from-amber to-leaf" style={{ animationDelay: "0.15s" }} />
-            <p className="auth-fade-up max-w-xl font-display text-4xl leading-tight font-semibold drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] xl:text-5xl"
+            <p className="auth-fade-up max-w-xl font-display text-4xl leading-tight font-semibold drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] xl:text-5xl 2xl:max-w-2xl 2xl:text-6xl"
               style={{ animationDelay: "0.25s" }}>
               {t("auth.heading")}
             </p>
@@ -94,7 +94,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
           className="auth-float pointer-events-none absolute top-1/2 right-4 hidden w-10 rotate-[60deg] opacity-60 drop-shadow-lg xl:block" style={{ animationDelay: "2s" }} />
 
         {/* phones: a photo header with both logos */}
-        <div className="relative h-44 overflow-hidden lg:hidden">
+        <div className="relative h-44 overflow-hidden md:h-60 lg:hidden">
           <Image src={PHOTOS[0]} alt="" fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-forest/90 to-forest/30" aria-hidden />
           <div className="relative flex h-full items-end gap-3 p-4 text-cream">
@@ -105,7 +105,7 @@ export function AuthLayout({ title, children }: { title: string; children: React
         </div>
 
         <div className="relative flex flex-1 items-center justify-center px-4 py-10">
-          <Card className="auth-fade-up w-full max-w-sm overflow-hidden shadow-2xl shadow-forest/15" style={{ animationDelay: "0.2s" }}>
+          <Card className="auth-fade-up w-full max-w-sm overflow-hidden shadow-2xl shadow-forest/15 2xl:max-w-md" style={{ animationDelay: "0.2s" }}>
             <span className="-mt-6 block h-1.5 bg-gradient-to-r from-amber via-leaf to-moss" aria-hidden />
             <CardHeader>
               <CardTitle className="font-display text-3xl">{title}</CardTitle>
