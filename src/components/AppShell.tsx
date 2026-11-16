@@ -47,12 +47,14 @@ import { PushBanner } from "./PushBanner";
 import { PrintSignature } from "./PrintHeader";
 
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
-  { href: "/dashboard", key: "nav.dashboard", roles: ["chef", "supervisor", "hr"], Icon: LayoutDashboard },
+  { href: "/dashboard", key: "nav.dashboard", roles: ["hr"], Icon: LayoutDashboard },
+  // Chefs and supervisors only get their own work and messages.
+  { href: "/dashboard", key: "nav.work", roles: ["chef", "supervisor"], Icon: LayoutDashboard },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
-  { href: "/recipes", key: "nav.recipes", roles: ["chef", "supervisor", "hr"], Icon: BookOpen },
-  { href: "/stock", key: "nav.stock", roles: ["chef", "supervisor", "hr"], Icon: Package },
-  { href: "/orders", key: "nav.orders", roles: ["supervisor", "hr"], Icon: ShoppingCart },
-  { href: "/reports", key: "nav.reports", roles: ["chef", "supervisor", "hr"], Icon: BarChart3 },
+  { href: "/recipes", key: "nav.recipes", roles: ["chef", "hr"], Icon: BookOpen },
+  { href: "/stock", key: "nav.stock", roles: ["hr"], Icon: Package },
+  { href: "/orders", key: "nav.orders", roles: ["hr"], Icon: ShoppingCart },
+  { href: "/reports", key: "nav.reports", roles: ["hr"], Icon: BarChart3 },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
@@ -202,12 +204,28 @@ function useLiveNotifications() {
   return (list ?? []).filter((n) => !n.read).length;
 }
 
+/** Pages chefs and supervisors no longer use; only HR opens these. */
+const HR_ONLY: Record<Role, string[]> = {
+  chef: ["/stock", "/orders", "/reports", "/users"],
+  supervisor: ["/stock", "/orders", "/reports", "/users", "/recipes"],
+  hr: [],
+};
+function closedFor(role: Role, path: string) {
+  return HR_ONLY[role].some((p) => path === p || path.startsWith(p + "/"));
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { profile } = useAuth();
   const { t } = useI18n();
   const unread = useLiveNotifications();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const blocked = !!profile && closedFor(profile.role, pathname);
+  // A page that is not part of this person's work (e.g. an old link) goes home.
+  useEffect(() => {
+    if (blocked) router.replace("/dashboard");
+  }, [blocked, router]);
   if (!profile) return null;
 
   return (
@@ -262,7 +280,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {pathname === "/dashboard" && <IosInstallHint />}
           {/* The "turn on notifications" card only on the home page too. */}
           {pathname === "/dashboard" && <PushBanner />}
-          {children}
+          {!blocked && children}
           <PrintSignature />
         </main>
       </div>
