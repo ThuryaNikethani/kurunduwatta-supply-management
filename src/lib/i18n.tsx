@@ -46,6 +46,7 @@ const si = {
 
   // මෙනුව
   "nav.dashboard": "මුල් පිටුව",
+  "nav.work": "කරන්න ඕන වැඩ",
   "nav.newList": "අලුත් ලැයිස්තුවක්",
   "nav.recipes": "කෑම වට්ටෝරු",
   "nav.users": "ගිණුම්",
