@@ -16,9 +16,13 @@ export const loginSchema = z.object({
 /** Login name: Sinhala or English, one word. */
 const username = z.string().trim().min(2, "v.username").max(30, "v.username").regex(/^\S+$/, "v.usernameSpace");
 
+/** Optional second login name (Sinhala); empty means none. */
+export const usernameSi = z.union([z.literal(""), username]).optional();
+
 export const newUserSchema = z.object({
   name,
   username,
+  usernameSi,
   password: z.string().min(6, "v.password"),
 });
 
