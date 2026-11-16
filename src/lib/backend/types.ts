@@ -51,7 +51,9 @@ export interface Backend {
 
   // users
   watchUsers(cb: (users: UserProfile[]) => void): Unsub;
-  createUser(input: { name: string; username: string; password: string; role: Role }): Promise<void>;
+  createUser(input: { name: string; username: string; usernameSi?: string; password: string; role: Role }): Promise<void>;
+  /** HR sets or clears someone's Sinhala login name ("" clears it). */
+  setSinhalaName(uid: string, usernameSi: string): Promise<void>;
   updateUser(uid: string, patch: Partial<Pick<UserProfile, "role" | "active">>): Promise<void>;
   /** HR sets a new password for someone who forgot theirs. */
   resetPassword(uid: string, password: string): Promise<void>;
