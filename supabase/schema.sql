@@ -17,6 +17,10 @@ create table if not exists public.profiles (
   created_at bigint not null default (extract(epoch from now()) * 1000)::bigint
 );
 create unique index if not exists profiles_username_key on public.profiles (lower(username));
+-- optional second login name in Sinhala
+alter table public.profiles add column if not exists username_si text;
+create unique index if not exists profiles_username_si_key
+  on public.profiles (lower(username_si)) where username_si is not null;
 
 create table if not exists public.app_meta (
   key text primary key,
