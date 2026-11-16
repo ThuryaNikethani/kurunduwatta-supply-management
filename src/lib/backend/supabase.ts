@@ -20,7 +20,7 @@ type Row = Record<string, unknown>;
 
 function profileFromRow(row: Row): UserProfile {
   const p = fromRow<UserProfile & { id: string }>(row);
-  return { uid: p.id, name: p.name, username: p.username, email: p.email, role: p.role, active: p.active, createdAt: p.createdAt };
+  return { uid: p.id, name: p.name, username: p.username, usernameSi: p.usernameSi ?? null, email: p.email, role: p.role, active: p.active, createdAt: p.createdAt };
 }
 
 /** PostgREST may return numeric columns as strings. */
@@ -207,6 +207,10 @@ export const supabaseBackend: Backend = {
 
   async createUser(input) {
     await api("/api/users", input);
+  },
+
+  async setSinhalaName(uid, usernameSi) {
+    await api("/api/users/sinhala-name", { uid, usernameSi });
   },
 
   async resetPassword(uid, password) {
