@@ -111,8 +111,6 @@ export default function SupplyDetail() {
       <ReturnNote status={d.status} history={d.history} />
       <ForwardNote status={d.status} history={d.history} />
 
-      {!adjusting && panel}
-
       <Card className="print-flow">
         <CardContent className="grid gap-3">
           {d.dishes.length > 0 && (
@@ -157,7 +155,8 @@ export default function SupplyDetail() {
         </CardContent>
       </Card>
 
-      {adjusting && panel}
+      {/* What to do next comes after the list, once it has been read. */}
+      {panel}
 
       {d.status === "approved" && (
         <Card>
