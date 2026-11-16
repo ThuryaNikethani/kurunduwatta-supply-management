@@ -152,7 +152,7 @@ function UserMenu({ light, compact }: { light?: boolean; compact?: boolean }) {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={() => logout().then(() => router.replace("/login"))}>
+        <DropdownMenuItem variant="destructive" onSelect={() => logout().finally(() => router.replace("/login"))}>
           <LogOut /> {t("logout")}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -213,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen lg:flex">
       {/* desktop sidebar */}
-      <aside className="no-print sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-6 bg-sidebar p-4 text-sidebar-foreground lg:flex">
+      <aside className="no-print sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-6 overflow-y-auto bg-sidebar p-4 text-sidebar-foreground lg:flex">
         <Brand />
         <NavLinks unread={unread} />
         <div className="mt-auto grid gap-2">
