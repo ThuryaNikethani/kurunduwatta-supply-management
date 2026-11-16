@@ -34,7 +34,9 @@ export default function Dashboard() {
   const s = supply.data ?? [];
   const tr = transfers.data ?? [];
   const mine = (d: SupplyList | TransferOut) => WAITING_ON[d.status] === role;
-  const waitingOrders = (orders.data ?? []).filter((o) => ORDER_WAITING_ON[o.status] === role);
+  // Chefs and supervisors only see their own work here, not the full home page.
+  const workOnly = role !== "hr";
+  const waitingOrders = workOnly ? [] : (orders.data ?? []).filter((o) => ORDER_WAITING_ON[o.status] === role);
   const waiting = s.filter(mine).length + tr.filter(mine).length + waitingOrders.length;
   const toCheck = (recipes.data ?? []).filter((r) => !r.reviewed && r.ingredients.length).length;
 
@@ -42,10 +44,15 @@ export default function Dashboard() {
   const match = (d: SupplyList | TransferOut) =>
     !q || ("title" in d ? d.title : d.supplyTitle).toLowerCase().includes(q) || d.createdByName.toLowerCase().includes(q);
   const error = supply.error || transfers.error;
+  // Approved lists still have work: the chef records leftovers, the supervisor gives out the goods.
+  const since = new Date(Date.now() - 3 * 864e5).toLocaleDateString("en-CA");
+  const approved = s.filter((d) => d.status === "approved" && d.eventDate >= since);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6">
-      <h1 className="font-display text-3xl font-semibold">{t("dash.hello", { name: profile.name.split(/[\s(]/)[0] })}</h1>
+      <h1 className="font-display text-3xl font-semibold">
+        {workOnly ? t("nav.work") : t("dash.hello", { name: profile.name.split(/[\s(]/)[0] })}
+      </h1>
 
       {error && (
         <Alert variant="destructive">
@@ -87,6 +94,19 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      {workOnly && (
+        <Card>
+          <CardContent className="grid gap-3">
+            <p className="text-lg font-semibold">{t("dash.approvedRecent")}</p>
+            <p className="-mt-2 text-sm text-muted-foreground">{t("dash.approvedHelp")}</p>
+            {!supply.data ? <CardsSkeleton count={1} /> : approved.length === 0
+              ? <p className="text-muted-foreground">{t("dash.empty")}</p>
+              : <div className="grid gap-2">{approved.map((d) => <SupplyRow key={d.id} d={d} />)}</div>}
+          </CardContent>
+        </Card>
+      )}
+
+      {!workOnly && (
       <Card>
         <CardContent className="grid gap-3">
           <p className="text-lg font-semibold">{t("dash.recent")}</p>
@@ -112,6 +132,7 @@ export default function Dashboard() {
           </Tabs>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
