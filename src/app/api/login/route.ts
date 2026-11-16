@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { loginSchema } from "@/lib/schemas";
 import { adminClient } from "@/lib/supabase-admin";
-import { usernameKey } from "@/lib/username";
+import { loginNameMatches } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -21,10 +21,11 @@ export async function POST(req: NextRequest) {
 
   // Same answer for an unknown name and a wrong password.
   const denied = NextResponse.json({ error: "invalid-credential", code: "invalid-credential" }, { status: 400 });
-  const { data: rows, error } = await admin.from("profiles").select("email, username");
+  // "*" rather than named columns, so this keeps working before username_si exists.
+  const { data: rows, error } = await admin.from("profiles").select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const want = usernameKey(parsed.data.username);
-  const row = rows?.find((r) => usernameKey(r.username) === want);
+  // Either the English or the Sinhala login name.
+  const row = rows?.find((r) => loginNameMatches(parsed.data.username, r));
   if (!row) return denied;
 
   const auth = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
