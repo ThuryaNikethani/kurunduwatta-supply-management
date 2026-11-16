@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, ChevronRight, ClipboardList, Plus, Search, ShoppingCart, Soup, type LucideIcon } from "lucide-react";
+import { BookOpen, ChevronRight, ClipboardList, Plus, Search, Soup, type LucideIcon } from "lucide-react";
 import { CardsSkeleton } from "@/components/common";
 import { StatusBadge } from "@/components/StatusBadge";
-import { OrderBadge } from "@/components/OrderBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,8 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { useOrders, useRecipes, useSupplyLists, useTransferOuts } from "@/lib/hooks";
-import { ORDER_WAITING_ON } from "@/lib/orders";
+import { useRecipes, useSupplyLists, useTransferOuts } from "@/lib/hooks";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import type { SupplyList, TransferOut } from "@/lib/types";
 import { WAITING_ON } from "@/lib/workflow";
@@ -26,7 +24,6 @@ export default function Dashboard() {
   const supply = useSupplyLists();
   const transfers = useTransferOuts();
   const recipes = useRecipes();
-  const orders = useOrders();
   const [search, setSearch] = useState("");
 
   if (!profile) return null;
@@ -36,8 +33,7 @@ export default function Dashboard() {
   const mine = (d: SupplyList | TransferOut) => WAITING_ON[d.status] === role;
   // Chefs and supervisors only see their own work here, not the full home page.
   const workOnly = role !== "hr";
-  const waitingOrders = workOnly ? [] : (orders.data ?? []).filter((o) => ORDER_WAITING_ON[o.status] === role);
-  const waiting = s.filter(mine).length + tr.filter(mine).length + waitingOrders.length;
+  const waiting = s.filter(mine).length + tr.filter(mine).length;
   const toCheck = (recipes.data ?? []).filter((r) => !r.reviewed && r.ingredients.length).length;
 
   const q = search.trim().toLowerCase();
@@ -85,10 +81,6 @@ export default function Dashboard() {
             <div className="grid gap-2">
               {s.filter(mine).map((d) => <SupplyRow key={d.id} d={d} />)}
               {tr.filter(mine).map((d) => <TransferRow key={d.id} d={d} />)}
-              {waitingOrders.map((o) => (
-                <Row key={o.id} href={`/orders/${o.id}`} Icon={ShoppingCart} title={o.supplier}
-                  badge={<OrderBadge status={o.status} />} meta={`${formatDate(o.createdAt)} · ${t("orders.itemCount", { n: o.items.length })}`} />
-              ))}
             </div>
           )}
         </CardContent>
