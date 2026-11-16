@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Forward, Send, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +41,7 @@ export function ActionPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<Action | null>(null);
   const [error, setError] = useState("");
+  const noteBox = useRef<HTMLTextAreaElement>(null);
 
   if (!profile) return null;
   const actions = availableActions(profile.role, status);
@@ -55,6 +56,8 @@ export function ActionPanel({
     }
     if ((noteRequired(action) || withChanges) && !note.trim()) {
       setError(withChanges ? "adjust.reasonNeeded" : "detail.reasonRequired");
+      // The box may only appear now (supervisor sending back), so put the cursor in it.
+      setTimeout(() => noteBox.current?.focus(), 0);
       return;
     }
     setBusy(action);
@@ -71,6 +74,10 @@ export function ActionPanel({
     }
   }
 
+  // Supervisors only see the reason box when a reason is needed:
+  // after changing an amount, or when sending a list back.
+  const showNote = profile.role !== "supervisor" || !!forward || !!error || note.length > 0;
+
   return (
     <Card className="no-print border-amber/60 ring-2 ring-amber/30">
       <CardHeader>
@@ -79,8 +86,10 @@ export function ActionPanel({
       </CardHeader>
       <CardContent className="grid gap-4">
         {children}
+        {showNote && (
         <Field label={t("detail.reason")} htmlFor="note" error={error}>
           <Textarea
+            ref={noteBox}
             id="note"
             rows={3}
             placeholder={t("detail.notePh")}
@@ -92,6 +101,7 @@ export function ActionPanel({
             }}
           />
         </Field>
+        )}
         <div className="flex flex-wrap gap-2">
           {actions.map((a) => {
             const Icon = ICON[a];
