@@ -204,6 +204,12 @@ function strip(u: DemoUser): UserProfile {
   return { ...rest, username: loginName(u) };
 }
 
+/** True if another account already logs in with this name (English or Sinhala). */
+function nameTaken(name: string, exceptUid?: string) {
+  const want = usernameKey(name);
+  return load().users.some((u) => u.uid !== exceptUid && (usernameKey(loginName(u)) === want || (!!u.usernameSi && usernameKey(u.usernameSi) === want)));
+}
+
 export const demoBackend: Backend = {
   name: "demo",
 
@@ -226,7 +232,8 @@ export const demoBackend: Backend = {
 
   async signIn(username, password) {
     await delay();
-    const u = load().users.find((x) => usernameKey(loginName(x)) === usernameKey(username));
+    const want = usernameKey(username);
+    const u = load().users.find((x) => usernameKey(loginName(x)) === want || (!!x.usernameSi && usernameKey(x.usernameSi) === want));
     if (!u || u.password !== password) throw new Error("auth/invalid-credential");
     setSession(u.uid);
   },
@@ -247,11 +254,24 @@ export const demoBackend: Backend = {
     return watch((s) => s.users.map(strip), cb);
   },
 
-  async createUser({ name, username, password, role }) {
+  async createUser({ name, username, usernameSi, password, role }) {
     await delay();
-    if (load().users.some((u) => usernameKey(loginName(u)) === usernameKey(username))) throw new Error("username-taken");
+    const si = usernameSi?.trim() || null;
+    if (nameTaken(username) || (si && (nameTaken(si) || usernameKey(si) === usernameKey(username)))) throw new Error("username-taken");
     const uid = newId();
-    mutate((s) => s.users.push({ uid, name, username, email: `${uid}@demo.lk`, password, role, active: true, createdAt: Date.now() }));
+    mutate((s) => s.users.push({ uid, name, username, usernameSi: si, email: `${uid}@demo.lk`, password, role, active: true, createdAt: Date.now() }));
+  },
+
+  async setSinhalaName(uid, usernameSi) {
+    await delay();
+    const si = usernameSi.trim() || null;
+    const me = load().users.find((u) => u.uid === uid);
+    if (!me) return;
+    if (si && (nameTaken(si, uid) || usernameKey(si) === usernameKey(loginName(me)))) throw new Error("username-taken");
+    mutate((s) => {
+      const u = s.users.find((x) => x.uid === uid);
+      if (u) u.usernameSi = si;
+    });
   },
 
   async resetPassword(uid, password) {
