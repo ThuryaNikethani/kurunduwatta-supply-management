@@ -76,14 +76,6 @@ export default function TransferDetail() {
 
       <ReturnNote status={d.status} history={d.history} />
 
-      <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
-        {canEdit && (
-          <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
-            <Pencil /> {t("supply.edit")}
-          </Button>
-        )}
-      </ActionPanel>
-
       <Card className="print-flow">
         <CardContent className="grid gap-3">
           <p className="text-lg font-semibold">{t("transfer.items")}</p>
@@ -105,6 +97,15 @@ export default function TransferDetail() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* What to do next comes after the list, once it has been read. */}
+      <ActionPanel kind="transfer" id={d.id} title={d.supplyTitle} status={d.status}>
+        {canEdit && (
+          <Button variant="accent" size="lg" className="w-full" onClick={() => setEditing(true)}>
+            <Pencil /> {t("supply.edit")}
+          </Button>
+        )}
+      </ActionPanel>
 
       <Timeline history={d.history} />
     </div>
