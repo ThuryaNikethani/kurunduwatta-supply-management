@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import {
   BarChart3,
   Bell,
-  BookOpen,
   ChefHat,
   FlaskConical,
   LayoutDashboard,
@@ -46,10 +45,8 @@ import { PrintSignature } from "./PrintHeader";
 
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.dashboard", roles: ["hr"], Icon: LayoutDashboard },
-  // Chefs and supervisors only get their own work and messages.
-  { href: "/dashboard", key: "nav.work", roles: ["chef", "supervisor"], Icon: LayoutDashboard },
+  // Chefs only make new lists and read messages; supervisors only read messages.
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
-  { href: "/recipes", key: "nav.recipes", roles: ["chef", "hr"], Icon: BookOpen },
   { href: "/reports", key: "nav.reports", roles: ["hr"], Icon: BarChart3 },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
@@ -57,8 +54,9 @@ const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
 
 function Brand() {
   const { t } = useI18n();
+  const { profile } = useAuth();
   return (
-    <Link href="/dashboard" className="flex items-center gap-3">
+    <Link href={profile ? HOME[profile.role] : "/dashboard"} className="flex items-center gap-3">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber text-forest">
         <ChefHat className="size-5" />
       </span>
@@ -200,12 +198,14 @@ function useLiveNotifications() {
   return (list ?? []).filter((n) => !n.read).length;
 }
 
-/** Pages each role does not use. The store and orders pages are closed for everyone. */
+/** Pages each role does not use. The store, orders and recipes pages are closed for everyone. */
 const CLOSED: Record<Role, string[]> = {
-  chef: ["/stock", "/orders", "/reports", "/users"],
-  supervisor: ["/stock", "/orders", "/reports", "/users", "/recipes"],
-  hr: ["/stock", "/orders"],
+  chef: ["/dashboard", "/recipes", "/stock", "/orders", "/reports", "/users"],
+  supervisor: ["/dashboard", "/requests/new", "/recipes", "/stock", "/orders", "/reports", "/users"],
+  hr: ["/requests/new", "/recipes", "/stock", "/orders"],
 };
+/** Where each role starts: chefs on a new list, supervisors on their messages. */
+const HOME: Record<Role, string> = { chef: "/requests/new", supervisor: "/notifications", hr: "/dashboard" };
 function closedFor(role: Role, path: string) {
   return CLOSED[role].some((p) => path === p || path.startsWith(p + "/"));
 }
@@ -220,8 +220,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const blocked = !!profile && closedFor(profile.role, pathname);
   // A page that is not part of this person's work (e.g. an old link) goes home.
   useEffect(() => {
-    if (blocked) router.replace("/dashboard");
-  }, [blocked, router]);
+    if (blocked && profile) router.replace(HOME[profile.role]);
+  }, [blocked, profile, router]);
   if (!profile) return null;
 
   return (
@@ -273,9 +273,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="print-main mx-auto w-full min-w-0 max-w-6xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:py-8">
           {/* The iPhone "add to home screen" steps only on the home page. */}
-          {pathname === "/dashboard" && <IosInstallHint />}
-          {/* The "turn on notifications" card only on the home page too. */}
-          {pathname === "/dashboard" && <PushBanner />}
+          {pathname === HOME[profile.role] && <IosInstallHint />}
+          {/* The "turn on notifications" card only on the home page too (the messages page has its own). */}
+          {pathname === HOME[profile.role] && pathname !== "/notifications" && <PushBanner />}
           {!blocked && children}
           <PrintSignature />
         </main>
