@@ -1,6 +1,6 @@
 import { DEFAULT_INGREDIENTS } from "../default-recipes";
 import { MENU, STAFF_MENU } from "../menu";
-import { usernameKey } from "../username";
+import { loginCandidates, usernameKey } from "../username";
 import type {
   OrderHistoryEntry,
   PurchaseOrder,
@@ -232,9 +232,10 @@ export const demoBackend: Backend = {
 
   async signIn(username, password) {
     await delay();
-    const want = usernameKey(username);
-    const u = load().users.find((x) => usernameKey(loginName(x)) === want || (!!x.usernameSi && usernameKey(x.usernameSi) === want));
-    if (!u || u.password !== password) throw new Error("auth/invalid-credential");
+    // Same rules as the real login: exact name first, else a name that sounds the same.
+    const rows = load().users.map((x) => ({ ...x, username: loginName(x), username_si: x.usernameSi ?? null }));
+    const u = loginCandidates(username, rows).find((x) => x.password === password);
+    if (!u) throw new Error("auth/invalid-credential");
     setSession(u.uid);
   },
 
