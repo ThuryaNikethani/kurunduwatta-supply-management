@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { loginSchema } from "@/lib/schemas";
 import { adminClient } from "@/lib/supabase-admin";
-import { loginNameMatches } from "@/lib/username";
+import { loginCandidates } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -24,12 +24,16 @@ export async function POST(req: NextRequest) {
   // "*" rather than named columns, so this keeps working before username_si exists.
   const { data: rows, error } = await admin.from("profiles").select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // Either the English or the Sinhala login name.
-  const row = rows?.find((r) => loginNameMatches(parsed.data.username, r));
-  if (!row) return denied;
+  // The English or Sinhala login name, or a name that sounds the same
+  // (e.g. තූර්යා for thurya). The password decides which account, if any.
+  const candidates = loginCandidates(parsed.data.username, rows ?? []);
+  if (!candidates.length) return denied;
 
   const auth = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error: signInError } = await auth.auth.signInWithPassword({ email: row.email, password: parsed.data.password });
-  if (signInError || !data.session) return denied;
-  return NextResponse.json({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+  for (const row of candidates) {
+    const { data, error: signInError } = await auth.auth.signInWithPassword({ email: row.email, password: parsed.data.password });
+    if (!signInError && data.session)
+      return NextResponse.json({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+  }
+  return denied;
 }
