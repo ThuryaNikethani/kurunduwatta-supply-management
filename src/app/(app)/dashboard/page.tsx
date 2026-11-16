@@ -2,28 +2,26 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, ChevronRight, ClipboardList, Plus, Search, Soup, type LucideIcon } from "lucide-react";
+import { ChevronRight, ClipboardList, Search, Soup, type LucideIcon } from "lucide-react";
 import { CardsSkeleton } from "@/components/common";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { useRecipes, useSupplyLists, useTransferOuts } from "@/lib/hooks";
+import { useSupplyLists, useTransferOuts } from "@/lib/hooks";
 import { errorText, useI18n, type TKey } from "@/lib/i18n";
 import type { SupplyList, TransferOut } from "@/lib/types";
 import { WAITING_ON } from "@/lib/workflow";
 
-/** Home: new list button (chef), what is waiting for you, then every list. */
+/** HR's home: what is waiting for HR, then every list. (Chefs and supervisors have no home page.) */
 export default function Dashboard() {
   const { profile } = useAuth();
   const { t } = useI18n();
   const supply = useSupplyLists();
   const transfers = useTransferOuts();
-  const recipes = useRecipes();
   const [search, setSearch] = useState("");
 
   if (!profile) return null;
@@ -31,41 +29,21 @@ export default function Dashboard() {
   const s = supply.data ?? [];
   const tr = transfers.data ?? [];
   const mine = (d: SupplyList | TransferOut) => WAITING_ON[d.status] === role;
-  // Chefs and supervisors only see their own work here, not the full home page.
-  const workOnly = role !== "hr";
   const waiting = s.filter(mine).length + tr.filter(mine).length;
-  const toCheck = (recipes.data ?? []).filter((r) => !r.reviewed && r.ingredients.length).length;
 
   const q = search.trim().toLowerCase();
   const match = (d: SupplyList | TransferOut) =>
     !q || ("title" in d ? d.title : d.supplyTitle).toLowerCase().includes(q) || d.createdByName.toLowerCase().includes(q);
   const error = supply.error || transfers.error;
-  // Approved lists still have work for the chef: recording the leftovers.
-  const since = new Date(Date.now() - 3 * 864e5).toLocaleDateString("en-CA");
-  const approved = s.filter((d) => d.status === "approved" && d.eventDate >= since);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6">
-      <h1 className="font-display text-3xl font-semibold">
-        {workOnly ? t("nav.work") : t("dash.hello", { name: profile.name.split(/[\s(]/)[0] })}
-      </h1>
+      <h1 className="font-display text-3xl font-semibold">{t("dash.hello", { name: profile.name.split(/[\s(]/)[0] })}</h1>
 
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{errorText(error)}</AlertDescription>
         </Alert>
-      )}
-
-      {role === "chef" && (
-        <Button asChild variant="accent" className="h-16 w-full text-xl">
-          <Link href="/requests/new"><Plus className="size-6" /> {t("supply.new")}</Link>
-        </Button>
-      )}
-
-      {role === "chef" && toCheck > 0 && (
-        <Link href="/recipes" className="flex items-center gap-2 text-sm text-amber-deep underline underline-offset-4">
-          <BookOpen className="size-4" /> {t("recipes.reminder", { n: toCheck })}
-        </Link>
       )}
 
       <Card>
@@ -86,19 +64,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {role === "chef" && (
-        <Card>
-          <CardContent className="grid gap-3">
-            <p className="text-lg font-semibold">{t("dash.approvedRecent")}</p>
-            <p className="-mt-2 text-sm text-muted-foreground">{t("dash.approvedHelp")}</p>
-            {!supply.data ? <CardsSkeleton count={1} /> : approved.length === 0
-              ? <p className="text-muted-foreground">{t("dash.empty")}</p>
-              : <div className="grid gap-2">{approved.map((d) => <SupplyRow key={d.id} d={d} />)}</div>}
-          </CardContent>
-        </Card>
-      )}
-
-      {!workOnly && (
       <Card>
         <CardContent className="grid gap-3">
           <p className="text-lg font-semibold">{t("dash.recent")}</p>
@@ -124,7 +89,6 @@ export default function Dashboard() {
           </Tabs>
         </CardContent>
       </Card>
-      )}
     </div>
   );
 }
