@@ -27,6 +27,40 @@ const SINHALA_SOUND: Record<string, string> = {
   "ං": "n", "ෘ": "r", "ෲ": "r",
 };
 
+const VOWEL_SIGN: Record<string, string> = {
+  "ා": "a", "ැ": "a", "ෑ": "a", "ි": "i", "ී": "i", "ු": "u", "ූ": "u",
+  "ෙ": "e", "ේ": "e", "ෛ": "ai", "ො": "o", "ෝ": "o", "ෞ": "au", "ෟ": "lu",
+};
+const VOWEL_LETTER: Record<string, string> = {
+  අ: "a", ආ: "a", ඇ: "a", ඈ: "a", ඉ: "i", ඊ: "i", උ: "u", ඌ: "u", එ: "e", ඒ: "e", ඓ: "ai", ඔ: "o", ඕ: "o", ඖ: "au",
+};
+const HAL = "්";
+
+/**
+ * A name spelt the simple way people type Sinhala in English letters, vowels
+ * kept: උම්බලකඩ → "umbalakada", බිත්තර and "biththara" → "bitara".
+ */
+export function singlishSpelling(name: string) {
+  const chars = [...usernameKey(name)];
+  let out = "";
+  chars.forEach((ch, i) => {
+    if (VOWEL_LETTER[ch]) out += VOWEL_LETTER[ch];
+    else if (VOWEL_SIGN[ch]) out += VOWEL_SIGN[ch];
+    else if (ch === HAL) return;
+    else if (SINHALA_SOUND[ch] !== undefined && !"ංෘෲ".includes(ch)) {
+      const next = chars[i + 1];
+      // A letter with no sign after it says "a".
+      out += SINHALA_SOUND[ch] + (next && (next === HAL || VOWEL_SIGN[next]) ? "" : "a");
+    } else if (/[඀-෿]/.test(ch)) out += SINHALA_SOUND[ch] ?? "";
+    else out += ch;
+  });
+  return out
+    .replace(/th/g, "t").replace(/dh/g, "d").replace(/sh/g, "s").replace(/ph/g, "f").replace(/bh/g, "b")
+    .replace(/kh/g, "k").replace(/gh/g, "g").replace(/w/g, "v").replace(/ee/g, "i").replace(/oo/g, "u").replace(/ae/g, "a")
+    .replace(/[^a-z ]/g, "")
+    .replace(/(.)\1+/g, "$1");
+}
+
 /**
  * The "sound" of a name with the vowels taken out, so a name typed in Sinhala
  * finds the same account as its English spelling: තූර්යා and thurya both give
