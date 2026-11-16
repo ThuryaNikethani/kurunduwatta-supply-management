@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { PackageCheck, PackageMinus, ShoppingCart, Store, TriangleAlert } from "lucide-react";
+import { PackageCheck, PackageMinus, Store, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -75,13 +74,6 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
                 <TriangleAlert className="size-4 text-amber-deep" /> {t("issue.shortTitle", { n: stillShort.length })}
               </p>
               <p className="text-muted-foreground">{stillShort.map((s) => `${s.name} ${qty(s.qty, s.unit)}`).join(" · ")}</p>
-              {profile?.role === "supervisor" && (
-                <div className="no-print">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/orders/new?supply=${supply.id}`}><ShoppingCart /> {t("issue.orderShort")}</Link>
-                  </Button>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
@@ -167,11 +159,6 @@ export function StockIssuePanel({ supply }: { supply: SupplyList }) {
           <div className="flex flex-col gap-3 rounded-xl border border-amber/60 bg-amber/10 p-3 text-sm sm:flex-row sm:items-center">
             <TriangleAlert className="size-5 shrink-0 text-amber-deep" />
             <p className="flex-1">{t("issue.shortTitle", { n: short.length })}</p>
-            {profile?.role === "supervisor" && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/orders/new?supply=${supply.id}`}><ShoppingCart /> {t("issue.orderShort")}</Link>
-              </Button>
-            )}
           </div>
         )}
         {freshNote}
