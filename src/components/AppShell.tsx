@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   ChefHat,
+  ClipboardCheck,
   FlaskConical,
   LayoutDashboard,
   LogOut,
@@ -45,7 +46,8 @@ import { PrintSignature } from "./PrintHeader";
 
 const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.dashboard", roles: ["hr"], Icon: LayoutDashboard },
-  // Chefs only make new lists and read messages; supervisors only read messages.
+  // Chefs only make new lists and read messages; supervisors see their work and messages.
+  { href: "/work", key: "nav.work", roles: ["supervisor"], Icon: ClipboardCheck },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
   { href: "/reports", key: "nav.reports", roles: ["hr"], Icon: BarChart3 },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
@@ -200,12 +202,12 @@ function useLiveNotifications() {
 
 /** Pages each role does not use. The store, orders and recipes pages are closed for everyone. */
 const CLOSED: Record<Role, string[]> = {
-  chef: ["/dashboard", "/recipes", "/stock", "/orders", "/reports", "/users"],
+  chef: ["/dashboard", "/work", "/recipes", "/stock", "/orders", "/reports", "/users"],
   supervisor: ["/dashboard", "/requests/new", "/recipes", "/stock", "/orders", "/reports", "/users"],
-  hr: ["/requests/new", "/recipes", "/stock", "/orders"],
+  hr: ["/work", "/requests/new", "/recipes", "/stock", "/orders"],
 };
-/** Where each role starts: chefs on a new list, supervisors on their messages. */
-const HOME: Record<Role, string> = { chef: "/requests/new", supervisor: "/notifications", hr: "/dashboard" };
+/** Where each role starts: chefs on a new list, supervisors on the work waiting for them. */
+const HOME: Record<Role, string> = { chef: "/requests/new", supervisor: "/work", hr: "/dashboard" };
 function closedFor(role: Role, path: string) {
   return CLOSED[role].some((p) => path === p || path.startsWith(p + "/"));
 }
