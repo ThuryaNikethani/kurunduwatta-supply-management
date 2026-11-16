@@ -13,11 +13,9 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Package,
   PlusCircle,
   KeyRound,
   RotateCcw,
-  ShoppingCart,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -52,8 +50,6 @@ const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/dashboard", key: "nav.work", roles: ["chef", "supervisor"], Icon: LayoutDashboard },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
   { href: "/recipes", key: "nav.recipes", roles: ["chef", "hr"], Icon: BookOpen },
-  { href: "/stock", key: "nav.stock", roles: ["hr"], Icon: Package },
-  { href: "/orders", key: "nav.orders", roles: ["hr"], Icon: ShoppingCart },
   { href: "/reports", key: "nav.reports", roles: ["hr"], Icon: BarChart3 },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
@@ -204,14 +200,14 @@ function useLiveNotifications() {
   return (list ?? []).filter((n) => !n.read).length;
 }
 
-/** Pages chefs and supervisors no longer use; only HR opens these. */
-const HR_ONLY: Record<Role, string[]> = {
+/** Pages each role does not use. The store and orders pages are closed for everyone. */
+const CLOSED: Record<Role, string[]> = {
   chef: ["/stock", "/orders", "/reports", "/users"],
   supervisor: ["/stock", "/orders", "/reports", "/users", "/recipes"],
-  hr: [],
+  hr: ["/stock", "/orders"],
 };
 function closedFor(role: Role, path: string) {
-  return HR_ONLY[role].some((p) => path === p || path.startsWith(p + "/"));
+  return CLOSED[role].some((p) => path === p || path.startsWith(p + "/"));
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
