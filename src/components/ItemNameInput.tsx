@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useRecipes, useSupplyLists } from "@/lib/hooks";
 import type { Unit } from "@/lib/types";
+import { loginSkeleton as sound, singlishSpelling as spell } from "@/lib/username";
 import { cn } from "@/lib/utils";
 
 /** Same text however it was typed (case, extra spaces, invisible joiners). */
@@ -36,20 +37,39 @@ export function useKnownItems(): KnownItem[] {
   }, [recipes.data, lists.data]);
 }
 
-/** Up to 6 names that start with what was typed (or have a word that does). */
+/**
+ * Up to 6 names that start with what was typed (or have a word that does).
+ * Typed in English letters ("Umbalakada", "umb"), names that sound the same
+ * are found too (උම්බලකඩ), by comparing the sounds without the vowels.
+ */
 export function suggest(typed: string, known: KnownItem[]) {
   const q = key(typed);
   if (!q) return [];
+  const singlish = /[a-z]/.test(q) && !/[඀-෿]/.test(q) && q.length >= 2;
+  const sp = singlish ? spell(q) : "";
+  const sq = singlish ? sound(q) : "";
   const starts: KnownItem[] = [];
   const word: KnownItem[] = [];
+  const spellStarts: KnownItem[] = [];
+  const spellWord: KnownItem[] = [];
+  const soundStarts: KnownItem[] = [];
+  const soundWord: KnownItem[] = [];
   for (const k of known) {
     const n = key(k.name);
     if (n === q) continue;
+    const words = n.split(" ");
     if (n.startsWith(q)) starts.push(k);
-    else if (n.split(" ").some((w) => w.startsWith(q))) word.push(k);
+    else if (words.some((w) => w.startsWith(q))) word.push(k);
+    else if (sp && spell(n).startsWith(sp)) spellStarts.push(k);
+    else if (sp && words.some((w) => spell(w).startsWith(sp))) spellWord.push(k);
+    else if (sq && sound(n).startsWith(sq)) soundStarts.push(k);
+    else if (sq && words.some((w) => sound(w).startsWith(sq))) soundWord.push(k);
   }
   const order = (a: KnownItem, b: KnownItem) => b.uses - a.uses || a.name.localeCompare(b.name);
-  return [...starts.sort(order), ...word.sort(order)].slice(0, 6);
+  const close = [starts, word, spellStarts, spellWord].flatMap((g) => g.sort(order));
+  // Only when nothing is spelt the same, fall back to names that roughly sound alike.
+  const rough = close.length ? [] : [soundStarts, soundWord].flatMap((g) => g.sort(order));
+  return [...close, ...rough].slice(0, 6);
 }
 
 /**
