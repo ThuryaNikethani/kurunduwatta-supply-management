@@ -16,7 +16,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => backend.onAuth(setSnap), []);
 
-  return <Ctx.Provider value={{ ...snap, logout: () => backend.signOut() }}>{children}</Ctx.Provider>;
+  // Mark signed out straight away: the login page would otherwise still see the
+  // old session for a moment and send the person back to the home page.
+  const logout = async () => {
+    try {
+      await backend.signOut();
+    } finally {
+      setSnap({ status: "signedOut", profile: null });
+    }
+  };
+  return <Ctx.Provider value={{ ...snap, logout }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
