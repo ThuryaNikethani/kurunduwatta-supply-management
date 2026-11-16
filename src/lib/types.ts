@@ -7,6 +7,8 @@ export interface UserProfile {
   name: string;
   /** What they type to log in (Sinhala or English). */
   username: string;
+  /** Optional second login name in Sinhala; either name logs in. */
+  usernameSi?: string | null;
   /** Internal address Supabase needs; never shown or mailed. */
   email: string;
   role: Role;
