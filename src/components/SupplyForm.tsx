@@ -15,6 +15,7 @@ import { AUDIENCES, UNITS, type Audience, type SupplyItem, type SupplyList, type
 import { cn } from "@/lib/utils";
 import { Field } from "./common";
 import { DraftNotice } from "./DraftNotice";
+import { ItemNameInput, useKnownItems } from "./ItemNameInput";
 import { useDraft } from "@/lib/draft";
 
 /** An empty row for the chef to write one item in. */
@@ -74,6 +75,8 @@ export function SupplyForm({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  /** Item names to suggest while the chef types. */
+  const known = useKnownItems();
 
   type Draft = SupplyFormData & { note: string };
   const [start] = useState<Draft>(() => ({
@@ -201,8 +204,8 @@ export function SupplyForm({
                   "grid grid-cols-[1fr_1fr_auto] items-start gap-2 border-b pb-3 sm:grid-cols-[1fr_5rem_6.5rem_auto] sm:border-0 sm:pb-0",
                   changed && "rounded-lg bg-amber/10")}>
                   <Field error={errors[`items.${i}.name`]} className="col-span-3 sm:col-span-1">
-                    <Input aria-label={t("supply.item")} placeholder={t("supply.item")} value={it.name} aria-invalid={!!errors[`items.${i}.name`]}
-                      onChange={(e) => update(i, { name: e.target.value })} />
+                    <ItemNameInput placeholder={t("supply.item")} value={it.name} invalid={!!errors[`items.${i}.name`]} known={known}
+                      onChange={(name) => update(i, { name })} onPick={(k) => update(i, { name: k.name, unit: k.unit })} />
                   </Field>
                   <Field error={errors[`items.${i}.qty`]}>
                     <Input type="number" step="any" min={0} inputMode="decimal" placeholder={t("supply.qty")} className="px-2"
