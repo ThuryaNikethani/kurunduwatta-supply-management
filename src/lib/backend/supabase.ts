@@ -177,7 +177,9 @@ export const supabaseBackend: Backend = {
 
   async signOut() {
     // The device stays registered for popups, so alerts keep coming after logout.
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    // Server not reachable or session already gone: still sign out on this device.
+    if (error) await supabase.auth.signOut({ scope: "local" });
   },
 
   async isSetupDone() {
