@@ -10,7 +10,6 @@ import { EmptyState } from "@/components/common";
 import { BackBar, ForwardNote, ReturnNote } from "@/components/DetailBits";
 import { PrintHeader } from "@/components/PrintHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { StockIssuePanel } from "@/components/StockIssuePanel";
 import { SupplyForm } from "@/components/SupplyForm";
 import { Timeline } from "@/components/Timeline";
 import { Button } from "@/components/ui/button";
@@ -159,8 +158,6 @@ export default function SupplyDetail() {
       </Card>
 
       {adjusting && panel}
-
-      {d.status === "approved" && <StockIssuePanel supply={d} />}
 
       {d.status === "approved" && (
         <Card>
