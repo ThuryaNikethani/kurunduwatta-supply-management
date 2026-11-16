@@ -32,8 +32,8 @@ export default function SupplyDetail() {
   const d = useDoc("supply", id);
   const transfers = useTransfersFor(id);
   const [editing, setEditing] = useState(false);
-  /** Supervisor's new amounts, one per item, while changing them. */
-  const [amounts, setAmounts] = useState<number[] | null>(null);
+  /** Supervisor's changed amounts, one per item (null = none changed yet). */
+  const [changed, setAmounts] = useState<number[] | null>(null);
   const draftKey = `supply-edit-${id}`;
   const editable = profile?.role === "chef" && d?.status === "returned_to_chef";
   // Came back after a refresh with unsent changes: reopen the edit form.
@@ -46,7 +46,9 @@ export default function SupplyDetail() {
 
   const canEdit = profile.role === "chef" && d.status === "returned_to_chef";
   const canAdjust = profile.role === "supervisor" && (d.status === "pending_supervisor" || d.status === "returned_to_supervisor") && d.items.length > 0;
-  const adjusting = canAdjust && amounts !== null;
+  // The supervisor can type a new amount straight into each item's box.
+  const adjusting = canAdjust;
+  const amounts = changed ?? d.items.map((it) => it.qty);
   const changedLines = adjusting
     ? d.items.flatMap((it, i) => (amounts[i] !== it.qty ? [`${it.name}: ${qty(it.qty, it.unit)} → ${qty(amounts[i] || 0, it.unit)}`] : []))
     : [];
@@ -118,14 +120,12 @@ export default function SupplyDetail() {
           )}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-lg font-semibold">{t("simple.items")} ({d.items.length})</p>
-            {canAdjust && (adjusting ? (
-              <Button variant="outline" onClick={() => setAmounts(null)}><X /> {t("adjust.reset")}</Button>
-            ) : (
-              <Button variant="outline" onClick={() => setAmounts(d.items.map((it) => it.qty))}><Pencil /> {t("adjust.button")}</Button>
-            ))}
+            {changedLines.length > 0 && (
+              <Button variant="outline" className="no-print" onClick={() => setAmounts(null)}><X /> {t("adjust.reset")}</Button>
+            )}
           </div>
-          {adjusting && <p className="rounded-lg bg-amber/15 p-3">{t("adjust.help")}</p>}
-          <ul className="divide-y">
+          {/* On paper the plain list is printed, not the boxes. */}
+          <ul className={cn("divide-y", adjusting && "no-print")}>
             {adjusting && d.items.map((it, i) => (
               <li key={i} className={cn("grid grid-cols-[1fr_6rem_auto] items-center gap-2 py-2", amounts[i] !== it.qty && "-mx-2 rounded-lg bg-amber/10 px-2")}>
                 <div className="min-w-0">
@@ -134,11 +134,13 @@ export default function SupplyDetail() {
                 </div>
                 <Input type="number" step="any" min={0} inputMode="decimal" aria-label={`${t("supply.qty")}: ${it.name}`}
                   value={amounts[i] || ""}
-                  onChange={(e) => setAmounts((cur) => cur!.map((q, j) => (j === i ? (e.target.value === "" ? 0 : Number(e.target.value)) : q)))} />
+                  onChange={(e) => setAmounts(amounts.map((q, j) => (j === i ? (e.target.value === "" ? 0 : Number(e.target.value)) : q)))} />
                 <span className="w-12 text-sm text-muted-foreground">{unitLabel(it.unit)}</span>
               </li>
             ))}
-            {!adjusting && d.items.map((it, i) => {
+          </ul>
+          <ul className={cn("divide-y", adjusting && "print-only")}>
+            {d.items.map((it, i) => {
               const changed = it.calculated != null && it.qty !== it.calculated;
               return (
                 <li key={i} className={cn("flex items-start gap-3 py-2.5", changed && "-mx-2 rounded-lg bg-amber/10 px-2")}>
