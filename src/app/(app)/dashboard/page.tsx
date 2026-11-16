@@ -40,7 +40,7 @@ export default function Dashboard() {
   const match = (d: SupplyList | TransferOut) =>
     !q || ("title" in d ? d.title : d.supplyTitle).toLowerCase().includes(q) || d.createdByName.toLowerCase().includes(q);
   const error = supply.error || transfers.error;
-  // Approved lists still have work: the chef records leftovers, the supervisor gives out the goods.
+  // Approved lists still have work for the chef: recording the leftovers.
   const since = new Date(Date.now() - 3 * 864e5).toLocaleDateString("en-CA");
   const approved = s.filter((d) => d.status === "approved" && d.eventDate >= since);
 
@@ -86,7 +86,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {workOnly && (
+      {role === "chef" && (
         <Card>
           <CardContent className="grid gap-3">
             <p className="text-lg font-semibold">{t("dash.approvedRecent")}</p>
