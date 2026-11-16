@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { ChevronRight, ClipboardList, Search, Soup, type LucideIcon } from "lucide-react";
+import { ClipboardList, Search, Soup } from "lucide-react";
 import { CardsSkeleton } from "@/components/common";
-import { StatusBadge } from "@/components/StatusBadge";
+import { SupplyRow, TransferRow } from "@/components/ListRows";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
 import { useSupplyLists, useTransferOuts } from "@/lib/hooks";
-import { errorText, useI18n, type TKey } from "@/lib/i18n";
+import { errorText, useI18n } from "@/lib/i18n";
 import type { SupplyList, TransferOut } from "@/lib/types";
 import { WAITING_ON } from "@/lib/workflow";
 
@@ -90,38 +88,5 @@ export default function Dashboard() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-/** One line per list: name, a short detail, and its status colour. */
-function Row({ href, title, Icon, meta, badge }: { href: string; title: string; Icon: LucideIcon; meta: string; badge: React.ReactNode }) {
-  return (
-    <Link href={href} className="flex items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-amber/60">
-      <Icon className="size-6 shrink-0 text-moss" />
-      <span className="grid min-w-0 flex-1 gap-1">
-        <span className="truncate text-base font-semibold">{title}</span>
-        <span className="truncate text-sm text-muted-foreground">{meta}</span>
-        <span>{badge}</span>
-      </span>
-      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-    </Link>
-  );
-}
-
-function SupplyRow({ d }: { d: SupplyList }) {
-  const { t } = useI18n();
-  return (
-    <Row href={`/requests/${d.id}`} title={d.title} Icon={ClipboardList} badge={<StatusBadge status={d.status} />}
-      meta={[formatDate(d.eventDate), d.audience !== "staff" && t(`meal.${d.meal}` as TKey), t("supply.calcFor", { n: d.guestCount, d: d.days ?? 1 })]
-        .filter(Boolean).join(" · ")} />
-  );
-}
-
-function TransferRow({ d }: { d: TransferOut }) {
-  const { t } = useI18n();
-  const portions = d.items.reduce((s, i) => s + (Number(i.portions) || 0), 0);
-  return (
-    <Row href={`/leftovers/${d.id}`} title={d.supplyTitle} Icon={Soup} badge={<StatusBadge status={d.status} />}
-      meta={`${formatDate(d.date)} · ${t("transfer.summary", { guests: d.guestCount, portions })}`} />
   );
 }
