@@ -3,7 +3,7 @@ import { z } from "zod";
 import { newUserSchema } from "@/lib/schemas";
 import { adminClient, callerProfile, usernameTaken } from "@/lib/supabase-admin";
 import { ROLES } from "@/lib/types";
-import { internalEmail } from "@/lib/username";
+import { internalEmail, usernameKey } from "@/lib/username";
 
 export const runtime = "nodejs";
 
@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "invalid input" }, { status: 400 });
 
   const { name, username, password, role } = parsed.data;
-  if (await usernameTaken(admin, username))
+  const usernameSi = parsed.data.usernameSi?.trim() || null;
+  if (await usernameTaken(admin, username) || (usernameSi && (await usernameTaken(admin, usernameSi))) ||
+      (usernameSi && usernameKey(usernameSi) === usernameKey(username)))
     return NextResponse.json({ error: "username-taken", code: "username-taken" }, { status: 400 });
 
   // No real email: Supabase gets an internal address that is never mailed.
@@ -30,7 +32,10 @@ export async function POST(req: NextRequest) {
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error || !data.user) return NextResponse.json({ error: error?.message ?? "failed", code: error?.code }, { status: 400 });
 
-  const { error: pErr } = await admin.from("profiles").insert({ id: data.user.id, name, username: username.normalize("NFC"), email, role, active: true });
+  const { error: pErr } = await admin.from("profiles").insert({
+    id: data.user.id, name, username: username.normalize("NFC"), email, role, active: true,
+    ...(usernameSi ? { username_si: usernameSi.normalize("NFC") } : {}),
+  });
   if (pErr) {
     await admin.auth.admin.deleteUser(data.user.id);
     return NextResponse.json({ error: pErr.message }, { status: 500 });
