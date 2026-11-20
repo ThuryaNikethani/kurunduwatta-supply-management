@@ -200,11 +200,11 @@ function useLiveNotifications() {
   return (list ?? []).filter((n) => !n.read).length;
 }
 
-/** Pages each role does not use. The store, orders and recipes pages are closed for everyone. */
+/** Pages each role does not use. */
 const CLOSED: Record<Role, string[]> = {
-  chef: ["/dashboard", "/work", "/recipes", "/stock", "/orders", "/reports", "/users"],
-  supervisor: ["/dashboard", "/requests/new", "/recipes", "/stock", "/orders", "/reports", "/users"],
-  hr: ["/work", "/requests/new", "/recipes", "/stock", "/orders"],
+  chef: ["/dashboard", "/work", "/reports", "/users"],
+  supervisor: ["/dashboard", "/requests/new", "/reports", "/users"],
+  hr: ["/work", "/requests/new"],
 };
 /** Where each role starts: chefs on a new list, supervisors on the work waiting for them. */
 const HOME: Record<Role, string> = { chef: "/requests/new", supervisor: "/work", hr: "/dashboard" };
