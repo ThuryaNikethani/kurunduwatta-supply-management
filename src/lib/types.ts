@@ -229,6 +229,7 @@ export const COLLECTION: Record<DocKind, string> = {
 };
 
 export function docLink(kind: NotifKind, id: string) {
-  if (kind === "po") return `/orders/${id}`;
+  // Purchase orders are gone; old order messages just open the messages page.
+  if (kind === "po") return "/notifications";
   return kind === "supply" ? `/requests/${id}` : `/leftovers/${id}`;
 }
