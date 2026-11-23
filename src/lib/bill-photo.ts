@@ -47,6 +47,23 @@ function drawGrey(img: ImageBitmap, longest: number) {
   return canvas;
 }
 
+/** A colour copy for reading (at most 2000px, about 0.3–1 MB), small enough to send to the server. */
+export async function photoForReading(file: Blob): Promise<Blob> {
+  const img = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 2000 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await toBlob(canvas, 0.85);
+  } finally {
+    img.close();
+  }
+}
+
 /** The smallest clear copy of the photo, as a JPEG. */
 export async function shrinkBillPhoto(file: Blob): Promise<Blob> {
   const img = await createImageBitmap(file);
