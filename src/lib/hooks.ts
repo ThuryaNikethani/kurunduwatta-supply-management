@@ -5,6 +5,7 @@ import { backend } from "./backend";
 import type { DocOf } from "./backend/types";
 import type {
   AppNotification,
+  Bill,
   DocKind,
   Recipe,
   TransferOut,
@@ -88,4 +89,17 @@ export function useNotifications(uid: string | undefined) {
     return backend.watchNotifications(uid, (l) => setData([...l].sort((a, b) => b.createdAt - a.createdAt)));
   }, [uid]);
   return data;
+}
+
+export function useBills(): Live<Bill[]> {
+  const [state, setState] = useState<Live<Bill[]>>({ data: null, error: null });
+  useEffect(
+    () =>
+      backend.watchBills(
+        (data) => setState({ data, error: null }),
+        (error) => setState((st) => ({ ...st, error })),
+      ),
+    [],
+  );
+  return state;
 }
