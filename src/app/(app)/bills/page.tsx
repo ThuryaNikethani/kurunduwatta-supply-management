@@ -39,13 +39,11 @@ interface Draft {
   date: string;
   total: string;
   items: { name: string; qty: string; amount: string }[];
-  /** An old date read from the photo, shown so HR can choose it if it is right. */
-  readDate?: string;
   /** Set after HR was warned that the same bill is already saved. */
   dupOk?: boolean;
 }
 
-/** True if the date is within the last 60 days: a bill read with an older date is often misread. */
+/** True if the date is within the last 60 days. An older bill date is pointed out, as it may be misread. */
 function recent(date: string) {
   if (!date) return false;
   const days = (Date.now() - new Date(`${date}T00:00:00`).getTime()) / 86_400_000;
@@ -100,11 +98,9 @@ export default function BillsPage() {
     try {
       // The full photo reads better than the small copy that is kept.
       const details = await readBillPhoto(file).catch(() => readBillPhoto(photo));
-      // Today's date stays unless the bill's date was read and is recent.
+      // The bill's own date decides its month; today's date only when none was read.
       const read = fromDetails(details);
-      const date = recent(read.date) ? read.date : today();
-      const readDate = read.date && read.date !== date ? read.date : undefined;
-      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...read, date, readDate } : d));
+      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...read, date: read.date || today() } : d));
     } catch {
       setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false } : d));
       toast.error(t("bills.readFailed"));
@@ -232,8 +228,7 @@ export default function BillsPage() {
                     <Input id="b-shop" value={draft.shop} onChange={(e) => update({ shop: e.target.value })} />
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label={t("bills.date")} htmlFor="b-date" error={errors.date}
-                      hint={draft.readDate && draft.readDate !== draft.date ? t("bills.readDate", { date: formatDate(draft.readDate) }) : undefined}>
+                    <Field label={t("bills.date")} htmlFor="b-date" error={errors.date}>
                       <Input id="b-date" type="date" max={today()} value={draft.date} aria-invalid={!!errors.date}
                         onChange={(e) => update({ date: e.target.value })} />
                     </Field>
@@ -269,10 +264,13 @@ export default function BillsPage() {
                     </Button>
                   </div>
 
-                  {draft.readDate && draft.readDate !== draft.date && (
-                    <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => update({ date: draft.readDate })}>
-                      {t("bills.useReadDate", { date: formatDate(draft.readDate) })}
-                    </Button>
+                  {/^\d{4}-\d{2}-\d{2}$/.test(draft.date) && !recent(draft.date) && (
+                    <div role="status" className="grid gap-2 rounded-xl bg-amber/20 p-3 text-sm">
+                      <p>{t("bills.oldDate", { date: formatDate(draft.date), month: monthName(draft.date.slice(0, 7)) })}</p>
+                      <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => update({ date: today() })}>
+                        {t("bills.useToday")}
+                      </Button>
+                    </div>
                   )}
                   {draft.dupOk && duplicate && (
                     <p role="alert" className="rounded-xl bg-amber/20 p-3 text-sm">{t("bills.duplicate")}</p>
