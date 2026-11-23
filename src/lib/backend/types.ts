@@ -1,5 +1,7 @@
 import type {
   AppNotification,
+  Bill,
+  BillDetails,
   OrderHistoryEntry,
   PurchaseOrder,
   StockIssue,
@@ -97,6 +99,15 @@ export interface Backend {
   updateOrder(id: string, changes: Record<string, unknown>, entry: OrderHistoryEntry): Promise<void>;
   /** Mark an approved order received and add its lines to stock. */
   receiveOrder(id: string, lines: StockLine[], entry: OrderHistoryEntry): Promise<void>;
+
+  // bills (බිල්පත්) — HR only
+  watchBills(cb: (bills: Bill[]) => void, onError?: (e: Error) => void): Unsub;
+  /** Read the shop, date, total and items from a bill photo. Null when reading is not available. */
+  readBill(photo: Blob): Promise<BillDetails | null>;
+  /** Save a bill photo (already made small by the page) with its details. */
+  addBill(photo: Blob, details: BillDetails): Promise<void>;
+  updateBill(id: string, details: BillDetails): Promise<void>;
+  deleteBill(id: string): Promise<void>;
 
   // push (phone / desktop, works when the app is closed)
   sendPush(uids: string[], payload: PushPayload): Promise<void>;
