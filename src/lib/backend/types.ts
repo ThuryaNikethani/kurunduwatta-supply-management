@@ -102,8 +102,6 @@ export interface Backend {
 
   // bills (බිල්පත්) — HR only
   watchBills(cb: (bills: Bill[]) => void, onError?: (e: Error) => void): Unsub;
-  /** Read the shop, date, total and items from a bill photo. Null when reading is not available. */
-  readBill(photo: Blob): Promise<BillDetails | null>;
   /** Save a bill photo (already made small by the page) with its details. */
   addBill(photo: Blob, details: BillDetails): Promise<void>;
   updateBill(id: string, details: BillDetails): Promise<void>;
