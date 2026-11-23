@@ -233,3 +233,31 @@ export function docLink(kind: NotifKind, id: string) {
   if (kind === "po") return "/notifications";
   return kind === "supply" ? `/requests/${id}` : `/leftovers/${id}`;
 }
+
+/** One line on a shop bill. */
+export interface BillItem {
+  name: string;
+  /** Amount as written on the bill, e.g. "2 kg". */
+  qty: string;
+  /** Price in rupees. */
+  amount: number;
+}
+
+/** What is written on a shop bill. */
+export interface BillDetails {
+  shop: string;
+  /** "YYYY-MM-DD" */
+  date: string;
+  total: number;
+  items: BillItem[];
+}
+
+/** A shop bill HR keeps: its photo and details. */
+export interface Bill extends BillDetails {
+  id: string;
+  /** Short-lived link to show the photo. */
+  url: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: number;
+}
