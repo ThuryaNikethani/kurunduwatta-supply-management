@@ -21,6 +21,7 @@ const TABLES = [
   "stock_moves",
   "stock_issues",
   "purchase_orders",
+  "bills",
 ];
 
 async function allRows(admin: SupabaseClient, table: string) {
