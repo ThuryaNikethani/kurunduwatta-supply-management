@@ -388,12 +388,6 @@ export const demoBackend: Backend = {
     return watch((s) => [...(s.bills ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), cb);
   },
 
-  // Practice mode cannot read photos; HR types the details.
-  async readBill() {
-    await delay();
-    return null;
-  },
-
   async addBill(photo, d) {
     const url = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
