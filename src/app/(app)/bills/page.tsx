@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { backend } from "@/lib/backend";
 import { readBillPhoto } from "@/lib/bill-ocr";
-import { shrinkBillPhoto } from "@/lib/bill-photo";
+import { photoForReading, shrinkBillPhoto } from "@/lib/bill-photo";
 import { formatDate, today } from "@/lib/format";
 import { useBills } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
@@ -96,8 +96,12 @@ export default function BillsPage() {
     setDraft({ photoUrl, photo, reading: true, shop: "", date: today(), total: "", items: [blankLine()] });
     setTimeout(() => formTop.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     try {
-      // The full photo reads better than the small copy that is kept.
-      const details = await readBillPhoto(file).catch(() => readBillPhoto(photo));
+      // Gemini on the server reads bills best; without it, the phone reads the photo itself.
+      // (The full photo reads better than the small grey copy that is kept.)
+      const fromServer = await photoForReading(file)
+        .then((p) => backend.readBill(p))
+        .catch(() => null);
+      const details = fromServer ?? (await readBillPhoto(file).catch(() => readBillPhoto(photo)));
       // The bill's own date decides its month; today's date only when none was read.
       const read = fromDetails(details);
       setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...read, date: read.date || today() } : d));
