@@ -2,7 +2,6 @@ import { accessToken, fromRow, supabase, toRow, vapidPublicKey } from "../supaba
 import type {
   AppNotification,
   Bill,
-  BillDetails,
   DocKind,
   PurchaseOrder,
   Recipe,
@@ -84,16 +83,6 @@ async function api(path: string, body: unknown) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.error ?? `request failed (${res.status})`), { code: data.code });
   return data;
-}
-
-/** A photo as plain base64 (no "data:" prefix), to send to our own API. */
-function blobToBase64(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
 }
 
 // ---------------------------------------------------------------- push
@@ -413,12 +402,6 @@ export const supabaseBackend: Backend = {
       cb,
       { onError },
     );
-  },
-
-  async readBill(photo) {
-    const image = await blobToBase64(photo);
-    const data = await api("/api/bills/read", { image, mediaType: photo.type || "image/jpeg" });
-    return (data.details as BillDetails | null) ?? null;
   },
 
   async addBill(photo, d) {
