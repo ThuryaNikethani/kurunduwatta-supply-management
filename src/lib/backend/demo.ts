@@ -388,6 +388,11 @@ export const demoBackend: Backend = {
     return watch((s) => [...(s.bills ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), cb);
   },
 
+  // Practice mode has no server; the page reads the photo itself.
+  async readBill() {
+    return null;
+  },
+
   async addBill(photo, d) {
     const url = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
