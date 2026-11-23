@@ -25,8 +25,9 @@ const Answer = z.object({
     .default([]),
 });
 
-// Newest free "flash" model first; GEMINI_MODEL can name another.
-const MODELS = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash"].filter(Boolean) as string[];
+// Flash-Lite answers in a few seconds and read the test bills correctly; Flash is tried when it is busy.
+// GEMINI_MODEL can name another model to try first.
+const MODELS = [process.env.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-flash-latest"].filter(Boolean) as string[];
 
 const PROMPT = `This is a photo of a shop bill (receipt) from Sri Lanka. It may be printed or handwritten, in Sinhala, English or both.
 
@@ -64,7 +65,7 @@ async function askGemini(model: string, key: string, image: string, mediaType: s
       contents: [{ role: "user", parts: [{ inline_data: { mime_type: mediaType, data: image } }, { text: PROMPT }] }],
       generationConfig: { temperature: 0, responseMimeType: "application/json", responseSchema: SCHEMA },
     }),
-    signal: AbortSignal.timeout(45_000),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!res.ok) return { status: res.status, details: null };
   const data = await res.json();
@@ -90,8 +91,12 @@ export async function POST(req: NextRequest) {
   for (const model of MODELS) {
     try {
       const { status, details } = await askGemini(model, key, parsed.data.image, parsed.data.mediaType);
-      // An unknown model name: try the next one. Anything else (limit reached, bad key): stop.
-      if (status === 404) continue;
+      // Limit reached or a bad key: the phone reads the photo instead. Busy or unknown model: try the next one.
+      if ([401, 403, 429].includes(status)) {
+        console.error("bill read: gemini answered", status);
+        return NextResponse.json({ details: null });
+      }
+      if (status !== 200) continue;
       if (!details) {
         console.error("bill read: gemini answered", status, "with", model);
         return NextResponse.json({ details: null });
@@ -108,8 +113,8 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch (e) {
+      // Too slow or an odd answer: try the next model.
       console.error("bill read failed with", model, e instanceof Error ? e.message : e);
-      return NextResponse.json({ details: null });
     }
   }
   return NextResponse.json({ details: null });
