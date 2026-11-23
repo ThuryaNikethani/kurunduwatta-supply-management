@@ -39,6 +39,17 @@ interface Draft {
   date: string;
   total: string;
   items: { name: string; qty: string; amount: string }[];
+  /** An old date read from the photo, shown so HR can choose it if it is right. */
+  readDate?: string;
+  /** Set after HR was warned that the same bill is already saved. */
+  dupOk?: boolean;
+}
+
+/** True if the date is within the last 60 days: a bill read with an older date is often misread. */
+function recent(date: string) {
+  if (!date) return false;
+  const days = (Date.now() - new Date(`${date}T00:00:00`).getTime()) / 86_400_000;
+  return days >= -1 && days <= 60;
 }
 
 const blankLine = () => ({ name: "", qty: "", amount: "" });
@@ -84,12 +95,16 @@ export default function BillsPage() {
     }
     const photoUrl = URL.createObjectURL(photo);
     setErrors({});
-    setDraft({ photoUrl, photo, reading: true, shop: "", date: "", total: "", items: [blankLine()] });
+    setDraft({ photoUrl, photo, reading: true, shop: "", date: today(), total: "", items: [blankLine()] });
     setTimeout(() => formTop.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     try {
       // The full photo reads better than the small copy that is kept.
       const details = await readBillPhoto(file).catch(() => readBillPhoto(photo));
-      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...fromDetails(details) } : d));
+      // Today's date stays unless the bill's date was read and is recent.
+      const read = fromDetails(details);
+      const date = recent(read.date) ? read.date : today();
+      const readDate = read.date && read.date !== date ? read.date : undefined;
+      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...read, date, readDate } : d));
     } catch {
       setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false } : d));
       toast.error(t("bills.readFailed"));
@@ -117,6 +132,11 @@ export default function BillsPage() {
   };
   const lineSum = draft ? round(draft.items.reduce((s, l) => s + toNum(l.amount), 0)) : 0;
   const draftTotal = draft ? toNum(draft.total) : 0;
+  const duplicate =
+    !!draft &&
+    (bills.data ?? []).some(
+      (b) => b.id !== draft.id && b.date === draft.date && Math.abs(b.total - draftTotal) < 0.01 && b.shop.trim() === draft.shop.trim(),
+    );
   const mismatch = !!draft && lineSum > 0 && draftTotal > 0 && Math.abs(lineSum - draftTotal) >= 0.01;
 
   async function save() {
@@ -130,11 +150,16 @@ export default function BillsPage() {
       .map((l) => ({ name: l.name.trim(), qty: l.qty.trim(), amount: toNum(l.amount) }))
       .filter((l) => l.name || l.amount);
     const details: BillDetails = { shop: draft.shop.trim(), date: draft.date, total: draftTotal, items };
+    // The same shop, date and total saved before is most likely the same bill.
+    if (!draft.dupOk && duplicate) {
+      update({ dupOk: true });
+      return;
+    }
     setSaving(true);
     try {
       if (draft.id) await backend.updateBill(draft.id, details);
       else await backend.addBill(draft.photo!, details);
-      toast.success(t("bills.saved"));
+      toast.success(t("bills.savedTo", { month: monthName(details.date.slice(0, 7)) }));
       // Show the month the bill belongs to.
       setDay("");
       setMonth(details.date.slice(0, 7));
@@ -207,7 +232,8 @@ export default function BillsPage() {
                     <Input id="b-shop" value={draft.shop} onChange={(e) => update({ shop: e.target.value })} />
                   </Field>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label={t("bills.date")} htmlFor="b-date" error={errors.date}>
+                    <Field label={t("bills.date")} htmlFor="b-date" error={errors.date}
+                      hint={draft.readDate && draft.readDate !== draft.date ? t("bills.readDate", { date: formatDate(draft.readDate) }) : undefined}>
                       <Input id="b-date" type="date" max={today()} value={draft.date} aria-invalid={!!errors.date}
                         onChange={(e) => update({ date: e.target.value })} />
                     </Field>
@@ -243,6 +269,14 @@ export default function BillsPage() {
                     </Button>
                   </div>
 
+                  {draft.readDate && draft.readDate !== draft.date && (
+                    <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => update({ date: draft.readDate })}>
+                      {t("bills.useReadDate", { date: formatDate(draft.readDate) })}
+                    </Button>
+                  )}
+                  {draft.dupOk && duplicate && (
+                    <p role="alert" className="rounded-xl bg-amber/20 p-3 text-sm">{t("bills.duplicate")}</p>
+                  )}
                   {mismatch && (
                     <p role="alert" className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                       {t("bills.mismatch", { sum: rs(lineSum), total: rs(draftTotal) })}
@@ -252,7 +286,7 @@ export default function BillsPage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Button variant="accent" size="lg" disabled={draft.reading || saving} onClick={save}>
-                    {saving ? t("saving") : t("save")}
+                    {saving ? t("saving") : draft.dupOk && duplicate ? t("bills.saveAgain") : t("save")}
                   </Button>
                   <Button variant="outline" size="lg" disabled={saving} onClick={close}>{t("cancel")}</Button>
                 </div>
