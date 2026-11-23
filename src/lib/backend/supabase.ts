@@ -1,6 +1,8 @@
 import { accessToken, fromRow, supabase, toRow, vapidPublicKey } from "../supabase";
 import type {
   AppNotification,
+  Bill,
+  BillDetails,
   DocKind,
   PurchaseOrder,
   Recipe,
@@ -82,6 +84,16 @@ async function api(path: string, body: unknown) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.error ?? `request failed (${res.status})`), { code: data.code });
   return data;
+}
+
+/** A photo as plain base64 (no "data:" prefix), to send to our own API. */
+function blobToBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] ?? "");
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
 }
 
 // ---------------------------------------------------------------- push
@@ -367,6 +379,73 @@ export const supabaseBackend: Backend = {
     if (!ids.length) return;
     const { error } = await supabase.from("notifications").update({ read: true }).in("id", ids);
     fail(error);
+  },
+
+  watchBills(cb, onError) {
+    return live(
+      "bills",
+      async (): Promise<Bill[]> => {
+        const { data, error } = await supabase
+          .from("bills")
+          .select("*")
+          .order("bill_date", { ascending: false })
+          .order("created_at", { ascending: false });
+        fail(error);
+        const rows = (data ?? []).map((r) => fromRow<Record<string, unknown>>(r));
+        if (!rows.length) return [];
+        const { data: links, error: linkError } = await supabase.storage
+          .from("bills")
+          .createSignedUrls(rows.map((r) => String(r.path)), 60 * 60 * 6);
+        fail(linkError);
+        const url = new Map((links ?? []).map((l) => [l.path, l.signedUrl]));
+        return rows.map((r) => ({
+          id: String(r.id),
+          url: url.get(String(r.path)) ?? "",
+          shop: String(r.shop ?? ""),
+          date: String(r.billDate ?? ""),
+          total: num(r.total),
+          items: (r.items as Bill["items"]) ?? [],
+          createdBy: String(r.createdBy ?? ""),
+          createdByName: String(r.createdByName ?? ""),
+          createdAt: num(r.createdAt),
+        }));
+      },
+      cb,
+      { onError },
+    );
+  },
+
+  async readBill(photo) {
+    const image = await blobToBase64(photo);
+    const data = await api("/api/bills/read", { image, mediaType: photo.type || "image/jpeg" });
+    return (data.details as BillDetails | null) ?? null;
+  },
+
+  async addBill(photo, d) {
+    const path = `${d.date.slice(0, 7)}/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage.from("bills").upload(path, photo, { contentType: photo.type || "image/jpeg" });
+    fail(error);
+    const { error: rowError } = await supabase
+      .from("bills")
+      .insert({ path, shop: d.shop, bill_date: d.date, total: d.total, items: d.items });
+    if (rowError) {
+      await supabase.storage.from("bills").remove([path]);
+      fail(rowError);
+    }
+  },
+
+  async updateBill(id, d) {
+    const { error } = await supabase
+      .from("bills")
+      .update({ shop: d.shop, bill_date: d.date, total: d.total, items: d.items })
+      .eq("id", id);
+    fail(error);
+  },
+
+  async deleteBill(id) {
+    const { data, error } = await supabase.from("bills").delete().eq("id", id).select("path").maybeSingle();
+    fail(error);
+    if (data?.path) await supabase.storage.from("bills").remove([data.path as string]);
   },
 
   watchStock(cb) {
