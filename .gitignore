@@ -21,6 +21,9 @@
 # production
 /build
 
+# bill reader files, copied from node_modules on install
+/public/tesseract/
+
 # misc
 .DS_Store
 *.pem
