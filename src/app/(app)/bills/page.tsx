@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { backend } from "@/lib/backend";
 import { readBillPhoto } from "@/lib/bill-ocr";
+import { shrinkBillPhoto } from "@/lib/bill-photo";
 import { formatDate, today } from "@/lib/format";
 import { useBills } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
@@ -27,20 +28,6 @@ const monthName = (m: string) => `${m.slice(0, 4)} ${MONTHS[Number(m.slice(5, 7)
 /** Rupees, e.g. "රු. 1,250.00". */
 const rs = (n: number) => `රු. ${n.toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const round = (n: number) => Math.round(n * 100) / 100;
-
-/** Make a phone photo small enough to send and keep (about 1600px, JPEG). */
-async function shrink(file: File): Promise<Blob> {
-  const img = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
-  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-  img.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("photo"))), "image/jpeg", 0.85),
-  );
-}
 
 /** The form while adding or correcting a bill. Amounts are kept as typed text. */
 interface Draft {
@@ -91,7 +78,7 @@ export default function BillsPage() {
     if (!file.type.startsWith("image/")) return toast.error(t("bills.notImage"));
     let photo: Blob;
     try {
-      photo = await shrink(file);
+      photo = await shrinkBillPhoto(file);
     } catch {
       return toast.error(t("bills.notImage"));
     }
