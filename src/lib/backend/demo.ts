@@ -2,6 +2,7 @@ import { DEFAULT_INGREDIENTS } from "../default-recipes";
 import { MENU, STAFF_MENU } from "../menu";
 import { loginCandidates, usernameKey } from "../username";
 import type {
+  Bill,
   OrderHistoryEntry,
   PurchaseOrder,
   StockIssue,
@@ -39,6 +40,8 @@ interface State {
   moves?: StockMove[];
   issues?: StockIssue[];
   orders?: PurchaseOrder[];
+  /** Photos are kept as data links in practice mode. */
+  bills?: Bill[];
 }
 
 const KEY = "kw-demo-v4";
@@ -378,6 +381,43 @@ export const demoBackend: Backend = {
   async markNotificationsRead(uid, ids) {
     mutate((s) => {
       for (const n of s.notifications[uid] ?? []) if (ids.includes(n.id)) n.read = true;
+    });
+  },
+
+  watchBills(cb) {
+    return watch((s) => [...(s.bills ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), cb);
+  },
+
+  // Practice mode cannot read photos; HR types the details.
+  async readBill() {
+    await delay();
+    return null;
+  },
+
+  async addBill(photo, d) {
+    const url = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(photo);
+    });
+    const me = load().users.find((u) => u.uid === currentSession());
+    if (!me || me.role !== "hr") throw new Error("permission denied");
+    mutate((s) => {
+      s.bills = [{ id: newId(), url, ...d, createdBy: me.uid, createdByName: me.name, createdAt: Date.now() }, ...(s.bills ?? [])];
+    });
+  },
+
+  async updateBill(id, d) {
+    mutate((s) => {
+      const b = (s.bills ?? []).find((x) => x.id === id);
+      if (b) Object.assign(b, d);
+    });
+  },
+
+  async deleteBill(id) {
+    mutate((s) => {
+      s.bills = (s.bills ?? []).filter((b) => b.id !== id);
     });
   },
 
