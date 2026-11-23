@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { backend } from "@/lib/backend";
+import { readBillPhoto } from "@/lib/bill-ocr";
 import { formatDate, today } from "@/lib/format";
 import { useBills } from "@/lib/hooks";
 import { errorText, useI18n } from "@/lib/i18n";
@@ -99,9 +100,9 @@ export default function BillsPage() {
     setDraft({ photoUrl, photo, reading: true, shop: "", date: "", total: "", items: [blankLine()] });
     setTimeout(() => formTop.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     try {
-      const details = await backend.readBill(photo);
-      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...(details ? fromDetails(details) : {}) } : d));
-      if (!details) toast.info(t("bills.readOff"));
+      // The full photo reads better than the small copy that is kept.
+      const details = await readBillPhoto(file).catch(() => readBillPhoto(photo));
+      setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false, ...fromDetails(details) } : d));
     } catch {
       setDraft((d) => (d && d.photoUrl === photoUrl ? { ...d, reading: false } : d));
       toast.error(t("bills.readFailed"));
