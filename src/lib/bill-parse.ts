@@ -5,12 +5,14 @@ import type { BillDetails, BillItem } from "./types";
  * Bills look very different, so this only guesses; HR always checks before saving.
  */
 
-const TOTAL_WORDS = /(grand\s*total|net\s*total|net\s*amount|total\s*amount|amount\s*due|bill\s*total|total|මුළු|එකතුව|මුදල)/i;
+const TOTAL_WORDS = /(grand\s*total|net\s*total|net\s*amount|total\s*amount|amount\s*due|bill\s*total|total|මුළු|එකතුව|එකනුව)/i;
+// Money that was handed over or given back, never the bill total.
+const PAID_WORDS = /(cash|tender|change|balance|paid|saving|you\s*saved|ඉතිරි|ගෙවූ|ගෙවීම්|ලැබූ|ලාභය|සංඛ්‍යාව)/i;
 const SUBTOTAL_WORDS = /(sub\s*-?\s*total|total\s*(items?|qty|quantity|no)|no\.?\s*of\s*items|items?\s*count)/i;
 // Lines that hold money but are not what was bought or the bill total.
-const NOT_ITEM = /(total|cash|tender|change|balance|discount|saving|vat|tax|card|visa|master|paid|due|round|ඉතිරි|වට්ටම්|එකතුව|මුළු|ගෙවූ|මුදල)/i;
+const NOT_ITEM = /(total|cash|tender|change|balance|discount|saving|vat|tax|card|visa|master|paid|due|round|ඉතිරි|වට්ටම්|එකතුව|එකනුව|මුළු|ගෙවූ|ගෙවීම්|මුදල|ලාභය|සංඛ්‍යාව)/i;
 const HEADER_WORDS = /(tel|phone|fax|mobile|hotline|e-?mail|www\.|\.com|\.lk|invoice|receipt|bill\s*no|cashier|counter|terminal|reg\s*no|vat\s*no|road|rd\.|street|mawatha|lane|colombo|දුරකථන|ලදුපත|පාර|මාවත)/i;
-const UNIT = String.raw`(?:kg|g|gm|gms|grams?|l|ltr|litres?|ml|pcs?|pkt|pack|btl|nos?|කි\.?|කිලෝ|ග්‍රෑම්|ලී\.?|ලීටර්)`;
+const UNIT = String.raw`(?:kg|k|g|gm|gms|grams?|l|ltr|litres?|ml|pcs?|pkt|pack|btl|nos?|කි\.?|කිලෝ|ග්‍රෑම්|ලී\.?|ලීටර්)`;
 
 const MONTHS: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
@@ -71,14 +73,23 @@ const letters = (s: string) => (s.match(/[a-z඀-෿]/gi) ?? []).length;
 const stripDateTime = (s: string) =>
   s.replace(/\b\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}\b/g, " ").replace(/\b\d{1,2}:\d{2}(:\d{2})?\s*(am|pm)?\b/gi, " ");
 
-/** The shop's name: the first line near the top that reads like a name. */
+/** True if the line reads like part of a shop's name. */
+function nameLike(line: string) {
+  const clean = line.replace(/[^\p{L}\p{M}\d\s&'.-]/gu, " ").replace(/^[\s.'&-]+/, "").replace(/\s+/g, " ").trim();
+  if (letters(clean) < 3 || HEADER_WORDS.test(clean) || TOTAL_WORDS.test(clean) || findDate(clean) || isPhone(clean)) return "";
+  // Mostly digits (an address number, a phone number) is not a name.
+  if ((clean.match(/\d/g) ?? []).length > letters(clean)) return "";
+  return clean;
+}
+
+/** The shop's name: the first line near the top that reads like a name, with a short second line ("Food City"). */
 function findShop(lines: string[]) {
-  for (const line of lines.slice(0, 6)) {
-    const clean = line.replace(/[^\p{L}\p{M}\d\s&'.-]/gu, " ").replace(/\s+/g, " ").trim();
-    if (letters(clean) < 3 || HEADER_WORDS.test(clean) || TOTAL_WORDS.test(clean) || findDate(clean)) continue;
-    // Mostly digits (an address number, a phone number) is not a name.
-    if ((clean.match(/\d/g) ?? []).length > letters(clean)) continue;
-    return clean;
+  for (let i = 0; i < Math.min(lines.length, 6); i++) {
+    const first = nameLike(lines[i]);
+    if (!first) continue;
+    const second = nameLike(lines[i + 1] ?? "");
+    const addSecond = second && !/\d/.test(second) && second.split(" ").length <= 3 && !/[,]/.test(lines[i + 1]);
+    return addSecond ? `${first} ${second}` : first;
   }
   return "";
 }
@@ -87,7 +98,7 @@ function findShop(lines: string[]) {
 function findTotal(lines: string[]) {
   let best: { n: number; rank: number } | null = null;
   lines.forEach((line, i) => {
-    if (!TOTAL_WORDS.test(line) || SUBTOTAL_WORDS.test(line)) return;
+    if (!TOTAL_WORDS.test(line) || SUBTOTAL_WORDS.test(line) || PAID_WORDS.test(line)) return;
     const n = readMoney(stripDateTime(line)) ?? (i + 1 < lines.length && letters(lines[i + 1]) === 0 ? readMoney(lines[i + 1]) : null);
     if (!n) return;
     // "Grand total" / "net total" beat a plain "total"; later lines beat earlier ones.
@@ -96,32 +107,105 @@ function findTotal(lines: string[]) {
   });
   if (best) return (best as { n: number }).n;
   const amounts = lines
-    .filter((l) => !/(cash|tender|change|balance|ඉතිරි|ගෙවූ)/i.test(l) && !findDate(l))
+    .filter((l) => !PAID_WORDS.test(l) && !findDate(l) && !isPhone(l))
     .map((l) => readMoney(stripDateTime(l)))
     .filter((n): n is number => n !== null);
   return amounts.length ? Math.max(...amounts) : 0;
 }
 
-/** Lines that look like "name … amount", read before the total. */
+/** A phone number line ("077 6 435633", "+94 11 234 5678"): starts with 0 or 94 and has 9–11 digits. */
+function isPhone(line: string) {
+  const m = line.match(/(?:^|[^\d])((?:\+?94|0)[\d\s-]{8,14})/);
+  if (!m) return false;
+  const digits = (m[1].match(/\d/g) ?? []).length;
+  return digits >= 9 && digits <= 11 && !/\d[.,]\d{2}\b/.test(m[1]);
+}
+
+/**
+ * A line of numbers only, e.g. "1   65.00   64.00   64.00" under an item's name.
+ * A few stray letters read from creases or ink ("1 woo 60.00 60.00") are allowed.
+ */
+function numberTokens(line: string) {
+  const tokens = line.match(/\d[\d,]*(?:\.\d{1,2})?/g);
+  if (!tokens) return null;
+  const l = letters(line);
+  if (l === 0) return tokens;
+  return tokens.length >= 2 && l <= 3 ? tokens : null;
+}
+
+/**
+ * Money from one number. When the reader drops the money point ("6400" for 64.00)
+ * and the bill writes cents elsewhere, a number ending in "00" is read as cents.
+ */
+function tokenMoney(token: string, billHasCents: boolean) {
+  const n = readMoney(token);
+  if (n === null) return null;
+  if (billHasCents && !/[.]/.test(token) && /^\d{2,}00$/.test(token.replace(/,/g, ""))) return n / 100;
+  return n;
+}
+
+/** An item's name, without a leading count and with "30g" fixed when read as "309". */
+function cleanName(line: string) {
+  return line
+    .replace(/^[\d.)\s-]+(?=\D)/, "")
+    .replace(/(\s\d{1,4})9$/, "$1g")
+    .trim();
+}
+
+/** Items: "name … amount" on one line, or a name line followed by a line of numbers. */
 function findItems(lines: string[]) {
   const items: BillItem[] = [];
-  const end = lines.findIndex((l) => TOTAL_WORDS.test(l) && !SUBTOTAL_WORDS.test(l));
-  for (const raw of end > 0 ? lines.slice(0, end) : lines) {
-    if (findDate(raw)) continue;
+  // Items end at the total line: a "total" word with an amount (a column heading "එකතුව" has none).
+  const end = lines.findIndex(
+    (l) => TOTAL_WORDS.test(l) && !SUBTOTAL_WORDS.test(l) && !PAID_WORDS.test(l) && readMoney(stripDateTime(l)) !== null,
+  );
+  const body = end > 0 ? lines.slice(0, end) : lines;
+  const billHasCents = /\d\.\d{2}\b/.test(lines.join(" "));
+  let pendingName = "";
+  body.forEach((raw, i) => {
+    if (findDate(raw) || isPhone(raw)) return;
     const line = stripDateTime(raw);
-    if (NOT_ITEM.test(line) || HEADER_WORDS.test(line) || letters(line) < 2) continue;
+    const tokens = numberTokens(line);
+    if (tokens) {
+      // Numbers under a name: the last is the line's amount; a small first number is the count.
+      if (!pendingName) return;
+      const amount = tokenMoney(tokens[tokens.length - 1], billHasCents);
+      const count = tokens.length >= 2 && /^\d{1,3}$/.test(tokens[0]) && Number(tokens[0]) <= 100 ? tokens[0] : "";
+      if (amount) items.push({ name: pendingName, qty: count, amount });
+      pendingName = "";
+      return;
+    }
+    if (NOT_ITEM.test(line) || HEADER_WORDS.test(line) || letters(line) < 2) {
+      pendingName = "";
+      return;
+    }
+    // A name whose numbers are on the next line.
+    // (A line that ends in its own amount keeps it, unless several numbers follow, as in "1  65.00  64.00  64.00".)
+    const next = numberTokens(stripDateTime(body[i + 1] ?? ""));
+    if (next && (next.length >= 2 || readMoney(line) === null)) {
+      pendingName = cleanName(line);
+      return;
+    }
+    pendingName = "";
     const amount = readMoney(line);
-    if (!amount) continue;
+    if (!amount) return;
     // Text before the first number is the name; an amount with a unit is the quantity.
-    const name = line.replace(/[\d.,\s/*xX@=-]+$/, "").split(/\s{2,}|\t|\s\d/)[0].replace(/^[\d.)\s-]+/, "").trim();
-    if (letters(name) < 2) continue;
-    const qtyMatch = line.slice(name.length).match(new RegExp(String.raw`(\d+(?:[.,]\d+)?\s*${UNIT})(?![a-z])`, "i"));
+    const name = line.replace(/[\d.,\s/*xX@=-]+$/, "").split(/\s{2,}|	|\s\d/)[0].replace(/^[\d.)\s-]+/, "").trim();
+    if (letters(name) < 2) return;
+    const rest = line.slice(name.length);
+    const qtyMatch = rest.match(new RegExp(String.raw`(\d+(?:[.,]\d+)?\s*${UNIT})(?![a-z])`, "i"));
     // Without a unit, a lone number between the name and the price is the count ("පොල් 4 400.00").
-    const count = line.slice(name.length).trim().match(/^(\d+(?:\.\d+)?)\s+\S/);
+    const count = rest.trim().match(/^(\d+(?:\.\d+)?)\s+\S/);
     const qty = qtyMatch ? qtyMatch[1].replace(/\s+/g, " ").trim() : count ? count[1] : "";
     items.push({ name, qty, amount });
-  }
-  return items;
+  });
+  // A weight in the name ("පරිප්පු පැකට් 1kg") is the quantity when no count was given.
+  return items.map((it) => {
+    // Marks read from creases or the edge of the paper are not part of a name.
+    it = { ...it, name: it.name.replace(/[\][|{}~_<>®©«»"]+/g, " ").replace(/\s+/g, " ").trim() };
+    const w = it.name.match(new RegExp(String.raw`\s(\d+(?:[.,]\d+)?\s*${UNIT})$`, "i"));
+    return w && !it.qty ? { ...it, name: it.name.slice(0, w.index).trim(), qty: w[1] } : it;
+  });
 }
 
 export function parseBillText(text: string): BillDetails {
