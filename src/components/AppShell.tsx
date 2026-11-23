@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   PlusCircle,
+  Receipt,
   KeyRound,
   RotateCcw,
   Users,
@@ -50,6 +51,7 @@ const NAV: { href: string; key: TKey; roles: Role[]; Icon: LucideIcon }[] = [
   { href: "/work", key: "nav.work", roles: ["supervisor"], Icon: ClipboardCheck },
   { href: "/requests/new", key: "nav.newList", roles: ["chef"], Icon: PlusCircle },
   { href: "/reports", key: "nav.reports", roles: ["hr"], Icon: BarChart3 },
+  { href: "/bills", key: "nav.bills", roles: ["hr"], Icon: Receipt },
   { href: "/notifications", key: "nav.notifications", roles: ["chef", "supervisor", "hr"], Icon: Bell },
   { href: "/users", key: "nav.users", roles: ["hr"], Icon: Users },
 ];
@@ -202,8 +204,8 @@ function useLiveNotifications() {
 
 /** Pages each role does not use. */
 const CLOSED: Record<Role, string[]> = {
-  chef: ["/dashboard", "/work", "/reports", "/users"],
-  supervisor: ["/dashboard", "/requests/new", "/reports", "/users"],
+  chef: ["/dashboard", "/work", "/reports", "/bills", "/users"],
+  supervisor: ["/dashboard", "/requests/new", "/reports", "/bills", "/users"],
   hr: ["/work", "/requests/new"],
 };
 /** Where each role starts: chefs on a new list, supervisors on the work waiting for them. */
