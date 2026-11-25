@@ -86,7 +86,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "invalid input" }, { status: 400 });
 
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return NextResponse.json({ details: null, off: true });
+  if (!key) {
+    console.error("bill read: GEMINI_API_KEY is not set");
+    return NextResponse.json({ details: null, off: true });
+  }
 
   for (const model of MODELS) {
     try {
@@ -96,7 +99,11 @@ export async function POST(req: NextRequest) {
         console.error("bill read: gemini answered", status);
         return NextResponse.json({ details: null });
       }
-      if (status !== 200) continue;
+      if (status !== 200) {
+        // 400 usually means the key is wrong; 503 that the model is busy.
+        console.error("bill read: gemini answered", status, "with", model);
+        continue;
+      }
       if (!details) {
         console.error("bill read: gemini answered", status, "with", model);
         return NextResponse.json({ details: null });
